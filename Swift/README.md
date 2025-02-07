@@ -1,10 +1,11 @@
 # Chat
 
-This document introduces **how to quickly run the Chat demo on the iOS platform.**
+This document introduces **how to quickly run the Swift Chat demo on the iOS platform.**
 
 > Please Attention: 
-> In respect for the copyright of the emoji design, the Chat Demo/TUIKit project does not include the cutouts of large emoji elements. Please replace them with your own designed or copyrighted emoji packs before the official launch for commercial use. The default small yellow face emoji pack is copyrighted by Tencent Cloud and can be authorized for a fee. If you wish to obtain authorization, please [Contact Us](https://trtc.io/contact).
-<img src="https://qcloudimg.tencent-cloud.cn/image/document/6438e8feb7bba909511e0d798dfaf91d.png" width="300px" />
+> In respect for the copyright of the emoji design, This Chat project does not include the cutouts of large emoji elements. Please replace them with your own designed or copyrighted emoji packs before the official launch for commercial use. The default small yellow face emoji pack is copyrighted by Tencent Cloud and can be authorized for a fee. If you wish to obtain authorization, please [Contact Us](https://trtc.io/contact).
+> 
+> <img src="https://qcloudimg.tencent-cloud.cn/image/document/6438e8feb7bba909511e0d798dfaf91d.png" width="300px" />
 
 
 ### Step 1. Create an App
@@ -53,7 +54,7 @@ pod setup
 ```
 2. Run the following commands on the terminal to load the Chat SDK library.
 ```
-cd iOS/Demo
+cd Swift/TUIKitDemo
 pod install
 ```
 3. If installation fails, run the following command to update the local CocoaPods repository list:
@@ -64,13 +65,13 @@ pod repo update
 ```
 pod update
 ```
-5. Go to the iOS/Demo folder and open `TUIKitDemo.xcworkspace` to compile and run the demo.
+5. Go to the Swift/TUIKitDemo folder and open `TUIKitDemo.xcworkspace` to compile and run the demo.
 
 ### Step 5: Compile and Run the Demo (Removing the Audio/Video Call Feature)
 If you do not need the audio/video call feature, remote it as follows:
-1. Go to the `iOS/Demo` folder, comment out the TUICallKit pod in the Podfile, and run the `pod install` command.
+1. Go to the `Swift/TUIKitDemo` folder, comment out the TUICallKit pod in the Podfile, and run the `pod install` command.
 ```
-# Uncomment this lib.
+# Comment this lib.
 # pod 'TUICallKit_Swift/Professional'
 ```
 
@@ -97,9 +98,9 @@ The contact profile UIs before and after TUICallKit masking are as follows:
 
 
 ### Step 6: Compile and Run the Demo (Removing the Search Feature)
-Go to the `iOS/Demo` folder, comment out the TUISearch pod in the Podfile, and run the `pod install` command.
+Go to the `Swift/TUIKitDemo` folder, comment out the TUISearch pod in the Podfile, and run the `pod install` command.
 ```
-# Uncomment this lib.
+# Comment this lib.
 # pod 'TUISearch'
 ```
 
