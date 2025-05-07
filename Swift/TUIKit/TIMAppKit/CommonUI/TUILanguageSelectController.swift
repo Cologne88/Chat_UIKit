@@ -168,11 +168,11 @@ public class TUILanguageSelectController: UIViewController, UITableViewDelegate,
         definesPresentationContext = true
         navigationController?.isNavigationBarHidden = false
 
-        titleView.setTitle(TUISwift.timCommonLocalizableString("TIMChangeLanguage") ?? "")
+        titleView.setTitle(TUISwift.timCommonLocalizableString("TIMChangeLanguage"))
         navigationItem.titleView = titleView
         navigationItem.title = ""
         
-        let image = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("ic_back_white"))).rtl_imageFlippedForRightToLeftLayoutDirection()
+        let image = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("ic_back_white"))).rtlImageFlippedForRightToLeftLayoutDirection()
         let backButton = UIButton(type: .custom)
         backButton.setImage(image, for: .normal)
         backButton.addTarget(self, action: #selector(back), for: .touchUpInside)
@@ -268,7 +268,7 @@ public class TUILanguageSelectController: UIViewController, UITableViewDelegate,
             TUIGlobalization.setRTLOption(false)
         }
         
-        TUIGlobalization.setPreferredLanguage(cellModel.languageID)
+        TUIGlobalization.setPreferredLanguage(cellModel.languageID ?? "")
         TUITool.configIMErrorMap()
         
         selectModel?.selected = false

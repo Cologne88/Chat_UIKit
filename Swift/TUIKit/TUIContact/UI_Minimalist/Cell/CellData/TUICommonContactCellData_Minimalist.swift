@@ -12,7 +12,7 @@ enum TUIContactOnlineStatus_Minimalist: Int {
 
 class TUICommonContactCellData_Minimalist: TUICommonCellData {
     var friendProfile: V2TIMFriendInfo?
-    var identifier: String
+    var identifier: String = ""
     var avatarUrl: URL?
     var title: String?
     var avatarImage: UIImage?
@@ -30,12 +30,13 @@ class TUICommonContactCellData_Minimalist: TUICommonCellData {
                 self.title = info.showName()
             }
         }
-        self.identifier = friend.userID.safeValue
-        if let info = friend.userFullInfo {
-            self.avatarUrl = URL(string: info.faceURL.safeValue)
-            self.faceUrl = info.faceURL.safeValue
+        if let userID = friend.userID {
+            self.identifier = userID
         }
-
+        if let info = friend.userFullInfo {
+            self.avatarUrl = URL(string: info.faceURL ?? "")
+            self.faceUrl = info.faceURL
+        }
         self.friendProfile = friend
         self.userID = friend.userID
 
@@ -43,13 +44,13 @@ class TUICommonContactCellData_Minimalist: TUICommonCellData {
     }
 
     init(groupInfo: V2TIMGroupInfo) {
-        self.title = groupInfo.groupName.safeValue
-        self.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType.safeValue)
-        self.avatarUrl = URL(string: groupInfo.faceURL.safeValue)
-        self.identifier = groupInfo.groupID.safeValue
-        self.groupID = groupInfo.groupID.safeValue
-        self.groupType = groupInfo.groupType.safeValue
-        self.faceUrl = groupInfo.faceURL.safeValue
+        self.title = groupInfo.groupName
+        self.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType)
+        self.avatarUrl = URL(string: groupInfo.faceURL ?? "")
+        self.identifier = groupInfo.groupID ?? ""
+        self.groupID = groupInfo.groupID
+        self.groupType = groupInfo.groupType
+        self.faceUrl = groupInfo.faceURL
         super.init()
     }
 

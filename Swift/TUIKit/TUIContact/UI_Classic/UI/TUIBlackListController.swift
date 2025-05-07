@@ -47,7 +47,7 @@ class TUIBlackListController: UITableViewController, V2TIMFriendshipListener {
         tableView.tableFooterView = UIView()
         tableView.backgroundColor = view.backgroundColor
 
-        V2TIMManager.sharedInstance().addFriendListener(listener: self)
+       V2TIMManager.sharedInstance().addFriendListener(listener: self)
 
         tableView.addSubview(noDataTipsLabel)
     }
@@ -59,11 +59,11 @@ class TUIBlackListController: UITableViewController, V2TIMFriendshipListener {
 
     // MARK: - V2TIMFriendshipListener
 
-    func onBlackListAdded(_ infoList: [V2TIMFriendInfo]) {
+    func onBlackListAdded(infoList: [V2TIMFriendInfo]) {
         viewModel?.loadBlackList()
     }
 
-    func onBlackListDeleted(_ userIDList: [String]) {
+    func onBlackListDeleted(userIDList: [String]) {
         viewModel?.loadBlackList()
     }
 

@@ -4,7 +4,7 @@ import TUICore
 
 public class TUIConversationService: NSObject {
     @objc public class func swiftLoad() {
-        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIConversationTheme", key: TUIConversationBundle_Key_Class), themeModule: TUIThemeModule.conversation)
+        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIConversationTheme", key: "TUIConversationService"), themeModule: TUIThemeModule.conversation)
     }
 
     static let shared: TUIConversationService = {

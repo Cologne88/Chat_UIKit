@@ -15,16 +15,14 @@ class TUIFindContactViewDataProvider: NSObject {
         }
 
         V2TIMManager.sharedInstance().getUsersInfo([userID], succ: { [weak self] infoList in
-            guard let self else { return }
-            if let userInfo = infoList?.first {
+            guard let self, let infoList = infoList else { return }
+            if let userInfo = infoList.first {
                 let cellModel = TUIFindContactCellModel(type: TUIFindContactType.c2c)
                 if let faceUrl = userInfo.faceURL {
                     cellModel.avatarUrl = URL(string: faceUrl) ?? URL(string: "")
                 }
                 cellModel.mainTitle = userInfo.nickName ?? userInfo.userID
-                if let userID = userInfo.userID {
-                    cellModel.subTitle = "ID: \(userID)"
-                }
+                cellModel.subTitle = "ID: \(userInfo.userID ?? "")"
                 cellModel.desc = ""
                 cellModel.type = TUIFindContactType.c2c
                 cellModel.contactID = userInfo.userID
@@ -46,8 +44,8 @@ class TUIFindContactViewDataProvider: NSObject {
         }
 
         V2TIMManager.sharedInstance().getGroupsInfo([groupID], succ: { [weak self] groupResultList in
-            guard let self else { return }
-            if let result = groupResultList?.first, result.resultCode == 0 {
+            guard let self, let groupResultList = groupResultList else { return }
+            if let result = groupResultList.first, result.resultCode == 0 {
                 let info = result.info
                 let cellModel = TUIFindContactCellModel(type: TUIFindContactType.c2c)
                 if let faceUrl = info?.faceURL {
@@ -55,7 +53,7 @@ class TUIFindContactViewDataProvider: NSObject {
                 }
                 cellModel.mainTitle = info?.groupName
                 cellModel.subTitle = "ID: \(info?.groupID ?? "")"
-                cellModel.desc = "\(TUISwift.timCommonLocalizableString("TUIKitGroupProfileType") ?? ""): \(info?.groupType ?? "")"
+                cellModel.desc = "\(TUISwift.timCommonLocalizableString("TUIKitGroupProfileType")): \(info?.groupType ?? "")"
                 cellModel.type = TUIFindContactType.group
                 cellModel.contactID = info?.groupID
                 cellModel.groupInfo = info

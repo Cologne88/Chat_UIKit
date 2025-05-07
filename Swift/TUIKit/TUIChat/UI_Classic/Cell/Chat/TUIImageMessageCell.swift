@@ -49,7 +49,7 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
         thumbProgressObservation = nil
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let imageData = data as? TUIImageMessageCellData else {
             assertionFailure("data must be kind of TUIImageMessageCellData")
@@ -58,7 +58,7 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
         self.imageData = imageData
         thumb.image = nil
 
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             thumb.image = TUISwift.timCommonBundleThemeImage("", defaultImage: "icon_security_strike")
             securityStrikeView.textLabel.text = TUISwift.timCommonLocalizableString("TUIKitMessageTypeSecurityStrikeImage")
@@ -113,10 +113,10 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
 
         var topMargin: CGFloat = 0
         var height = bubbleView.mm_h
-        if messageData.messageContainerAppendSize.height > 0 {
+        if (messageData?.messageContainerAppendSize.height ?? 0) > 0 {
             topMargin = 10
             let tagViewTopMargin: CGFloat = 6
-            height = bubbleView.mm_h - topMargin - messageData.messageContainerAppendSize.height - tagViewTopMargin
+            height = bubbleView.mm_h - topMargin - (messageData?.messageContainerAppendSize.height ?? 0) - tagViewTopMargin
             thumb.snp.remakeConstraints { make in
                 make.height.equalTo(height)
                 make.width.equalTo(bubbleView)
@@ -125,14 +125,14 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
             }
         } else {
             thumb.snp.remakeConstraints { make in
-                make.top.equalTo(bubbleView).offset(messageData.cellLayout.bubbleInsets.top)
-                make.bottom.equalTo(bubbleView).offset(-messageData.cellLayout.bubbleInsets.bottom)
-                make.leading.equalTo(bubbleView).offset(messageData.cellLayout.bubbleInsets.left)
-                make.trailing.equalTo(bubbleView).offset(-messageData.cellLayout.bubbleInsets.right)
+                make.top.equalTo(bubbleView).offset(messageData?.cellLayout?.bubbleInsets.top ?? 0)
+                make.bottom.equalTo(bubbleView).offset(-(messageData?.cellLayout?.bubbleInsets.bottom ?? 0))
+                make.leading.equalTo(bubbleView).offset(messageData?.cellLayout?.bubbleInsets.left ?? 0)
+                make.trailing.equalTo(bubbleView).offset(-(messageData?.cellLayout?.bubbleInsets.right ?? 0))
             }
         }
 
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             thumb.snp.remakeConstraints { make in
                 make.top.equalTo(bubbleView).offset(12)
@@ -143,7 +143,7 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
             securityStrikeView.snp.remakeConstraints { make in
                 make.top.equalTo(thumb.snp.bottom)
                 make.width.equalTo(bubbleView)
-                make.bottom.equalTo(container).offset(-messageData.messageContainerAppendSize.height)
+                make.bottom.equalTo(container).offset(-(messageData?.messageContainerAppendSize.height ?? 0))
             }
         }
 
@@ -158,7 +158,7 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
         selectedIcon.snp.remakeConstraints { make in
             make.leading.equalTo(contentView).offset(3)
             make.top.equalTo(avatarView.snp.centerY).offset(-10)
-            if messageData.showCheckBox {
+            if messageData?.showCheckBox ?? false {
                 make.width.equalTo(20)
                 make.height.equalTo(20)
             } else {
@@ -170,7 +170,7 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
         timeLabel.snp.remakeConstraints { make in
             make.trailing.equalTo(contentView).offset(-10)
             make.top.equalTo(avatarView)
-            if messageData.showMessageTime {
+            if messageData?.showMessageTime ?? false {
                 make.width.equalTo(timeLabel.frame.size.width)
                 make.height.equalTo(timeLabel.frame.size.height)
             } else {
@@ -184,7 +184,7 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
         super.layoutSubviews()
     }
 
-    override func highlight(whenMatchKeyword keyword: String?) {
+    override open func highlightWhenMatchKeyword(_ keyword: String?) {
         if let _ = keyword {
             if highlightAnimating {
                 return
@@ -232,12 +232,13 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
             assertionFailure("data must be kind of TUIImageMessageCellData")
             return CGSize.zero
         }
-        guard let path = imageCellData.path else { return CGSize.zero }
 
         var size = CGSize.zero
-        var isDir = ObjCBool(false)
-        if !path.isEmpty && FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && !isDir.boolValue {
-            size = UIImage(contentsOfFile: path)?.size ?? CGSize.zero
+        if let path = imageCellData.path {
+            var isDir = ObjCBool(false)
+            if !path.isEmpty && FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && !isDir.boolValue {
+                size = UIImage(contentsOfFile: path)?.size ?? CGSize.zero
+            }
         }
 
         if size == .zero {
@@ -282,7 +283,7 @@ class TUIImageMessageCell: TUIBubbleMessageCell {
             size.width = TUISwift.tImageMessageCell_Image_Width_Max()
         }
 
-        let hasRiskContent = imageCellData.innerMessage.hasRiskContent
+        let hasRiskContent = imageCellData.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             let bubbleTopMargin: CGFloat = 12
             let bubbleBottomMargin: CGFloat = 12

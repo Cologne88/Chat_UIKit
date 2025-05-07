@@ -11,7 +11,7 @@ class TUIFaceMessageCell: TUIBubbleMessageCell {
         face = UIImageView()
         face.contentMode = .scaleAspectFit
         container.addSubview(face)
-        face.mm_fill()
+        face.mm__fill()
         face.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         face.backgroundColor = .clear
     }
@@ -31,10 +31,10 @@ class TUIFaceMessageCell: TUIBubbleMessageCell {
         var topMargin: CGFloat = 0
         var height = container.frame.height
 
-        if messageData.messageContainerAppendSize.height > 0 {
+        if (messageData?.messageContainerAppendSize.height ?? 0) > 0 {
             topMargin = 10
             let tagViewTopPadding: CGFloat = 6
-            height = container.frame.height - topMargin - messageData.messageContainerAppendSize.height - tagViewTopPadding
+            height = container.frame.height - topMargin - (messageData?.messageContainerAppendSize.height ?? 0) - tagViewTopPadding
             bubbleView.isHidden = false
         } else {
             bubbleView.isHidden = true
@@ -52,7 +52,7 @@ class TUIFaceMessageCell: TUIBubbleMessageCell {
         super.layoutSubviews()
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIFaceMessageCellData else {
             assertionFailure("data must be kind of TUIFaceMessageCellData")
@@ -62,7 +62,7 @@ class TUIFaceMessageCell: TUIBubbleMessageCell {
         if let path = data.path {
             var image: UIImage? = TUIImageCache.sharedInstance().getFaceFromCache(path)
             if image == nil {
-                image = UIImage(named: TUISwift.tuiChatFaceImagePath("ic_unknown_image"))
+                image = UIImage.safeImage(TUISwift.tuiChatFaceImagePath("ic_unknown_image"))
             }
             face.image = image
         }
@@ -79,7 +79,7 @@ class TUIFaceMessageCell: TUIBubbleMessageCell {
             return CGSize.zero
         }
 
-        var image: UIImage? = TUIImageCache.sharedInstance().getFaceFromCache(faceCellData.path.safeValue)
+        var image: UIImage? = TUIImageCache.sharedInstance().getFaceFromCache(faceCellData.path ?? "")
         if image == nil {
             image = UIImage(contentsOfFile: TUISwift.tuiChatFaceImagePath("ic_unknown_image"))
         }

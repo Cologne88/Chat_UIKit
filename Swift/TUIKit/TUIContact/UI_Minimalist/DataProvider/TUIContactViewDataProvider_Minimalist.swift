@@ -2,8 +2,7 @@
 //  TUIContact
 
 import Foundation
-import ImSDK_Plus
-import TUICore
+import TIMCommon
 
 /**
  * 【Module name】Message List View Model (TContactViewModel)
@@ -38,12 +37,12 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
      */
     @objc dynamic var pendencyCnt: UInt = 0
 
-    private var contactMap: [String: TUICommonContactCellData_Minimalist] = [:]
+    public var contactMap: [String: TUICommonContactCellData_Minimalist] = [:]
 
     override init() {
         super.init()
         V2TIMManager.sharedInstance().addFriendListener(listener: self)
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
     }
 
     deinit {
@@ -53,8 +52,7 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
     func loadContacts() {
         isLoadFinished = false
         V2TIMManager.sharedInstance().getFriendList { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+            guard let self = self, let infoList = infoList else { return }
             var dataDict: [String: [TUICommonContactCellData_Minimalist]] = [:]
             var groupList: [String] = []
             var nonameList: [TUICommonContactCellData_Minimalist] = []
@@ -72,7 +70,7 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
                     userIDList.append(identifier)
                 }
 
-                let group = data.title.safeValue.firstPinYin().uppercased()
+                let group = data.title?.firstPinYin().uppercased() ?? ""
                 if group.isEmpty || !group.first!.isLetter {
                     nonameList.append(data)
                     continue
@@ -92,7 +90,7 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
             }
             for key in dataDict.keys {
                 var sortedList = dataDict[key]
-                sortedList?.sort { $0.title.safeValue < $1.title.safeValue }
+                sortedList?.sort { ($0.title ?? "") < ($1.title ?? "") }
                 dataDict[key] = sortedList
             }
             self.groupList = groupList
@@ -111,8 +109,7 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
 
     func loadFriendApplication() {
         V2TIMManager.sharedInstance().getFriendApplicationList { [weak self] result in
-            guard let self = self else { return }
-            guard let result = result else { return }
+            guard let self = self, let result = result else { return }
             self.pendencyCnt = UInt(result.unreadCount)
         } fail: { _, _ in }
     }
@@ -131,9 +128,8 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
 
         let getUserStatus: ([String]) -> Void = { [weak self] userIDList in
             guard let self = self else { return }
-            V2TIMManager.sharedInstance().getUserStatus(userIDList) { [weak self] result in
-                guard let self = self else { return }
-                guard let result = result else { return }
+            V2TIMManager.sharedInstance().getUserStatus(userIDList: userIDList) { [weak self] result in
+                guard let self = self, let result = result else { return }
                 self.handleOnlineStatus(result)
             } fail: { code, desc in
                 #if DEBUG
@@ -188,9 +184,9 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
     func handleOnlineStatus(_ userStatusList: [V2TIMUserStatus]) {
         var changed = 0
         for userStatus in userStatusList {
-            if let contact = contactMap[userStatus.userID.safeValue] {
+            if let userID = userStatus.userID, let contact = contactMap[userID] {
                 changed += 1
-                contact.onlineStatus = (userStatus.statusType == .USER_STATUS_ONLINE) ? .online : .offline
+                contact.onlineStatus = (userStatus.statusType == .USER_STATUS_ONLINE) ? TUIContactOnlineStatus_Minimalist.online : TUIContactOnlineStatus_Minimalist.offline
             }
         }
         if changed == 0 {
@@ -212,7 +208,7 @@ class TUIContactViewDataProvider_Minimalist: NSObject {
 }
 
 extension TUIContactViewDataProvider_Minimalist: V2TIMSDKListener {
-    func onUserStatusChanged(_ userStatusList: [V2TIMUserStatus]) {
+    func onUserStatusChanged(userStatusList: [V2TIMUserStatus]) {
         handleOnlineStatus(userStatusList)
     }
 
@@ -227,11 +223,11 @@ extension TUIContactViewDataProvider_Minimalist: V2TIMSDKListener {
 }
 
 extension TUIContactViewDataProvider_Minimalist: V2TIMFriendshipListener {
-    func onFriendApplicationListAdded(_ applicationList: [V2TIMFriendApplication]) {
+    func onFriendApplicationListAdded(applicationList: [V2TIMFriendApplication]) {
         loadFriendApplication()
     }
 
-    func onFriendApplicationListDeleted(_ userIDList: [Any]!) {
+    func onFriendApplicationListDeleted(userIDList: [Any]!) {
         loadFriendApplication()
     }
 
@@ -239,15 +235,15 @@ extension TUIContactViewDataProvider_Minimalist: V2TIMFriendshipListener {
         loadFriendApplication()
     }
 
-    func onFriendListAdded(_ infoList: [V2TIMFriendInfo]) {
+    func onFriendListAdded(infoList: [V2TIMFriendInfo]) {
         loadContacts()
     }
 
-    func onFriendListDeleted(_ userIDList: [Any]!) {
+    func onFriendListDeleted(userIDList: [Any]!) {
         loadContacts()
     }
 
-    func onFriendProfileChanged(_ infoList: [V2TIMFriendInfo]) {
+    func onFriendProfileChanged(infoList: [V2TIMFriendInfo]) {
         loadContacts()
     }
 }

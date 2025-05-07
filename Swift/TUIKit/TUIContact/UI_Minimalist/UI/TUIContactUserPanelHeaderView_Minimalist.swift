@@ -1,8 +1,8 @@
 //  TUIContactUserPanelHeaderView_Minimalist.swift
 //  TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUIContactPanelCell_Minimalist: UICollectionViewCell {
     private let imageView = UIImageView(frame: .zero)
@@ -11,18 +11,19 @@ class TUIContactPanelCell_Minimalist: UICollectionViewCell {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        self.backgroundColor = .white
+        backgroundColor = .white
         imageView.backgroundColor = .clear
         imageView.contentMode = .scaleToFill
         addSubview(imageView)
 
-        imageIcon.image = UIImage(named: TUISwift.tuiContactImagePath_Minimalist("contact_info_del_icon"))
+        imageIcon.image = UIImage.safeImage(TUISwift.tuiContactImagePath_Minimalist("contact_info_del_icon"))
         addSubview(imageIcon)
 
         nameLabel.font = UIFont.systemFont(ofSize: TUISwift.kScale390(12))
         addSubview(nameLabel)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -50,7 +51,7 @@ class TUIContactPanelCell_Minimalist: UICollectionViewCell {
     }
 
     func fillWithData(_ model: TUICommonContactSelectCellData) {
-        imageView.sd_setImage(with: model.avatarUrl, placeholderImage: UIImage(named: TUISwift.timCommonImagePath("default_c2c_head")), options: .highPriority)
+        imageView.sd_setImage(with: model.avatarUrl, placeholderImage: UIImage.safeImage(TUISwift.timCommonImagePath("default_c2c_head")), options: .highPriority)
         nameLabel.text = model.title
     }
 }
@@ -64,7 +65,7 @@ class TUIContactUserPanelHeaderView_Minimalist: UIView, UICollectionViewDelegate
         super.init(frame: frame)
         var topPadding: CGFloat = 44.0
         if #available(iOS 11.0, *) {
-            if let window = UIApplication.shared.keyWindow {
+            if let window = TUITool.applicationKeywindow() {
                 topPadding = window.safeAreaInsets.top
             }
         }
@@ -74,6 +75,7 @@ class TUIContactUserPanelHeaderView_Minimalist: UIView, UICollectionViewDelegate
         userPanel.isUserInteractionEnabled = true
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -103,6 +105,7 @@ class TUIContactUserPanelHeaderView_Minimalist: UIView, UICollectionViewDelegate
     }()
 
     // MARK: UICollectionViewDelegate
+
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         return 1
     }
@@ -124,7 +127,7 @@ class TUIContactUserPanelHeaderView_Minimalist: UIView, UICollectionViewDelegate
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let model = selectedUsers[indexPath.row]
-        let size = model.title.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: 20), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize:TUISwift.kScale390(12))], context: nil).size
+        let size = model.title.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: 20), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: TUISwift.kScale390(12))], context: nil).size
         return CGSize(width: max(TUISwift.kScale390(60), size.width), height: TUISwift.kScale390(60))
     }
 

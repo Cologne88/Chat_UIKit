@@ -1,4 +1,3 @@
-import ReactiveObjC
 import TIMCommon
 import UIKit
 
@@ -7,7 +6,7 @@ class TUIConversationForwardSelectCell_Minimalist: UITableViewCell {
     var avatarView: UIImageView!
     var titleLabel: UILabel!
     var selectData: TUIConversationCellData?
-    let faceUrlObserver = Observer()
+    private var faceUrlObservation: NSKeyValueObservation?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -22,16 +21,17 @@ class TUIConversationForwardSelectCell_Minimalist: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         avatarView.image = nil
-        selectData?.faceUrl.removeObserver(faceUrlObserver)
+        faceUrlObservation?.invalidate()
+        faceUrlObservation = nil
     }
 
     private func setupViews() {
         selectButton = UIButton(type: .custom)
         contentView.addSubview(selectButton)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_normal")), for: .normal)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_pressed")), for: .highlighted)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_selected")), for: .selected)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_selected_disable")), for: .disabled)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_normal")), for: .normal)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_pressed")), for: .highlighted)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_selected")), for: .selected)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_selected_disable")), for: .disabled)
         selectButton.autoresizingMask = [.flexibleTopMargin, .flexibleBottomMargin]
         selectButton.isUserInteractionEnabled = false
 
@@ -50,7 +50,7 @@ class TUIConversationForwardSelectCell_Minimalist: UITableViewCell {
 //    There is no such method in swift
 //    override func setFrame(_ frame: CGRect) {
 //        var newFrame = frame
-//        newFrame.size.width = Screen_Width
+//        newFrame.size.width = TUISwift.screen_Width()
 //        super.setFrame(newFrame)
 //    }
 
@@ -94,7 +94,7 @@ class TUIConversationForwardSelectCell_Minimalist: UITableViewCell {
 
     func fillWithData(_ selectData: TUIConversationCellData) {
         self.selectData = selectData
-        titleLabel.text = selectData.title.value
+        titleLabel.text = selectData.title
         configHeadImageView(selectData)
         selectButton.isSelected = selectData.selected
         selectButton.isHidden = !selectData.showCheckBox
@@ -106,14 +106,14 @@ class TUIConversationForwardSelectCell_Minimalist: UITableViewCell {
 
     private func configHeadImageView(_ convData: TUIConversationCellData) {
         if let groupID = convData.groupID, groupID.count > 0 {
-            convData.avatarImage = TUIGroupAvatar.getNormalGroupCacheAvatar(groupID, groupType: convData.groupType ?? "")
+            convData.avatarImage = TUIGroupAvatar.getNormalGroupCacheAvatar(groupID: groupID, groupType: convData.groupType)
         }
 
-        convData.faceUrl.addObserver(faceUrlObserver) { [weak self] _, _ in
+        faceUrlObservation = convData.observe(\.faceUrl, options: [.new, .initial]) { [weak self] _, _ in
             guard let self = self else { return }
             let groupID = convData.groupID ?? ""
-            let pFaceUrl = convData.faceUrl.value
-            let groupType = convData.groupType ?? ""
+            let pFaceUrl = convData.faceUrl ?? ""
+            let groupType = convData.groupType
             let originAvatarImage: UIImage? = convData.avatarImage ?? (groupID.count > 0 ? TUISwift.defaultGroupAvatarImage(byGroupType: groupType) : TUISwift.defaultAvatarImage())
             let param: [String: Any] = [
                 "groupID": groupID,
@@ -121,8 +121,9 @@ class TUIConversationForwardSelectCell_Minimalist: UITableViewCell {
                 "groupType": groupType,
                 "originAvatarImage": originAvatarImage ?? UIImage()
             ]
-            TUIGroupAvatar.configAvatar(byParam: param, targetView: self.avatarView)
+            TUIGroupAvatar.configAvatar(by: param, targetView: self.avatarView)
         }
-        convData.faceUrl.value = convData.faceUrl.value
+        let faceUrl = convData.faceUrl
+        convData.faceUrl = faceUrl
     }
 }

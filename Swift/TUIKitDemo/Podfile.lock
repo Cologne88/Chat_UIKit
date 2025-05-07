@@ -1,29 +1,21 @@
 PODS:
-  - Factory (2.3.2)
-  - Masonry (1.1.0)
   - MJExtension (3.4.1)
   - MJRefresh (3.7.5)
-  - ReactiveObjC (3.1.1)
-  - RTCRoomEngine/Professional (2.8.3):
-    - TXIMSDK_Plus_iOS_XCFramework (>= 8.1.6116)
-    - TXLiteAVSDK_Professional (>= 12.2.16956)
   - SDWebImage (5.18.11):
     - SDWebImage/Core (= 5.18.11)
   - SDWebImage/Core (5.18.11)
   - SnapKit (5.7.1)
   - SSZipArchive (2.4.3)
-  - TIMAppKit (8.4.6667):
-    - ReactiveObjC
+  - TIMAppKit_Swift (8.5.6870):
     - SnapKit
-    - TIMCommon
-    - TUIChat
-    - TUIContact
-    - TUIConversation
+    - TIMCommon_Swift
+    - TUIChat_Swift
+    - TUIContact_Swift
+    - TUIConversation_Swift
     - TUICore
-  - TIMCommon (8.4.6667):
-    - Masonry
-    - ReactiveObjC
+  - TIMCommon_Swift (8.5.6870):
     - SDWebImage
+    - SnapKit
     - TUICore
   - TIMPush (8.4.6667)
   - TUICallEngine/Professional (2.7.0.1145):
@@ -34,177 +26,119 @@ PODS:
     - TUICallEngine/Professional (~> 2.7.0.1145)
     - TUICore (>= 8.4.6667)
     - TXLiteAVSDK_Professional
-  - TUIChat (8.4.6667):
-    - ReactiveObjC
+  - TUIChat_Swift (8.5.6870):
     - SDWebImage
     - SnapKit
-    - TIMCommon
+    - TIMCommon_Swift
     - TUICore
-  - TUIContact (8.4.6667):
-    - ReactiveObjC
+  - TUIContact_Swift (8.5.6870):
     - SnapKit
-    - TIMCommon
+    - TIMCommon_Swift
     - TUICore
-  - TUIConversation (8.4.6667):
-    - ReactiveObjC
+  - TUIConversation_Swift (8.5.6870):
     - SnapKit
-    - TIMCommon
+    - TIMCommon_Swift
     - TUICore
-  - TUICore (8.4.6667):
+  - TUICore (8.5.6870):
     - SDWebImage
-    - TUICore/ImSDK_Plus (= 8.4.6667)
-  - TUICore/Base (8.4.6667):
+    - TUICore/ImSDK_Plus (= 8.5.6870)
+  - TUICore/Base (8.5.6870):
     - SDWebImage
-  - TUICore/ImSDK_Plus (8.4.6667):
+  - TUICore/ImSDK_Plus (8.5.6870):
     - SDWebImage
     - TUICore/Base
     - TXIMSDK_Plus_iOS_XCFramework
-  - TUIRoomKit/Professional (2.8.4):
-    - Factory (~> 2.3.0)
-    - RTCRoomEngine/Professional (~> 2.8.0)
+  - TUISearch_Swift (8.5.6870):
     - SnapKit
-    - TIMCommon
+    - TIMCommon_Swift
     - TUICore
-  - TUISearch (8.4.6667):
-    - TUISearch/ALL (= 8.4.6667)
-  - TUISearch/ALL (8.4.6667):
-    - TUISearch/UI_Classic
-    - TUISearch/UI_Minimalist
-  - TUISearch/BaseCell (8.4.6667):
-    - TUISearch/BaseCell/CellData (= 8.4.6667)
-    - TUISearch/BaseCell/CellUI (= 8.4.6667)
-  - TUISearch/BaseCell/CellData (8.4.6667):
-    - TIMCommon (~> 8.4.6667)
+  - TUITranslationPlugin_Swift (8.5.6870):
+    - TIMCommon_Swift
+    - TUIChat_Swift
     - TUICore
-    - TXIMSDK_Plus_iOS_XCFramework
-  - TUISearch/BaseCell/CellUI (8.4.6667):
-    - TUISearch/BaseCell/CellData
-  - TUISearch/BaseDataProvider (8.4.6667):
-    - TUISearch/BaseCell
-  - TUISearch/UI_Classic (8.4.6667):
-    - TUISearch/UI_Classic/Header (= 8.4.6667)
-    - TUISearch/UI_Classic/Service (= 8.4.6667)
-    - TUISearch/UI_Classic/UI (= 8.4.6667)
-  - TUISearch/UI_Classic/Header (8.4.6667):
-    - TUISearch/UI_Classic/Service
-  - TUISearch/UI_Classic/Service (8.4.6667):
-    - TUISearch/UI_Classic/UI
-  - TUISearch/UI_Classic/UI (8.4.6667):
-    - TUISearch/BaseDataProvider
-  - TUISearch/UI_Minimalist (8.4.6667):
-    - TUISearch/UI_Minimalist/Cell (= 8.4.6667)
-    - TUISearch/UI_Minimalist/Header (= 8.4.6667)
-    - TUISearch/UI_Minimalist/Service (= 8.4.6667)
-    - TUISearch/UI_Minimalist/UI (= 8.4.6667)
-  - TUISearch/UI_Minimalist/Cell (8.4.6667):
-    - TUISearch/UI_Minimalist/Cell/CellUI (= 8.4.6667)
-  - TUISearch/UI_Minimalist/Cell/CellUI (8.4.6667):
-    - TUISearch/BaseDataProvider
-  - TUISearch/UI_Minimalist/Header (8.4.6667):
-    - TUISearch/UI_Minimalist/Service
-  - TUISearch/UI_Minimalist/Service (8.4.6667):
-    - TUISearch/UI_Minimalist/UI
-  - TUISearch/UI_Minimalist/UI (8.4.6667):
-    - TUISearch/UI_Minimalist/Cell
-  - TUITranslationPlugin (8.4.6667):
-    - TIMCommon
-    - TUIChat
+  - TUIVoiceToTextPlugin_Swift (8.5.6870):
+    - TIMCommon_Swift
+    - TUIChat_Swift
     - TUICore
-  - TUIVoiceToTextPlugin (8.4.6667):
-    - TIMCommon
-    - TUIChat
-    - TUICore
-  - TXIMSDK_Plus_iOS_XCFramework (8.4.6667)
+  - TXIMSDK_Plus_iOS_XCFramework (8.5.6870)
   - TXLiteAVSDK_Professional (12.2.16956):
     - TXLiteAVSDK_Professional/Professional (= 12.2.16956)
   - TXLiteAVSDK_Professional/Professional (12.2.16956)
 
 DEPENDENCIES:
-  - Masonry (= 1.1.0)
   - MJExtension (= 3.4.1)
   - MJRefresh (= 3.7.5)
-  - ReactiveObjC (= 3.1.1)
   - SDWebImage (= 5.18.11)
   - SnapKit (= 5.7.1)
   - SSZipArchive (= 2.4.3)
-  - TIMAppKit (from `../TUIKit/TIMAppKit`)
-  - TIMCommon (from `../TUIKit/TIMCommon`)
+  - TIMAppKit_Swift (from `../TUIKit/TIMAppKit`)
+  - TIMCommon_Swift (from `../TUIKit/TIMCommon`)
   - TIMPush (= 8.4.6667)
   - TUICallKit_Swift/Professional
-  - TUIChat (from `../TUIKit/TUIChat`)
-  - TUIContact (from `../TUIKit/TUIContact`)
-  - TUIConversation (from `../TUIKit/TUIConversation`)
+  - TUIChat_Swift (from `../TUIKit/TUIChat`)
+  - TUIContact_Swift (from `../TUIKit/TUIContact`)
+  - TUIConversation_Swift (from `../TUIKit/TUIConversation`)
   - TUICore (from `../TUIKit/TUICore`)
-  - TUIRoomKit/Professional
-  - TUISearch (= 8.4.6667)
-  - TUITranslationPlugin (from `../TUIKit/TUITranslationPlugin`)
-  - TUIVoiceToTextPlugin (from `../TUIKit/TUIVoiceToTextPlugin`)
-  - TXIMSDK_Plus_iOS_XCFramework (= 8.4.6667)
+  - TUISearch_Swift (from `../TUIKit/TUISearch`)
+  - TUITranslationPlugin_Swift (from `../TUIKit/TUITranslationPlugin`)
+  - TUIVoiceToTextPlugin_Swift (from `../TUIKit/TUIVoiceToTextPlugin`)
+  - TXIMSDK_Plus_iOS_XCFramework (= 8.5.6870)
   - TXLiteAVSDK_Professional (~> 12.2.16945)
 
 SPEC REPOS:
   trunk:
-    - Factory
-    - Masonry
     - MJExtension
     - MJRefresh
-    - ReactiveObjC
-    - RTCRoomEngine
     - SDWebImage
     - SnapKit
     - SSZipArchive
     - TIMPush
     - TUICallEngine
     - TUICallKit_Swift
-    - TUIRoomKit
-    - TUISearch
     - TXIMSDK_Plus_iOS_XCFramework
     - TXLiteAVSDK_Professional
 
 EXTERNAL SOURCES:
-  TIMAppKit:
+  TIMAppKit_Swift:
     :path: "../TUIKit/TIMAppKit"
-  TIMCommon:
+  TIMCommon_Swift:
     :path: "../TUIKit/TIMCommon"
-  TUIChat:
+  TUIChat_Swift:
     :path: "../TUIKit/TUIChat"
-  TUIContact:
+  TUIContact_Swift:
     :path: "../TUIKit/TUIContact"
-  TUIConversation:
+  TUIConversation_Swift:
     :path: "../TUIKit/TUIConversation"
   TUICore:
     :path: "../TUIKit/TUICore"
-  TUITranslationPlugin:
+  TUISearch_Swift:
+    :path: "../TUIKit/TUISearch"
+  TUITranslationPlugin_Swift:
     :path: "../TUIKit/TUITranslationPlugin"
-  TUIVoiceToTextPlugin:
+  TUIVoiceToTextPlugin_Swift:
     :path: "../TUIKit/TUIVoiceToTextPlugin"
 
 SPEC CHECKSUMS:
-  Factory: 3a9d0809910130d609b34d4554828e6ecce519ff
-  Masonry: 678fab65091a9290e40e2832a55e7ab731aad201
   MJExtension: 21c5f6f8c4d5d8844b7ae8fbae08fed0b501f961
   MJRefresh: fdf5e979eb406a0341468932d1dfc8b7f9fce961
-  ReactiveObjC: 011caa393aa0383245f2dcf9bf02e86b80b36040
-  RTCRoomEngine: 38b08c2f69c16de31685b6d7d55f7406cbdcc26e
   SDWebImage: a3ba0b8faac7228c3c8eadd1a55c9c9fe5e16457
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
   SSZipArchive: fe6a26b2a54d5a0890f2567b5cc6de5caa600aef
-  TIMAppKit: 569e0a582ab03dc93d78c775715da8583595e2cd
-  TIMCommon: b4b842a07a5815a9b6e53179a2ffc6d87739139c
+  TIMAppKit_Swift: 71b2092723d6069a5a21e41a3b07854afee61630
+  TIMCommon_Swift: 16e4c8c2a611d510d891394f28e80a789c9eb496
   TIMPush: 18a92b151f71d6cf26fc8e947c96899008dcc139
   TUICallEngine: a8e4259713a67cc5ca62971645ffc479930678bb
   TUICallKit_Swift: e51da51aafdd198e3eb04e539d76546225838fa2
-  TUIChat: 34c574b410fb7bd05b0c115470ca0889543157c0
-  TUIContact: 22079f6a454c4301414d51ca21c27591e2ce7b17
-  TUIConversation: b39652043fc564db82432de795edf4305e82cda7
-  TUICore: e35d56c612cd1c1cde1a8cf8fb09df3844604935
-  TUIRoomKit: 0cbbad97fe3be9034850dd4a247cc4a58cf7d3f8
-  TUISearch: 0ef9eddddc622b72983e3e21c7bd61a37bd78bc1
-  TUITranslationPlugin: a47ae23faa0b1c554a2b214cbf2feef98fb17948
-  TUIVoiceToTextPlugin: 5d6e12cd7b4315764117ce3c3873166a253d4f72
-  TXIMSDK_Plus_iOS_XCFramework: 85fa4127be9114f39d69d64587e04f3e3fddbbd9
+  TUIChat_Swift: 05d07eac758237eeb0a97ec31d2737ca91a339f6
+  TUIContact_Swift: fbb5bdaa628030efe09e6871ae5b70e2d2f5cd42
+  TUIConversation_Swift: 372eec5f9d0a4137177b6fb53b75d06498192ccb
+  TUICore: e5bc3b992315abd0ee63b2903e7aa24355e13f40
+  TUISearch_Swift: 781750146feed1c9b78047d709c7f614bbdea18b
+  TUITranslationPlugin_Swift: 28b7eaf7898fbd676d686a8948388770749153cb
+  TUIVoiceToTextPlugin_Swift: cdcb003388c80b0b2f18bab14c4de1da3a90f821
+  TXIMSDK_Plus_iOS_XCFramework: ae200b67e618fef504947de6551b127d35b18d67
   TXLiteAVSDK_Professional: 3cd7a567b5454c67299dc82599f77c9d5d7284bb
 
-PODFILE CHECKSUM: ef363870ff35e3c1d7965087f915dea4a4c215c2
+PODFILE CHECKSUM: 3790f81ae20231fd7d1a6107a6ca1314ad15ebed
 
-COCOAPODS: 1.13.0
+COCOAPODS: 1.15.2

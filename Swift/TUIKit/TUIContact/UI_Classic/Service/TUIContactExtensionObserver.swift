@@ -14,10 +14,10 @@ public class TUIContactExtensionObserver: NSObject, TUIExtensionProtocol {
     private var groupMembersCellData: TUIGroupMembersCellData?
     
     @objc public class func swiftLoad() {
-        TUICore.registerExtension(TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID, object: self.shared)
-        TUICore.registerExtension(TUICore_TUIChatExtension_GroupProfileMemberListExtension_ClassicExtensionID, object: self.shared)
-        TUICore.registerExtension(TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_ClassicExtensionID, object: self.shared)
-        TUICore.registerExtension(TUICore_TUIChatExtension_GroupProfileBottomItemExtension_ClassicExtensionID, object: self.shared)
+        TUICore.registerExtension("TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID", object: self.shared)
+        TUICore.registerExtension("TUICore_TUIChatExtension_GroupProfileMemberListExtension_ClassicExtensionID", object: self.shared)
+        TUICore.registerExtension("TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_ClassicExtensionID", object: self.shared)
+        TUICore.registerExtension("TUICore_TUIChatExtension_GroupProfileBottomItemExtension_ClassicExtensionID", object: self.shared)
     }
     
     // MARK: - Singleton
@@ -32,7 +32,7 @@ public class TUIContactExtensionObserver: NSObject, TUIExtensionProtocol {
     public func onRaiseExtension(_ extensionID: String, parentView: UIView, param: [AnyHashable: Any]?) -> Bool {
         guard let param = param else { return false }
         
-        if extensionID == TUICore_TUIChatExtension_GroupProfileMemberListExtension_ClassicExtensionID {
+        if extensionID == "TUICore_TUIChatExtension_GroupProfileMemberListExtension_ClassicExtensionID" {
             guard let data = param["data"] as? TUIGroupMembersCellData else { return false }
             
             if let groupID = param["groupID"] as? String {
@@ -67,11 +67,11 @@ public class TUIContactExtensionObserver: NSObject, TUIExtensionProtocol {
             return nil
         }
         
-        if extensionID == TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID {
+        if extensionID == "TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID" {
             return self.getNavigationMoreItemExtensionForClassicChat(param: param)
-        } else if extensionID == TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_ClassicExtensionID {
+        } else if extensionID == "TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_ClassicExtensionID" {
             return self.getGroupProfileSettingsItemExtensionForClassicChat(param: param)
-        } else if extensionID == TUICore_TUIChatExtension_GroupProfileBottomItemExtension_ClassicExtensionID {
+        } else if extensionID == "TUICore_TUIChatExtension_GroupProfileBottomItemExtension_ClassicExtensionID" {
             return self.getGroupProfileBottomItemExtensionForClassicChat(param: param)
         } else {
             return nil
@@ -79,23 +79,23 @@ public class TUIContactExtensionObserver: NSObject, TUIExtensionProtocol {
     }
     
     private func getNavigationMoreItemExtensionForClassicChat(param: [AnyHashable: Any]?) -> [TUIExtensionInfo]? {
-        guard let userID = param?[TUICore_TUIChatExtension_NavigationMoreItem_UserID] as? String, !userID.isEmpty else {
+        guard let userID = param?["TUICore_TUIChatExtension_NavigationMoreItem_UserID"] as? String, !userID.isEmpty else {
             return nil
         }
         
         let info = TUIExtensionInfo()
-        info.icon = TUISwift.tuiChatBundleThemeImage("chat_nav_more_menu_img", defaultImage: "chat_nav_more_menu")
+        info.icon = TUISwift.timCommonBundleThemeImage("chat_nav_more_menu_img", defaultImage: "chat_nav_more_menu")
         info.weight = 100
         info.onClicked = { param in
-            guard let pushVC = param[TUICore_TUIChatExtension_NavigationMoreItem_PushVC] as? UINavigationController else { return }
+            guard let pushVC = param["TUICore_TUIChatExtension_NavigationMoreItem_PushVC"] as? UINavigationController else { return }
             let param: [String: Any] = [
-                TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID,
-                TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: { (vc: UIViewController) in
+                "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID,
+                "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": { (vc: UIViewController) in
                     pushVC.pushViewController(vc, animated: true)
                 },
-                TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: { (_: Int, _: String) in }
+                "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": { (_: Int32, _: String?) in }
             ]
-            TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+            TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
         }
         return [info]
     }
@@ -152,7 +152,7 @@ public class TUIContactExtensionObserver: NSObject, TUIExtensionProtocol {
     }
     
     private func transferGroupOwner(groupID: String, member: String, succ: @escaping () -> Void, fail: @escaping (Int, String) -> Void) {
-        V2TIMManager.sharedInstance().transferGroupOwner(groupID, member: member, succ: {
+        V2TIMManager.sharedInstance().transferGroupOwner(groupID: groupID, memberUserID: member, succ: {
             succ()
         }, fail: { code, desc in
             fail(Int(code), desc ?? "")
@@ -164,7 +164,7 @@ public class TUIContactExtensionObserver: NSObject, TUIExtensionProtocol {
 
 extension TUIContactExtensionObserver: TUIGroupMembersCellDelegate {
     func groupMembersCell(_ cell: TUIGroupMembersCell, didSelectItemAtIndex index: Int) {
-        guard let mem = groupMembersCellData?.members[index] else { return }
+        guard let mem = groupMembersCellData?.members?[index] else { return }
         var ids: [String] = []
         var displayNames: [String: String] = [:]
         
@@ -187,31 +187,29 @@ extension TUIContactExtensionObserver: TUIGroupMembersCellDelegate {
             }
         }
         
-        self.tag = (mem as AnyObject).tag
+        self.tag = mem.tag
         if self.tag == 1 {
             var param: [String: Any] = [:]
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey] = TUISwift.timCommonLocalizableString("GroupAddFriend")
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey] = ids
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey] = displayNames
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey] = selectContactCompletion
-            if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController {
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey"] = TUISwift.timCommonLocalizableString("GroupAddFirend")
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey"] = ids
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey"] = displayNames
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey"] = selectContactCompletion
+            if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController {
                 self.showContactSelectVC = vc
                 self.pushVC?.pushViewController(self.showContactSelectVC!, animated: true)
             }
         } else if self.tag == 2 {
             var param: [String: Any] = [:]
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey] = TUISwift.timCommonLocalizableString("GroupDeleteFriend")
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_SourceIdsKey] = ids
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey] = displayNames
-            param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey] = selectContactCompletion
-            if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController {
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey"] = TUISwift.timCommonLocalizableString("GroupDeleteFriend")
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_SourceIdsKey"] = ids
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey"] = displayNames
+            param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey"] = selectContactCompletion
+            if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController {
                 self.showContactSelectVC = vc
                 self.pushVC?.pushViewController(self.showContactSelectVC!, animated: true)
             }
         } else {
-            if let member = mem as? TUIGroupMemberCellData {
-                self.didCurrentMemberAtCellData(mem: member)
-            }
+            self.didCurrentMemberAtCellData(mem: mem)
         }
     }
     
@@ -222,30 +220,30 @@ extension TUIContactExtensionObserver: TUIGroupMembersCellDelegate {
         }, failBlock: { _, _ in })
     }
     
-    private func getUserOrFriendProfileVCWithUserID(userID: String, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int, String) -> Void) {
+    private func getUserOrFriendProfileVCWithUserID(userID: String, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int32, String?) -> Void) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succBlock,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: failBlock
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succBlock,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": failBlock
         ]
-        TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
     
     private func addGroupId(groupId: String?, members: [String]) {
         guard let groupId = groupId else { return }
-        V2TIMManager.sharedInstance().inviteUser(toGroup: groupId, userList: members, succ: { _ in
+        V2TIMManager.sharedInstance().inviteUserToGroup(groupID: groupId, userList: members) { _ in
             TUITool.makeToast(TUISwift.timCommonLocalizableString("add_success"))
-        }, fail: { code, desc in
+        } fail: { code, desc in
             TUITool.makeToastError(Int(code), msg: desc)
-        })
+        }
     }
     
     private func deleteGroupId(groupId: String?, members: [String]) {
         guard let groupId = groupId else { return }
-        V2TIMManager.sharedInstance().kickGroupMember(groupId, memberList: members, reason: "", succ: { _ in
+        V2TIMManager.sharedInstance().kickGroupMember(groupId, memberList: members, reason: "") { _ in
             TUITool.makeToast(TUISwift.timCommonLocalizableString("delete_success"))
-        }, fail: { code, desc in
+        } fail: { code, desc in
             TUITool.makeToastError(Int(code), msg: desc)
-        })
+        }
     }
 }

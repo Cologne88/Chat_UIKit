@@ -3,7 +3,7 @@ import TIMCommon
 import UIKit
 
 class TUIConversationSelectBaseDataProvider: NSObject {
-    var dataList: Observable<[TUIConversationCellData]> = Observable([TUIConversationCellData]())
+    @objc dynamic var dataList: [TUIConversationCellData] = []
 
     lazy var localConvList: [V2TIMConversation] = {
         var localConvList = [V2TIMConversation]()
@@ -15,11 +15,9 @@ class TUIConversationSelectBaseDataProvider: NSObject {
     }
 
     func loadConversations() {
-        V2TIMManager.sharedInstance().getConversationList(0, count: INT_MAX) { [weak self] list, _, _ in
-            guard let self = self else { return }
-            if let list = list {
-                self.updateConversation(list)
-            }
+        V2TIMManager.sharedInstance().getConversationList(nextSeq: 0, count: INT_MAX) { [weak self] list, _, _ in
+            guard let self = self, let list = list else { return }
+            self.updateConversation(list)
         } fail: { _, _ in
             print("getConversationList failed")
         }
@@ -41,15 +39,15 @@ class TUIConversationSelectBaseDataProvider: NSObject {
             }
             if let cls = getConversationCellClass() as? TUIConversationCellData.Type {
                 let data = cls.init()
-                data.conversationID = conv.conversationID.safeValue
-                data.groupID = conv.groupID.safeValue
-                data.userID = conv.userID.safeValue
-                data.title.value = conv.showName.safeValue
-                data.faceUrl.value = conv.faceUrl.safeValue
+                data.conversationID = conv.conversationID
+                data.groupID = conv.groupID
+                data.userID = conv.userID
+                data.title = conv.showName
+                data.faceUrl = conv.faceUrl
                 data.unreadCount = 0
                 data.draftText = ""
                 data.subTitle = NSMutableAttributedString(string: "")
-                if conv.type == V2TIMConversationType.C2C {
+                if conv.type == .C2C {
                     data.avatarImage = TUISwift.defaultAvatarImage()
                 } else {
                     data.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: conv.groupType)
@@ -59,7 +57,7 @@ class TUIConversationSelectBaseDataProvider: NSObject {
         }
 
         sortDataList(&dataList)
-        self.dataList.value = dataList
+        self.dataList = dataList
     }
 
     private func filteConversation(_ conv: V2TIMConversation) -> Bool {
@@ -77,13 +75,11 @@ class TUIConversationSelectBaseDataProvider: NSObject {
             return obj1.time != nil
         }
 
-        let topList = TUIConversationPin.sharedInstance().topConversationList
+        let topList = TUIConversationPin.sharedInstance.topConversationList
         var existTopListSize = 0
 
         for convID in topList() {
-            if let convIDStr = convID as? String,
-               let index = dataList.firstIndex(where: { $0.conversationID == convIDStr })
-            {
+            if let index = dataList.firstIndex(where: { $0.conversationID == convID }) {
                 dataList[index].isOnTop = true
 
                 if index != existTopListSize {

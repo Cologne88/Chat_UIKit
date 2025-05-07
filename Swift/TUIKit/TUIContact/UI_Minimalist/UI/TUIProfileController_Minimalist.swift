@@ -44,12 +44,13 @@ class ProfileControllerHeaderView_Minimalist: UIView {
     func applyData() {
         if let loginUser = V2TIMManager.sharedInstance().getLoginUser() {
             V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { [weak self] infoList in
-                guard let self = self else { return }
-                guard let infoList = infoList else { return }
+                guard let self = self, let infoList = infoList else { return }
                 if let profile = infoList.first, let faceURL = profile.faceURL {
                     self.headImg.sd_setImage(with: URL(string: faceURL), placeholderImage: TUISwift.defaultAvatarImage())
                 }
-            }, fail: nil)
+            }) { _, _ in
+                // to do
+            }
         }
     }
 
@@ -96,8 +97,53 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
     private var profile: V2TIMUserFullInfo?
     private var headerView: ProfileControllerHeaderView_Minimalist?
     private weak var picker: UIDatePicker?
-    private var datePicker: UIView?
+    private var _datePicker: UIView?
     private var dateFormatter: DateFormatter?
+
+    var datePicker: UIView? {
+        if _datePicker == nil {
+            let cover = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height))
+            cover.backgroundColor = TUISwift.tuiContactDynamicColor("group_modify_view_bg_color", defaultColor: "#0000007F")
+            cover.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(hideDatePicker)))
+
+            let menuView = UIView()
+            menuView.backgroundColor = TUISwift.tuiContactDynamicColor("group_modify_container_view_bg_color", defaultColor: "#FFFFFF")
+            menuView.frame = CGRect(x: 0, y: UIScreen.main.bounds.height - 340, width: UIScreen.main.bounds.width, height: 40)
+            cover.addSubview(menuView)
+
+            let cancelButton = UIButton(type: .custom)
+            cancelButton.setTitle(TUISwift.timCommonLocalizableString("Cancel"), for: .normal)
+            cancelButton.setTitleColor(.darkGray, for: .normal)
+            cancelButton.frame = CGRect(x: 10, y: 0, width: 60, height: 35)
+            cancelButton.addTarget(self, action: #selector(hideDatePicker), for: .touchUpInside)
+            menuView.addSubview(cancelButton)
+
+            let okButton = UIButton(type: .custom)
+            okButton.setTitle(TUISwift.timCommonLocalizableString("Confirm"), for: .normal)
+            okButton.setTitleColor(.darkGray, for: .normal)
+            okButton.frame = CGRect(x: cover.bounds.width - 10 - 60, y: 0, width: 60, height: 35)
+            okButton.addTarget(self, action: #selector(onOKDatePicker), for: .touchUpInside)
+            menuView.addSubview(okButton)
+
+            let picker = UIDatePicker()
+            let language = TUIGlobalization.tk_localizableLanguageKey() ?? "en"
+            picker.locale = Locale(identifier: language)
+            if #available(iOS 13.0, *) {
+                picker.overrideUserInterfaceStyle = .light
+            }
+            if #available(iOS 13.4, *) {
+                picker.preferredDatePickerStyle = .wheels
+            }
+            picker.backgroundColor = TUISwift.tuiContactDynamicColor("group_modify_container_view_bg_color", defaultColor: "#FFFFFF")
+            picker.datePickerMode = .date
+            picker.frame = CGRect(x: 0, y: menuView.frame.maxY, width: cover.bounds.width, height: 300)
+            cover.addSubview(picker)
+            self.picker = picker
+
+            _datePicker = cover
+        }
+        return _datePicker
+    }
 
     // MARK: - Lifecycle
 
@@ -127,15 +173,16 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
 
         tableView.register(TUICommonTextCell.self, forCellReuseIdentifier: "textCell")
         tableView.register(TUICommonAvatarCell.self, forCellReuseIdentifier: "avatarCell")
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
 
         if let loginUser = V2TIMManager.sharedInstance().getLoginUser() {
             V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { [weak self] infoList in
-                guard let self = self else { return }
-                guard let infoList = infoList else { return }
+                guard let self = self, let infoList = infoList else { return }
                 self.profile = infoList.first
                 self.setupData()
-            }, fail: nil)
+            }) { _, _ in
+                // to do
+            }
         }
 
         headerView = ProfileControllerHeaderView_Minimalist(frame: CGRect(x: 0, y: 0, width: view.bounds.size.width, height: TUISwift.kScale390(240)))
@@ -165,7 +212,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
 
             let signatureData = TUICommonTextCellData()
             signatureData.key = TUISwift.timCommonLocalizableString("ProfileSignature")
-            signatureData.value = profile.selfSignature.isNilOrEmpty == false ? profile.selfSignature.safeValue : ""
+            signatureData.value = profile.selfSignature ?? ""
             signatureData.showAccessory = true
             signatureData.cselector = #selector(didSelectChangeSignature)
 
@@ -206,7 +253,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
         modify.tag = 0
         modify.delegate = self
         modify.setData(data)
-        modify.show(in: view.window!)
+        modify.showInWindow(view.window!)
     }
 
     @objc private func didSelectChangeSignature() {
@@ -218,7 +265,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
         modify.tag = 1
         modify.delegate = self
         modify.setData(data)
-        modify.show(in: view.window!)
+        modify.showInWindow(view.window!)
     }
 
     @objc private func didSelectSex() {
@@ -242,7 +289,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
             guard let self = self else { return }
             let info = V2TIMUserFullInfo()
             info.faceURL = urlStr
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                 self.profile?.faceURL = urlStr
                 self.setupData()
             }, fail: nil)
@@ -262,12 +309,12 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
             if let pathAtView = tableView.indexPathForRow(at: point) {
                 let data = tableView.cellForRow(at: pathAtView)
 
-                if let textCell = data as? TUICommonTextCell, textCell.textData.value != TUISwift.timCommonLocalizableString("no_set") {
-                    UIPasteboard.general.string = textCell.textData.value
-                    let toastString = "copy \(textCell.textData.key)"
+                if let textCell = data as? TUICommonTextCell, textCell.textData?.value != TUISwift.timCommonLocalizableString("no_set") {
+                    UIPasteboard.general.string = textCell.textData?.value
+                    let toastString = "copy \(textCell.textData?.key ?? "")"
                     TUITool.makeToast(toastString)
                 } else if let profileCard = data as? TUIProfileCardCell {
-                    UIPasteboard.general.string = profileCard.cardData.identifier
+                    UIPasteboard.general.string = profileCard.cardData?.identifier
                     TUITool.makeToast("copy")
                 }
             }
@@ -279,7 +326,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
         TUITool.applicationKeywindow()?.addSubview(datePicker ?? UIView())
     }
 
-    private func hideDatePicker() {
+    @objc private func hideDatePicker() {
         datePicker?.removeFromSuperview()
     }
 
@@ -290,7 +337,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
             if let birthday = Int(formattedDateStr) {
                 let info = V2TIMUserFullInfo()
                 info.birthday = UInt32(birthday)
-                V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+                V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                     self.profile?.birthday = UInt32(birthday)
                     self.setupData()
                 }, fail: nil)
@@ -300,7 +347,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
 
     // MARK: - V2TIMSDKListener
 
-    func onSelfInfoUpdated(_ info: V2TIMUserFullInfo) {
+    func onSelfInfoUpdated(info: V2TIMUserFullInfo) {
         profile = info
         setupData()
     }
@@ -368,7 +415,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
             }
             let info = V2TIMUserFullInfo()
             info.nickName = content
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                 self.profile?.nickName = content
                 self.setupData()
             }, fail: nil)
@@ -379,7 +426,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
             }
             let info = V2TIMUserFullInfo()
             info.selfSignature = content
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                 self.profile?.selfSignature = content
                 self.setupData()
             }, fail: nil)
@@ -405,7 +452,7 @@ class TUIProfileController_Minimalist: UITableViewController, UIActionSheetDeleg
             }
             let info = V2TIMUserFullInfo()
             info.gender = gender
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                 self.profile?.gender = gender
                 self.setupData()
             }, fail: nil)

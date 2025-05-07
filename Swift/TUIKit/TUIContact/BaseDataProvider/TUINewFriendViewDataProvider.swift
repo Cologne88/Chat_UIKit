@@ -20,10 +20,10 @@ class TUINewFriendViewDataProvider: NSObject {
         guard !isLoading else { return }
         isLoading = true
         V2TIMManager.sharedInstance().getFriendApplicationList { [weak self] result in
-            guard let self, let applicationList = result?.applicationList as? [V2TIMFriendApplication] else { return }
+            guard let self = self, let applicationList = result?.applicationList else { return }
             var list: [TUICommonPendencyCellData] = []
             for item in applicationList {
-                if item.type.rawValue == V2TIMFriendApplicationType.FRIEND_APPLICATION_COME_IN.rawValue {
+                if let item = item as? V2TIMFriendApplication, item.type == .FRIEND_APPLICATION_COME_IN {
                     let data = TUICommonPendencyCellData(application: item)
                     data.hideSource = true
                     list.append(data)
@@ -37,16 +37,16 @@ class TUINewFriendViewDataProvider: NSObject {
 
     func removeData(_ data: TUICommonPendencyCellData) {
         dataList.removeAll { $0 == data }
-        V2TIMManager.sharedInstance().delete(data.application, succ: nil, fail: nil)
+        V2TIMManager.sharedInstance().deleteFriendApplication(application: data.application, succ: nil, fail: nil)
     }
 
     func agreeData(_ data: TUICommonPendencyCellData) {
-        V2TIMManager.sharedInstance().accept(data.application, type: V2TIMFriendAcceptType.FRIEND_ACCEPT_AGREE_AND_ADD, succ: nil, fail: nil)
+        V2TIMManager.sharedInstance().acceptFriendApplication(application: data.application, acceptType: .FRIEND_ACCEPT_AGREE_AND_ADD, succ: nil, fail: nil)
         data.isAccepted = true
     }
 
     func rejectData(_ data: TUICommonPendencyCellData) {
-        V2TIMManager.sharedInstance().refuse(data.application, succ: { _ in }, fail: { _, _ in })
+        V2TIMManager.sharedInstance().refuseFriendApplication(application: data.application, succ: nil, fail: nil)
         data.isRejected = true
     }
 }

@@ -83,17 +83,19 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
         super.viewDidLoad()
         self.setupViews()
 
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
         var loginUser = V2TIMManager.sharedInstance().getLoginUser()
         if loginUser == nil {
             loginUser = self.lastLoginUser
         }
         if let loginUser = loginUser, !loginUser.isEmpty {
             V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { [weak self] infoList in
-                guard let self = self else { return }
-                self.profile = infoList?.first
+                guard let self = self, let infoList = infoList else { return }
+                self.profile = infoList.first
                 self.setupData()
-            }, fail: nil)
+            }) { _, _ in
+                // to do
+            }
         }
 
         TUITool.addUnsupportNotification(inVC: self, debugOnly: false)
@@ -115,7 +117,7 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
         }
     }
 
-    public func onSelfInfoUpdated(_ info: V2TIMUserFullInfo) {
+    public func onSelfInfoUpdated(info: V2TIMUserFullInfo) {
         self.profile = info
         self.setupData()
     }
@@ -206,7 +208,7 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
             }
             personal.name = self.profile?.showName() ?? ""
             personal.genderString = self.profile?.showGender() ?? ""
-            personal.signature = self.profile?.selfSignature.isNilOrEmpty != nil ? String(format: TUISwift.timCommonLocalizableString("SignatureFormat"), self.profile?.selfSignature ?? "") : TUISwift.timCommonLocalizableString("no_personal_signature")
+            personal.signature = self.profile?.selfSignature != nil ? String(format: TUISwift.timCommonLocalizableString("SignatureFormat"), self.profile?.selfSignature ?? "") : TUISwift.timCommonLocalizableString("no_personal_signature")
             personal.cselector = #selector(self.didSelectCommon)
             personal.showAccessory = true
             personal.showSignature = true
@@ -285,7 +287,7 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
         if self.showLoginOutCell {
             let button = TUIButtonCellData()
             button.title = TUISwift.timCommonLocalizableString("logout")
-            button.style = .ButtonRedText
+            button.style = .redText
             button.cbuttonSelector = #selector(self.onClickLogout(_:))
             button.hideSeparatorLine = true
             self.dataList.append([kKeyWeight: 200, kKeyItems: [button]])
@@ -299,15 +301,15 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
 
     private func setupExtensionsData() {
         var param = [String: Any]()
-        param[TUICore_TUIContactExtension_MeSettingMenu_Nav] = self.navigationController
-        let extensionList = TUICore.getExtensionList(TUICore_TUIContactExtension_MeSettingMenu_ClassicExtensionID, param: param)
+        param["TUICore_TUIContactExtension_MeSettingMenu_Nav"] = self.navigationController
+        let extensionList = TUICore.getExtensionList("TUICore_TUIContactExtension_MeSettingMenu_ClassicExtensionID", param: param)
         for info in extensionList {
             guard let data = info.data else {
                 assertionFailure("extension for setting is invalid, check data")
                 continue
             }
-            if let view = data[TUICore_TUIContactExtension_MeSettingMenu_View] as? UIView,
-               let weight = data[TUICore_TUIContactExtension_MeSettingMenu_Weight] as? Int
+            if let view = data["TUICore_TUIContactExtension_MeSettingMenu_View"] as? UIView,
+               let weight = data["TUICore_TUIContactExtension_MeSettingMenu_Weight"] as? Int
             {
                 self.dataList.append([kKeyWeight: weight, kKeyViews: [view]])
             }
@@ -350,7 +352,7 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
             self.setupData()
             let info = V2TIMUserFullInfo()
             info.allowType = V2TIMFriendAllowType(rawValue: buttonIndex) ?? .FRIEND_ALLOW_ANY
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: nil, fail: nil)
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: nil, fail: nil)
         }
     }
 
@@ -364,16 +366,17 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
         let on = cell.switcher.isOn
         self.delegate?.onSwitchMsgReadStatus(on)
 
-        let switchData = cell.switchData
-        switchData.isOn = on
-        if on {
-            switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusOpenDesc")
-            TUITool.hideToast()
-            TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
-        } else {
-            switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusCloseDesc")
+        if let switchData = cell.switchData {
+            switchData.isOn = on
+            if on {
+                switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusOpenDesc")
+                TUITool.hideToast()
+                TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
+            } else {
+                switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusCloseDesc")
+            }
+            cell.fill(with: switchData)
         }
-        cell.fill(with: switchData)
     }
 
     @objc private func onSwitchOnlineStatus(_ cell: TUICommonSwitchCell) {
@@ -381,29 +384,31 @@ public class TUISettingController: UITableViewController, UIActionSheetDelegate,
         self.delegate?.onSwitchOnlineStatus(on)
         TUIConfig.default().displayOnlineStatusIcon = on
 
-        let switchData = cell.switchData
-        switchData.isOn = on
-        if on {
-            switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusOpenDesc")
-        } else {
-            switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusCloseDesc")
-        }
+        if let switchData = cell.switchData {
+            switchData.isOn = on
+            if on {
+                switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusOpenDesc")
+            } else {
+                switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusCloseDesc")
+            }
 
-        if on {
-            TUITool.hideToast()
-            TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
-        }
+            if on {
+                TUITool.hideToast()
+                TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
+            }
 
-        cell.fill(with: switchData)
+            cell.fill(with: switchData)
+        }
     }
 
     @objc private func onSwitchCallsRecord(_ cell: TUICommonSwitchCell) {
         let on = cell.switcher.isOn
         self.delegate?.onSwitchCallsRecord(on)
 
-        let data = cell.switchData
-        data.isOn = on
-        cell.fill(with: data)
+        if let data = cell.switchData {
+            data.isOn = on
+            cell.fill(with: data)
+        }
     }
 
     @objc private func onClickAboutIM(_ cell: TUICommonTextCell) {

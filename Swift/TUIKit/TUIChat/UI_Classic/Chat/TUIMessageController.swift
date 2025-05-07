@@ -50,7 +50,7 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
         tableView.backgroundColor = .clear
 
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onBottomMarginChanged(_:)), name: NSNotification.Name(TUIKitNotification_onMessageVCBottomMarginChanged), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onBottomMarginChanged(_:)), name: NSNotification.Name("TUIKitNotification_onMessageVCBottomMarginChanged"), object: nil)
 
         receiveMsgs = [TUIMessageCellData]()
 
@@ -93,7 +93,7 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
 
     @objc func onBottomMarginChanged(_ notification: Notification) {
         if let userInfo = notification.userInfo,
-           let margin = userInfo[TUIKitNotification_onMessageVCBottomMarginChanged_Margin] as? NSNumber
+           let margin = userInfo["TUIKitNotification_onMessageVCBottomMarginChanged_Margin"] as? NSNumber
         {
             TUIChatSmallTongueManager.adaptTongueBottomMargin(CGFloat(margin.floatValue))
         }
@@ -211,14 +211,14 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
         }
 
         if offsetY > CGFloat(TMessageController_Header_Height) {
-            tableView.scrollToRow(at: IndexPath(row: index, section: 0), at: .middle, animated: false)
+            tableView.scrollToRow(at: IndexPath(row: index, section: 0), at: .middle, animated: true)
         }
     }
 
     func fillCellHighlightKeyword() {
         guard let uiMsgs = messageSearchDataProvider?.uiMsgs else { return }
         guard let cellData = uiMsgs.first(where: { isLocateMessage($0) }) else { return }
-        if cellData.innerMessage.elemType == .ELEM_TYPE_GROUP_TIPS {
+        if cellData.innerMessage?.elemType == .ELEM_TYPE_GROUP_TIPS {
             return
         }
 
@@ -241,11 +241,11 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
 
     func isLocateMessage(_ uiMsg: TUIMessageCellData) -> Bool {
         if let locateMessage = locateMessage {
-            if uiMsg.innerMessage.msgID == locateMessage.msgID {
+            if uiMsg.innerMessage?.msgID == locateMessage.msgID {
                 return true
             }
         } else {
-            if let groupID = conversationData?.groupID, !groupID.isEmpty, uiMsg.innerMessage.seq == locateGroupMessageSeq {
+            if let groupID = conversationData?.groupID, !groupID.isEmpty, (uiMsg.innerMessage?.seq ?? 0) == locateGroupMessageSeq {
                 return true
             }
         }
@@ -274,7 +274,7 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
             self.tableView.layoutIfNeeded()
 
             for (_, obj) in newUIMsgs.enumerated().reversed() {
-                if obj.direction == .MsgDirectionIncoming {
+                if obj.direction == .incoming {
                     self.C2CIncomingLastMsg = obj.innerMessage
                     break
                 }
@@ -341,8 +341,8 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
         messageDataProvider?.preProcessMessage(uiMsgs) { [weak self] in
             guard let self else { return }
             for cellData in uiMsgs {
-                if cellData.innerMessage.msgID == message.msgID {
-                    self.onJump(toRepliesDetailPage: cellData)
+                if cellData.innerMessage?.msgID == message.msgID {
+                    self.onJumpToRepliesDetailPage(cellData)
                     return
                 }
             }
@@ -354,7 +354,7 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
         locateMessage = message
         highlightKeyword = matchKeyWord
 
-        let memoryExist = messageDataProvider?.uiMsgs.contains(where: { $0.innerMessage.msgID == message.msgID }) ?? false
+        let memoryExist = messageDataProvider?.uiMsgs.contains(where: { $0.innerMessage?.msgID == message.msgID }) ?? false
         if memoryExist {
             scrollToLocateMessage(false)
             fillCellHighlightKeyword()
@@ -376,7 +376,7 @@ class TUIMessageController: TUIBaseMessageController, TUIChatSmallTongueViewDele
     override func dataProvider(_ dataProvider: TUIMessageBaseDataProvider, receiveNewUIMsg uiMsg: TUIMessageCellData) {
         guard receiveMsgs != nil else { return }
         super.dataProvider(dataProvider, receiveNewUIMsg: uiMsg)
-        if isInVC && tableView.contentSize.height - tableView.contentOffset.y >= TUISwift.screen_Height() * 2.0 {
+        if tableView.contentSize.height - tableView.contentOffset.y >= TUISwift.screen_Height() * 2.0 {
             receiveMsgs!.append(uiMsg)
             let tongue = TUIChatSmallTongue()
             tongue.type = .receiveNewMsg

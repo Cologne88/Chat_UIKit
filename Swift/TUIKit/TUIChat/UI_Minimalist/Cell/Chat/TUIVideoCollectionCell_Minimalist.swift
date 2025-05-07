@@ -91,6 +91,7 @@ class TUIVideoCollectionCell_Minimalist: TUIMediaCollectionCell_Minimalist {
         imageView.contentMode = .scaleAspectFit
         imageView.backgroundColor = .clear
         addSubview(imageView)
+        imageView.mm__fill()
         imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         addSubview(mainPlayBtn)
@@ -123,7 +124,7 @@ class TUIVideoCollectionCell_Minimalist: TUIMediaCollectionCell_Minimalist {
         }
 
         thumbImageObservation = data.observe(\.thumbImage, options: [.new, .initial]) { [weak self] _, change in
-            guard let self = self, let thumbImage = change.newValue else { return }
+            guard let self = self, let thumbImage = change.newValue, thumbImage != nil else { return }
             self.imageView.image = thumbImage
         }
 
@@ -143,7 +144,7 @@ class TUIVideoCollectionCell_Minimalist: TUIMediaCollectionCell_Minimalist {
         }
 
         videoPathObservation = videoData?.observe(\.videoPath, options: [.new, .initial]) { [weak self] _, change in
-            guard let self = self, let path = change.newValue, path.count > 0 else { return }
+            guard let self = self, let changedPath = change.newValue, let path = changedPath, path.count > 0 else { return }
 
             self.videoPathObservation?.invalidate()
             self.videoPathObservation = nil

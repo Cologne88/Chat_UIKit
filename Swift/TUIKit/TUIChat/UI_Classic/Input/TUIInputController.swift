@@ -2,15 +2,26 @@ import AVFoundation
 import TIMCommon
 import UIKit
 
-@objc protocol TUIInputControllerDelegate: NSObjectProtocol {
-    @objc optional func inputController(_ inputController: TUIInputController, didChangeHeight height: CGFloat)
-    @objc optional func inputController(_ inputController: TUIInputController, didSendMessage message: V2TIMMessage)
-    @objc optional func inputController(_ inputController: TUIInputController, didSelectMoreCell cell: TUIInputMoreCell)
-    @objc optional func inputControllerDidInputAt(_ inputController: TUIInputController)
-    @objc optional func inputController(_ inputController: TUIInputController, didDeleteAt atText: String)
-    @objc optional func inputControllerDidBeginTyping(_ inputController: TUIInputController)
-    @objc optional func inputControllerDidEndTyping(_ inputController: TUIInputController)
-    @objc optional func inputControllerDidClickMore(_ inputController: TUIInputController)
+protocol TUIInputControllerDelegate: AnyObject {
+    func inputController(_ inputController: TUIInputController, didChangeHeight height: CGFloat)
+    func inputController(_ inputController: TUIInputController, didSendMessage message: V2TIMMessage)
+    func inputController(_ inputController: TUIInputController, didSelectMoreCell cell: TUIInputMoreCell)
+    func inputControllerDidInputAt(_ inputController: TUIInputController)
+    func inputController(_ inputController: TUIInputController, didDeleteAt atText: String)
+    func inputControllerDidBeginTyping(_ inputController: TUIInputController)
+    func inputControllerDidEndTyping(_ inputController: TUIInputController)
+    func inputControllerDidClickMore(_ inputController: TUIInputController)
+}
+
+extension TUIInputControllerDelegate {
+    func inputController(_ inputController: TUIInputController, didChangeHeight height: CGFloat) {}
+    func inputController(_ inputController: TUIInputController, didSendMessage message: V2TIMMessage) {}
+    func inputController(_ inputController: TUIInputController, didSelectMoreCell cell: TUIInputMoreCell) {}
+    func inputControllerDidInputAt(_ inputController: TUIInputController) {}
+    func inputController(_ inputController: TUIInputController, didDeleteAt atText: String) {}
+    func inputControllerDidBeginTyping(_ inputController: TUIInputController) {}
+    func inputControllerDidEndTyping(_ inputController: TUIInputController) {}
+    func inputControllerDidClickMore(_ inputController: TUIInputController) {}
 }
 
 public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuViewDelegate, TUIFaceViewDelegate, TUIFaceVerticalViewDelegate, TUIMoreViewDelegate {
@@ -26,14 +37,17 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         let menuView = TUIMenuView(frame: CGRect(x: 16, y: inputBar!.mm_maxY, width: self.view.frame.size.width - 32, height: CGFloat(TMenuView_Menu_Height)))
         menuView.delegate = self
 
-        let config = TIMConfig.default()
+        let config = TIMConfig.shared
         var menuList = [TUIMenuCellData]()
-        for (index, group) in config.faceGroups.enumerated() {
-            let data = TUIMenuCellData()
-            data.path = group.menuPath
-            data.isSelected = index == 0
-            menuList.append(data)
+        if let groups = config.faceGroups {
+            for (index, group) in groups.enumerated() {
+                let data = TUIMenuCellData()
+                data.path = group.menuPath
+                data.isSelected = index == 0
+                menuList.append(data)
+            }
         }
+
         menuView.data = menuList
 
         return menuView
@@ -52,7 +66,9 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
 
     lazy var faceSegementScrollView: TUIFaceSegementScrollView? = {
         let scrollView = TUIFaceSegementScrollView(frame: CGRect(x: 0, y: (inputBar?.frame.origin.y ?? 0) + (inputBar?.frame.size.height ?? 0), width: self.view.frame.size.width, height: CGFloat(TFaceView_Height)))
-        scrollView.setItems(TIMConfig.default().faceGroups, delegate: self)
+        if let groups = TIMConfig.shared.faceGroups {
+            scrollView.setItems(groups, delegate: self)
+        }
 
         return scrollView
     }()
@@ -149,7 +165,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
 
     @objc private func keyboardWillHide(_ notification: Notification) {
         let inputContainerBottom = getInputContainerBottom()
-        delegate?.inputController?(self, didChangeHeight: inputContainerBottom + TUISwift.bottom_SafeHeight())
+        delegate?.inputController(self, didChangeHeight: inputContainerBottom + TUISwift.bottom_SafeHeight())
         if status == .inputKeyboard {
             status = .input
         }
@@ -170,7 +186,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
     @objc private func keyboardWillChangeFrame(_ notification: Notification) {
         if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
             let inputContainerBottom = getInputContainerBottom()
-            delegate?.inputController?(self, didChangeHeight: keyboardFrame.size.height + inputContainerBottom)
+            delegate?.inputController(self, didChangeHeight: keyboardFrame.size.height + inputContainerBottom)
             self.keyboardFrame = keyboardFrame
         }
     }
@@ -264,7 +280,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         hideMoreAnimation()
         status = .inputTalk
         let inputContainerBottom = getInputContainerBottom()
-        delegate?.inputController?(self, didChangeHeight: inputContainerBottom + TUISwift.bottom_SafeHeight())
+        delegate?.inputController(self, didChangeHeight: inputContainerBottom + TUISwift.bottom_SafeHeight())
     }
 
     @objc func inputBarDidTouchMore(_ textView: TUIInputBar) {
@@ -278,15 +294,15 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         showMoreAnimation()
         status = .inputMore
 
-        delegate?.inputController?(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + (moreView.frame.size.height) + TUISwift.bottom_SafeHeight())
-        delegate?.inputControllerDidClickMore?(self)
+        delegate?.inputController(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + (moreView.frame.size.height) + TUISwift.bottom_SafeHeight())
+        delegate?.inputControllerDidClickMore(self)
     }
 
     @objc func inputBarDidTouchFace(_ textView: TUIInputBar) {
-        guard TIMConfig.default().faceGroups.count > 0 else {
+        guard let groups = TIMConfig.shared.faceGroups, groups.count > 0 else {
             return
         }
-        let userDefaults = UserDefaults.standard
+        _ = UserDefaults.standard
         if status == .inputMore {
             hideMoreAnimation()
         }
@@ -294,7 +310,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         inputBar?.inputTextView.resignFirstResponder()
         status = .inputFace
         let inputContainerBottom = getInputContainerBottom()
-        delegate?.inputController?(self, didChangeHeight: inputContainerBottom + (faceSegementScrollView?.frame.size.height ?? 0) + (menuView?.frame.size.height ?? 0))
+        delegate?.inputController(self, didChangeHeight: inputContainerBottom + (faceSegementScrollView?.frame.size.height ?? 0) + (menuView?.frame.size.height ?? 0))
         showFaceAnimation()
     }
 
@@ -316,7 +332,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
             showMoreAnimation()
         }
 
-        delegate?.inputController?(self, didChangeHeight: view.frame.size.height + offset)
+        delegate?.inputController(self, didChangeHeight: view.frame.size.height + offset)
         if _referencePreviewBar != nil {
             var referencePreviewBarFrame = _referencePreviewBar!.frame
             referencePreviewBarFrame.origin.y += offset
@@ -325,11 +341,11 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
     }
 
     @objc func inputBarDidSendText(_ textView: TUIInputBar, text: String) {
-        let content = text.getInternationalStringWithfaceContent()
-        let message = V2TIMManager.sharedInstance().createTextMessage(content)!
+        let content = text.getInternationalStringWithFaceContent()
+        let message = V2TIMManager.sharedInstance().createTextMessage(text: content)!
         appendReplyDataIfNeeded(message)
         appendReferenceDataIfNeeded(message)
-        delegate?.inputController?(self, didSendMessage: message)
+        delegate?.inputController(self, didSendMessage: message)
     }
 
     @objc func inputMessageStatusChanged(_ noti: Notification) {
@@ -338,7 +354,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
            let statusNumber = userInfo["status"] as? NSNumber,
            let status = TMsgStatus(rawValue: UInt(statusNumber.intValue))
         {
-            if status == .Msg_Status_Succ {
+            if status == .success {
                 DispatchQueue.main.async {
                     if self.modifyRootReplyMsgBlock != nil {
                         self.modifyRootReplyMsgBlock!(msg)
@@ -355,7 +371,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         let parentMsg = replyData.originMessage
         var simpleReply: [String: Any] = [
             "messageID": replyData.msgID ?? "",
-            "messageAbstract": (replyData.msgAbstract ?? "").getInternationalStringWithfaceContent(),
+            "messageAbstract": (replyData.msgAbstract ?? "").getInternationalStringWithFaceContent(),
             "messageSender": replyData.sender ?? "",
             "messageType": replyData.type.rawValue,
             "messageTime": replyData.originMessage?.timestamp?.timeIntervalSince1970 ?? 0,
@@ -401,17 +417,18 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
     }
 
     private func modifyRootReplyMsgByID(_ messageRootID: String, currentMsg: TUIMessageCellData) {
+        guard let msg = currentMsg.innerMessage else { return }
         var messageAbstract = ""
-        if let textElem = currentMsg.innerMessage.textElem {
-            messageAbstract = textElem.text?.getInternationalStringWithfaceContent() ?? ""
+        if let textElem = msg.textElem {
+            messageAbstract = textElem.text?.getInternationalStringWithFaceContent() ?? ""
         }
         let simpleCurrentContent: [String: Any] = [
-            "messageID": currentMsg.innerMessage.msgID.safeValue,
+            "messageID": msg.msgID ?? "",
             "messageAbstract": messageAbstract,
-            "messageSender": currentMsg.senderName ?? "",
-            "messageType": currentMsg.innerMessage.elemType.rawValue,
-            "messageTime": currentMsg.innerMessage.timestamp != nil ? currentMsg.innerMessage.timestamp!.timeIntervalSince1970 : 0,
-            "messageSequence": currentMsg.innerMessage.seq,
+            "messageSender": currentMsg.senderName,
+            "messageType": msg.elemType.rawValue,
+            "messageTime": msg.timestamp?.timeIntervalSince1970 ?? 0,
+            "messageSequence": msg.seq,
             "version": kMessageReplyVersion
         ]
         TUIChatDataProvider.findMessages([messageRootID]) { _, _, msgs in
@@ -427,7 +444,7 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         let dict: [String: Any] = [
             "messageReply": [
                 "messageID": referenceData.msgID ?? "",
-                "messageAbstract": (referenceData.msgAbstract ?? "").getInternationalStringWithfaceContent(),
+                "messageAbstract": (referenceData.msgAbstract ?? "").getInternationalStringWithFaceContent(),
                 "messageSender": referenceData.sender ?? "",
                 "messageType": referenceData.type.rawValue,
                 "messageTime": referenceData.originMessage?.timestamp?.timeIntervalSince1970 ?? 0,
@@ -446,16 +463,17 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         let audioAsset = AVURLAsset(url: url)
         let duration = CMTimeGetSeconds(audioAsset.duration)
         let formatDuration = duration > 59 ? 60 : Int(duration) + 1
-        let message = V2TIMManager.sharedInstance().createSoundMessage(path, duration: Int32(formatDuration))!
-        delegate?.inputController?(self, didSendMessage: message)
+        if let message = V2TIMManager.sharedInstance().createSoundMessage(audioFilePath: path, duration: Int32(formatDuration)) {
+            delegate?.inputController(self, didSendMessage: message)
+        }
     }
 
     func inputBarDidInputAt(_ textView: TUIInputBar) {
-        delegate?.inputControllerDidInputAt?(self)
+        delegate?.inputControllerDidInputAt(self)
     }
 
     func inputBarDidDeleteAt(_ textView: TUIInputBar, text: String) {
-        delegate?.inputController?(self, didDeleteAt: text)
+        delegate?.inputController(self, didDeleteAt: text)
     }
 
     func inputBarDidDeleteBackward(_ textView: TUIInputBar) {
@@ -465,14 +483,14 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
     }
 
     func inputTextViewShouldBeginTyping(_ textView: UITextView) {
-        delegate?.inputControllerDidBeginTyping?(self)
+        delegate?.inputControllerDidBeginTyping(self)
     }
 
     func inputTextViewShouldEndTyping(_ textView: UITextView) {
-        delegate?.inputControllerDidEndTyping?(self)
+        delegate?.inputControllerDidEndTyping(self)
     }
 
-    func reset() {
+    public func reset() {
         if status == .input {
             return
         } else if status == .inputMore {
@@ -483,9 +501,9 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         status = .input
         inputBar?.inputTextView.resignFirstResponder()
 
-        TUICore.notifyEvent(TUICore_TUIChatNotify, subKey: TUICore_TUIChatNotify_KeyboardWillHideSubKey, object: nil, param: nil)
+        TUICore.notifyEvent("TUICore_TUIChatNotify", subKey: "TUICore_TUIChatNotify_KeyboardWillHideSubKey", object: nil, param: nil)
         let inputContainerBottom = getInputContainerBottom()
-        delegate?.inputController?(self, didChangeHeight: inputContainerBottom + TUISwift.bottom_SafeHeight())
+        delegate?.inputController(self, didChangeHeight: inputContainerBottom + TUISwift.bottom_SafeHeight())
     }
 
     func showReferencePreview(_ data: TUIReferencePreviewData) {
@@ -501,11 +519,11 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         referencePreviewBar.frame = CGRect(x: 0, y: 0, width: view.bounds.size.width, height: CGFloat(TMenuView_Menu_Height))
         referencePreviewBar.mm_y = inputBar?.frame.maxY ?? 0
 
-        delegate?.inputController?(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + TUISwift.bottom_SafeHeight() + CGFloat(TMenuView_Menu_Height))
+        delegate?.inputController(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + TUISwift.bottom_SafeHeight() + CGFloat(TMenuView_Menu_Height))
 
         if status == .inputKeyboard {
             let keyboradHeight = keyboardFrame.size.height
-            delegate?.inputController?(self, didChangeHeight: referencePreviewBar.frame.maxY + keyboradHeight)
+            delegate?.inputController(self, didChangeHeight: referencePreviewBar.frame.maxY + keyboradHeight)
         } else if status == .inputFace || status == .inputTalk {
             inputBar?.changeToKeyboard()
         } else {
@@ -524,11 +542,11 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
         replyPreviewBar.frame = CGRect(x: 0, y: 0, width: view.bounds.size.width, height: CGFloat(TMenuView_Menu_Height))
         inputBar?.mm_y = replyPreviewBar.frame.maxY
 
-        delegate?.inputController?(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + TUISwift.bottom_SafeHeight())
+        delegate?.inputController(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + TUISwift.bottom_SafeHeight())
 
         if status == .inputKeyboard {
             let keyboradHeight = keyboardFrame.size.height
-            delegate?.inputController?(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + keyboradHeight)
+            delegate?.inputController(self, didChangeHeight: (inputBar?.frame.maxY ?? 0) + keyboradHeight)
         } else if status == .inputFace || status == .inputTalk {
             inputBar?.changeToKeyboard()
         } else {
@@ -550,9 +568,9 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
 
             if self.status == .inputKeyboard {
                 let keyboradHeight = self.keyboardFrame.size.height
-                delegate?.inputController?(self, didChangeHeight: (self.inputBar?.frame.maxY ?? 0) + keyboradHeight)
+                delegate?.inputController(self, didChangeHeight: (self.inputBar?.frame.maxY ?? 0) + keyboradHeight)
             } else {
-                delegate?.inputController?(self, didChangeHeight: (self.inputBar?.frame.maxY ?? 0) + TUISwift.bottom_SafeHeight())
+                delegate?.inputController(self, didChangeHeight: (self.inputBar?.frame.maxY ?? 0) + TUISwift.bottom_SafeHeight())
             }
         } completion: { _ in
             self.replyPreviewBar.removeFromSuperview()
@@ -573,39 +591,39 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
 
     func menuViewDidSendMessage(_ menuView: TUIMenuView) {
         guard let text = inputBar?.getInput(), !text.isEmpty else { return }
-        let content = text.getInternationalStringWithfaceContent()
+        let content = text.getInternationalStringWithFaceContent()
         inputBar?.clearInput()
-        let message = V2TIMManager.sharedInstance().createTextMessage(content)!
+        let message = V2TIMManager.sharedInstance().createTextMessage(text: content)!
         appendReplyDataIfNeeded(message)
         appendReferenceDataIfNeeded(message)
-        delegate?.inputController?(self, didSendMessage: message)
+        delegate?.inputController(self, didSendMessage: message)
     }
 
     // MARK: - TUIFaceVerticalViewDelegate
 
-    func faceVerticalView(_ faceView: TUIFaceVerticalView, scrollToFaceGroupIndex index: Int) {
+    public func faceVerticalView(_ faceView: TUIFaceVerticalView, scrollToFaceGroupIndex index: Int) {
         menuView?.scrollTo(index)
     }
 
-    func faceVerticalView(_ faceView: TUIFaceVerticalView, didSelectItemAtIndexPath indexPath: IndexPath) {
+    public func faceVerticalView(_ faceView: TUIFaceVerticalView, didSelectItemAtIndexPath indexPath: IndexPath) {
         let group = faceView.faceGroups[indexPath.section]
-        if let face = group.faces[indexPath.row] as? TUIFaceCellData {
+        if let face = group.faces?[indexPath.row] as? TUIFaceCellData {
             if group.isNeedAddInInputBar {
                 inputBar?.addEmoji(face)
-                updateRecentMenuQueue(face.name)
+                updateRecentMenuQueue(face.name ?? "")
             } else {
-                let message = V2TIMManager.sharedInstance().createFaceMessage(group.groupIndex, data: face.name.data(using: .utf8) ?? Data())!
-                delegate?.inputController?(self, didSendMessage: message)
+                let message = V2TIMManager.sharedInstance().createFaceMessage(index: Int32(group.groupIndex), data: face.name?.data(using: .utf8) ?? Data())!
+                delegate?.inputController(self, didSendMessage: message)
             }
         }
     }
 
-    func faceVerticalViewClickSendMessageBtn() {
+    public func faceVerticalViewClickSendMessageBtn() {
         menuViewDidSendMessage(menuView ?? TUIMenuView())
     }
 
     private func updateRecentMenuQueue(_ faceName: String) {
-        guard let service = TIMCommonMediator.share().getObject(TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol else { return }
+        guard let service = TIMCommonMediator.shared.getObject(for: TUIEmojiMeditorProtocol.self) else { return }
         service.updateRecentMenuQueue(faceName)
     }
 
@@ -626,6 +644,6 @@ public class TUIInputController: UIViewController, TUIInputBarDelegate, TUIMenuV
     // MARK: - TUIMoreViewDelegate
 
     func moreView(_ moreView: TUIMoreView, didSelectMoreCell cell: TUIInputMoreCell) {
-        delegate?.inputController?(self, didSelectMoreCell: cell)
+        delegate?.inputController(self, didSelectMoreCell: cell)
     }
 }

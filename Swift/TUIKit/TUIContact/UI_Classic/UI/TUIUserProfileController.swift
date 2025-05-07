@@ -102,12 +102,15 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
 
         dataList = list
 
-        if actionType == .PCA_ADD_FRIEND {
-            V2TIMManager.sharedInstance().checkFriend([userFullInfo?.userID ?? ""], check: .FRIEND_TYPE_BOTH, succ: { resultList in
-                guard let resultList = resultList else { return }
-                let result = resultList.first
-                if result!.relationType == .FRIEND_RELATION_TYPE_IN_MY_FRIEND_LIST || result!.relationType == .FRIEND_RELATION_TYPE_BOTH_WAY {
-                    return
+        if actionType == .PCA_ADD_FRIEND,
+           let userFullInfo = userFullInfo,
+           let userID = userFullInfo.userID
+        {
+            V2TIMManager.sharedInstance().checkFriend(userIDList: [userID], checkType: .FRIEND_TYPE_BOTH, succ: { resultList in
+                if let result = resultList?.first {
+                    if result.relationType == .FRIEND_RELATION_TYPE_IN_MY_FRIEND_LIST || result.relationType == .FRIEND_RELATION_TYPE_BOTH_WAY {
+                        return
+                    }
                 }
 
                 if !TUIContactConfig.shared.isItemHiddenInContactConfig(.addFriend) {
@@ -116,7 +119,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
                         inlist.append({
                             let data = TUIButtonCellData()
                             data.title = TUISwift.timCommonLocalizableString("FriendAddTitle")
-                            data.style = .ButtonWhite
+                            data.style = .white
                             data.cbuttonSelector = #selector(self.onAddFriend)
                             data.reuseId = "ButtonCell"
                             data.hideSeparatorLine = true
@@ -137,7 +140,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
                 inlist.append({
                     let data = TUIButtonCellData()
                     data.title = TUISwift.timCommonLocalizableString("Accept")
-                    data.style = .ButtonWhite
+                    data.style = .white
                     data.textColor = UIColor(red: 20 / 255.0, green: 122 / 255.0, blue: 255 / 255.0, alpha: 1.0)
                     data.cbuttonSelector = #selector(self.onAgreeFriend)
                     data.reuseId = "ButtonCell"
@@ -146,7 +149,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
                 inlist.append({
                     let data = TUIButtonCellData()
                     data.title = TUISwift.timCommonLocalizableString("Decline")
-                    data.style = .ButtonRedText
+                    data.style = .redText
                     data.cbuttonSelector = #selector(self.onRejectFriend)
                     data.reuseId = "ButtonCell"
                     return data
@@ -161,7 +164,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
                 inlist.append({
                     let data = TUIButtonCellData()
                     data.title = TUISwift.timCommonLocalizableString("Accept")
-                    data.style = .ButtonWhite
+                    data.style = .white
                     data.textColor = TUISwift.timCommonDynamicColor("primary_theme_color", defaultColor: "#147AFF")
                     data.cbuttonSelector = #selector(self.onAgreeGroup)
                     data.reuseId = "ButtonCell"
@@ -170,7 +173,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
                 inlist.append({
                     let data = TUIButtonCellData()
                     data.title = TUISwift.timCommonLocalizableString("Decline")
-                    data.style = .ButtonRedText
+                    data.style = .redText
                     data.cbuttonSelector = #selector(self.onRejectGroup)
                     data.reuseId = "ButtonCell"
                     return data
@@ -236,7 +239,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
         //    data.title = userFullInfo?.showName()
         //    let chat = ChatViewController()
         //    chat.conversationData = data
-        //    navigationController?.pushViewController(chat, animated: true)
+        //    navigationController?.push(chat, animated: true)
     }
 
     @objc private func onAddFriend() {
@@ -265,7 +268,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
         groupPendency?.agree(success: { [weak self] in
             guard let self = self else { return }
             self.navigationController?.popViewController(animated: true)
-        }, failure: { code, msg in
+        }, failure: { _, _ in
         })
     }
 
@@ -273,7 +276,7 @@ class TUIUserProfileController: UITableViewController, TUIContactProfileCardDele
         groupPendency?.reject(success: { [weak self] in
             guard let self = self else { return }
             self.navigationController?.popViewController(animated: true)
-        }, failure: { code, msg in
+        }, failure: { _, _ in
         })
     }
 

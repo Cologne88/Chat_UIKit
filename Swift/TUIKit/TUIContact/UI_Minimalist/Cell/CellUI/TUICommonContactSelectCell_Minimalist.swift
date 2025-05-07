@@ -22,10 +22,10 @@ class TUICommonContactSelectCell_Minimalist: TUICommonTableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
 
         contentView.addSubview(selectButton)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_normal")), for: .normal)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_pressed")), for: .highlighted)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_selected")), for: .selected)
-        selectButton.setImage(UIImage(named: TUISwift.timCommonImagePath("icon_select_selected_disable")), for: .disabled)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_normal")), for: .normal)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_pressed")), for: .highlighted)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_selected")), for: .selected)
+        selectButton.setImage(UIImage.safeImage(TUISwift.timCommonImagePath("icon_select_selected_disable")), for: .disabled)
         selectButton.autoresizingMask = [.flexibleTopMargin, .flexibleBottomMargin]
 
         contentView.addSubview(avatarView)

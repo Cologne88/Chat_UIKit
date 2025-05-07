@@ -56,8 +56,8 @@ class TUIMediaView_Minimalist: UIView {
 
         menuCollectionView = UICollectionView(frame: mediaView!.bounds, collectionViewLayout: menuFlowLayout)
         menuCollectionView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        menuCollectionView?.register(TUIImageCollectionCell_Minimalist.self, forCellWithReuseIdentifier: TImageMessageCell_ReuseId)
-        menuCollectionView?.register(TUIVideoCollectionCell_Minimalist.self, forCellWithReuseIdentifier: TVideoMessageCell_ReuseId)
+        menuCollectionView?.register(TUIImageCollectionCell_Minimalist.self, forCellWithReuseIdentifier: "TImageMessageCell")
+        menuCollectionView?.register(TUIVideoCollectionCell_Minimalist.self, forCellWithReuseIdentifier: "TVideoMessageCell")
         menuCollectionView?.isPagingEnabled = true
         menuCollectionView?.delegate = self
         menuCollectionView?.dataSource = self
@@ -102,7 +102,7 @@ class TUIMediaView_Minimalist: UIView {
             self.menuCollectionView?.reloadData()
             for i in 0 ..< dataProvider.mediaCellData.count {
                 let data = dataProvider.mediaCellData[i]
-                if data.innerMessage.msgID == self.currentMessage?.msgID {
+                if data.innerMessage?.msgID == self.currentMessage?.msgID {
                     self.menuCollectionView?.scrollToItem(at: IndexPath(row: i, section: 0), at: .left, animated: false)
                     return
                 }
@@ -127,7 +127,7 @@ class TUIMediaView_Minimalist: UIView {
         if let dataProvider = dataProvider {
             for i in 0 ..< dataProvider.mediaCellData.count {
                 let data = dataProvider.mediaCellData[i]
-                if (data as AnyObject).innerMessage.msgID == currentMessage?.msgID {
+                if data.innerMessage?.msgID == currentMessage?.msgID {
                     menuCollectionView?.scrollToItem(at: IndexPath(row: i, section: 0), at: .left, animated: false)
                     return
                 }

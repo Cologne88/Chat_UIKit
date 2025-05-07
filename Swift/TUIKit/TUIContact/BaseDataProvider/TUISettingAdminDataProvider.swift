@@ -4,9 +4,9 @@ import TIMCommon
 class TUISettingAdminDataProvider: NSObject {
     var groupID: String?
 
-    private(set) var owners: [Any] = []
-    private(set) var admins: [Any] = []
-    var datas: [Any] {
+    private(set) var owners: [TUIMemberInfoCellData] = []
+    private(set) var admins: [TUIMemberInfoCellData] = []
+    var datas: [[TUIMemberInfoCellData]] {
         return [owners, admins]
     }
 
@@ -20,9 +20,11 @@ class TUISettingAdminDataProvider: NSObject {
         var errorCode = 0
         var errorMsg: String? = nil
 
-        let group = DispatchGroup()
+        guard let groupID = groupID else { return }
 
+        let group = DispatchGroup()
         group.enter()
+
         V2TIMManager.sharedInstance().getGroupMemberList(groupID, filter: UInt32(V2TIMGroupMemberFilter.GROUP_MEMBER_FILTER_OWNER.rawValue), nextSeq: 0, succ: { [weak self] _, memberList in
             guard let self, let memberList = memberList else { return }
             for info in memberList {
@@ -68,10 +70,11 @@ class TUISettingAdminDataProvider: NSObject {
     }
 
     func removeAdmin(userID: String, callback: @escaping (Int, String?) -> Void) {
-        V2TIMManager.sharedInstance().setGroupMemberRole(groupID, member: userID, newRole: UInt32(V2TIMGroupMemberRole.GROUP_MEMBER_ROLE_MEMBER.rawValue), succ: { [weak self] in
+        guard let groupID = groupID else { return }
+        V2TIMManager.sharedInstance().setGroupMemberRole(groupID: groupID, memberUserID: userID, newRole: UInt32(V2TIMGroupMemberRole.GROUP_MEMBER_ROLE_MEMBER.rawValue), succ: { [weak self] in
             guard let self else { return }
             if let exist = self.existAdmin(userID: userID) {
-                self.admins.removeAll { $0 as! NSObject == exist }
+                self.admins.removeAll { $0 as NSObject == exist }
             }
             callback(0, nil)
         }, fail: { code, desc in
@@ -104,10 +107,13 @@ class TUISettingAdminDataProvider: NSObject {
         var errorMsg: String? = nil
         var results: [TUIMemberInfoCellData] = []
 
+        guard let groupID = groupID else { return }
+
         let group = DispatchGroup()
         for data in validUsers {
+            guard let identifier = data.identifier else { continue }
             group.enter()
-            V2TIMManager.sharedInstance().setGroupMemberRole(groupID, member: data.identifier, newRole: UInt32(V2TIMGroupMemberRole.GROUP_MEMBER_ROLE_ADMIN.rawValue), succ: {
+            V2TIMManager.sharedInstance().setGroupMemberRole(groupID: groupID, memberUserID: identifier, newRole: UInt32(V2TIMGroupMemberRole.GROUP_MEMBER_ROLE_ADMIN.rawValue), succ: {
                 results.append(data)
                 group.leave()
             }, fail: { code, desc in
@@ -127,6 +133,13 @@ class TUISettingAdminDataProvider: NSObject {
     }
 
     private func existAdmin(userID: String) -> TUIMemberInfoCellData? {
-        return admins.first { ($0 as? TUIMemberInfoCellData)?.identifier == userID } as? TUIMemberInfoCellData
+        var exist: TUIMemberInfoCellData? = nil
+        for data in admins {
+            if data.identifier == userID {
+                exist = data
+                break
+            }
+        }
+        return exist
     }
 }

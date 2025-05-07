@@ -23,13 +23,13 @@ class TUIRecordView: UIView {
         backgroundColor = UIColor.clear
         
         background = UIView()
-        background.backgroundColor = TUISwift.rgb(0, green: 0, blue: 0, alpha: 0.6)
+        background.backgroundColor = TUISwift.rgba(0, g: 0, b: 0, a: 0.6)
         background.layer.cornerRadius = 5
         background.layer.masksToBounds = true
         addSubview(background)
         
         recordImage = UIImageView()
-        recordImage.image = UIImage(named: TUISwift.tuiChatImagePath("record_1"))
+        recordImage.image = UIImage.safeImage(TUISwift.tuiChatImagePath("record_1"))
         recordImage.alpha = 0.8
         recordImage.contentMode = .center
         background.addSubview(recordImage)
@@ -111,7 +111,7 @@ class TUIRecordView: UIView {
     
     func setPower(_ power: Int) {
         let imageName = getRecordImage(power)
-        recordImage.image = UIImage(named: TUISwift.tuiChatImagePath(imageName))
+        recordImage.image = UIImage.safeImage(TUISwift.tuiChatImagePath(imageName))
     }
     
     private func getRecordImage(_ power: Int) -> String {

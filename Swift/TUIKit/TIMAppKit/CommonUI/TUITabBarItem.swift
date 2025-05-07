@@ -6,12 +6,12 @@
 //  Copyright © 2018 Tencent. All rights reserved.
 //
 
-import UIKit
 import TIMCommon
 import TUICore
+import UIKit
 
 public class TUITabBarItem {
-    public init(){}
+    public init() {}
     public var normalImage: UIImage?
     public var selectedImage: UIImage?
     public var title: String?
@@ -21,10 +21,9 @@ public class TUITabBarItem {
 }
 
 public class TUITabBarController: UITabBarController {
-
     public var tabBarItems: [TUITabBarItem] = []
 
-    public override func viewDidLoad() {
+    override public func viewDidLoad() {
         super.viewDidLoad()
 
         TUITool.applicationKeywindow()?.backgroundColor = UIColor.white
@@ -65,7 +64,7 @@ public class TUITabBarController: UITabBarController {
         return TUISwift.tuiDemoDynamicColor("tab_title_text_select_color", defaultColor: "#147AFF")
     }
 
-    public override func viewDidLayoutSubviews() {
+    override public func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         // tabbar
         // Cause of increasing tabbar height
@@ -74,7 +73,7 @@ public class TUITabBarController: UITabBarController {
         tabBar.frame = newFrame
     }
 
-    public override func viewDidAppear(_ animated: Bool) {
+    override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         for item in tabBarItems {
             if let tabItemView = getTabBarContentView(item.controller?.tabBarItem) {

@@ -102,13 +102,14 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
                     data.cswitchSelector = #selector(onMessageDoNotDisturb(_:))
                     data.reuseId = "SwitchCell"
                     weak var weakSelf = self
-                    V2TIMManager.sharedInstance().getC2CReceiveMessageOpt([friendProfile?.userID ?? ""], succ: { optList in
-                        guard let optList = optList else { return }
-                        for info in optList {
-                            if info.userID == weakSelf?.friendProfile?.userID {
-                                data.isOn = (info.receiveOpt == .RECEIVE_NOT_NOTIFY_MESSAGE)
-                                weakSelf?.tableView.reloadData()
-                                break
+                    V2TIMManager.sharedInstance().getC2CReceiveMessageOpt(userIDList: [friendProfile?.userID ?? ""], succ: { optList in
+                        if let optList = optList {
+                            for info in optList {
+                                if info.userID == weakSelf?.friendProfile?.userID {
+                                    data.isOn = (info.receiveOpt == .RECEIVE_NOT_NOTIFY_MESSAGE)
+                                    weakSelf?.tableView.reloadData()
+                                    break
+                                }
                             }
                         }
                     }, fail: nil)
@@ -121,15 +122,20 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
                     data.isOn = false
 
                     weak var weakSelf = self
-                    V2TIMManager.sharedInstance().getConversation("c2c_\(friendProfile?.userID ?? "")", succ: { conv in
-                        data.isOn = conv?.isPinned ?? false
-                        weakSelf?.tableView.reloadData()
-                    }, fail: { _, _ in })
+                    if let userID = friendProfile?.userID {
+                        let conversationID = "c2c_\(userID)"
+                        V2TIMManager.sharedInstance().getConversation(conversationID: conversationID, succ: { conv in
+                            if let conv = conv {
+                                data.isOn = conv.isPinned
+                            }
+                            weakSelf?.tableView.reloadData()
+                        }, fail: { _, _ in })
+                    }
 
-                    // TODO:
+                    // TODO: TO BE DELETED
 //                    if let userID = friendProfile?.userID {
 //                        let conversationID = "c2c_\(userID)"
-//                        if TUIConversationPin.sharedInstance().topConversationList().contains(where: { $0 as! String == conversationID }) {
+//                        if TUIConversationPin.sharedInstance.topConversationList().contains(where: { $0 as! String == conversationID }) {
 //                            data.isOn = true
 //                        }
 //                    }
@@ -178,9 +184,8 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
                     data.title = TUISwift.timCommonLocalizableString("ProfileBlocked")
                     data.cswitchSelector = #selector(onChangeBlackList(_:))
                     data.reuseId = "SwitchCell"
-                    V2TIMManager.sharedInstance().getBlackList({ [weak self] infoList in
-                        guard let self = self else { return }
-                        guard let infoList = infoList else { return }
+                    V2TIMManager.sharedInstance().getBlackList(succ: { [weak self] infoList in
+                        guard let self = self, let infoList = infoList else { return }
                         for friend in infoList {
                             if friend.userID == self.friendProfile?.userID {
                                 data.isOn = true
@@ -188,7 +193,8 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
                                 break
                             }
                         }
-                    }, fail: nil)
+                    }) { _, _ in
+                    }
                     return data
                 }())
                 return inlist
@@ -201,16 +207,16 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
             // Extension menus
             var extensionParam: [String: Any] = [:]
             if let userID = friendProfile?.userID, !userID.isEmpty {
-                extensionParam[TUICore_TUIContactExtension_FriendProfileActionMenu_UserID] = userID
+                extensionParam["TUICore_TUIContactExtension_FriendProfileActionMenu_UserID"] = userID
             }
-            extensionParam[TUICore_TUIContactExtension_FriendProfileActionMenu_FilterVideoCall] = false
-            extensionParam[TUICore_TUIContactExtension_FriendProfileActionMenu_FilterAudioCall] = false
-            let extensionList = TUICore.getExtensionList(TUICore_TUIContactExtension_FriendProfileActionMenu_ClassicExtensionID, param: extensionParam)
+            extensionParam["TUICore_TUIContactExtension_FriendProfileActionMenu_FilterVideoCall"] = false
+            extensionParam["TUICore_TUIContactExtension_FriendProfileActionMenu_FilterAudioCall"] = false
+            let extensionList = TUICore.getExtensionList("TUICore_TUIContactExtension_FriendProfileActionMenu_ClassicExtensionID", param: extensionParam)
             for info in extensionList {
                 if let text = info.text {
                     let data = TUIButtonCellData()
                     data.title = text
-                    data.style = .ButtonWhite
+                    data.style = .white
                     data.textColor = TUISwift.timCommonDynamicColor("primary_theme_color", defaultColor: "147AFF")
                     data.reuseId = "ButtonCell"
                     data.cbuttonSelector = #selector(onActionMenuExtensionClicked(_:))
@@ -224,7 +230,7 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
                 inlist.append({
                     let data = TUIButtonCellData()
                     data.title = TUISwift.timCommonLocalizableString("ProfileDeleteFirend")
-                    data.style = .ButtonRedText
+                    data.style = .redText
                     data.cbuttonSelector = #selector(onDeleteFriend(_:))
                     data.reuseId = "ButtonCell"
                     return data
@@ -248,9 +254,9 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
     @objc private func onChangeBlackList(_ cell: TUICommonContactSwitchCell) {
         guard let userID = friendProfile?.userID else { return }
         if cell.switcher.isOn {
-            V2TIMManager.sharedInstance().add(toBlackList: [userID], succ: nil, fail: nil)
+            V2TIMManager.sharedInstance().addToBlackList(userIDList: [userID], succ: nil, fail: nil)
         } else {
-            V2TIMManager.sharedInstance().delete(fromBlackList: [userID], succ: nil, fail: nil)
+            V2TIMManager.sharedInstance().deleteFromBlackList(userIDList: [userID], succ: nil, fail: nil)
         }
     }
 
@@ -264,10 +270,12 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
             guard let self = self, let friendRemark = change.newValue else { return }
             self.modified = true
             self.friendProfile?.friendRemark = friendRemark
-            V2TIMManager.sharedInstance().setFriendInfo(self.friendProfile, succ: {
-                self.loadData()
-                NotificationCenter.default.post(name: NSNotification.Name("FriendInfoChangedNotification"), object: self.friendProfile)
-            }, fail: nil)
+            if let profile = friendProfile {
+                V2TIMManager.sharedInstance().setFriendInfo(info: profile, succ: {
+                    self.loadData()
+                    NotificationCenter.default.post(name: NSNotification.Name("FriendInfoChangedNotification"), object: self.friendProfile)
+                }, fail: nil)
+            }
         }
     }
 
@@ -276,8 +284,8 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
         let ac = UIAlertController(title: nil, message: TUISwift.timCommonLocalizableString("TUIKitClearAllChatHistoryTips"), preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Confirm"), style: .destructive, handler: { [weak self] _ in
             guard let self = self else { return }
-            V2TIMManager.sharedInstance().clearC2CHistoryMessage(userID, succ: {
-                TUICore.notifyEvent(TUICore_TUIConversationNotify, subKey: TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey, object: self, param: nil)
+            V2TIMManager.sharedInstance().clearC2CHistoryMessage(userID: userID, succ: {
+                TUICore.notifyEvent("TUICore_TUIConversationNotify", subKey: "TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey", object: self, param: nil)
                 TUITool.makeToast("success")
             }, fail: { code, desc in
                 TUITool.makeToastError(Int(code), msg: desc)
@@ -291,14 +299,14 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
         guard let userID = friendProfile?.userID else { return }
         let conversationID = "c2c_\(userID)"
         let vc = TUISelectAvatarController()
-        vc.selectAvatarType = .conversationBackGroundCover
+        vc.selectAvatarType = .conversationBackgroundCover
         vc.profilFaceURL = getBackgroundImageUrlByConversationID(conversationID) ?? ""
         navigationController?.pushViewController(vc, animated: true)
         vc.selectCallBack = { [weak self] urlStr in
             guard let self = self else { return }
             self.appendBackgroundImage(urlStr, conversationID: conversationID)
             if !conversationID.isEmpty {
-                TUICore.notifyEvent(TUICore_TUIContactNotify, subKey: TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey, object: self, param: [TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID: conversationID])
+                TUICore.notifyEvent("TUICore_TUIContactNotify", subKey: "TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey", object: self, param: ["TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID": conversationID])
             }
         }
     }
@@ -313,7 +321,7 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
 
     private func appendBackgroundImage(_ imgUrl: String, conversationID: String) {
         guard !conversationID.isEmpty else { return }
-        var dict = UserDefaults.standard.object(forKey: "conversation_backgroundImage_map");
+        var dict = UserDefaults.standard.object(forKey: "conversation_backgroundImage_map")
         if dict == nil {
             dict = [String: String]()
         }
@@ -396,14 +404,14 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
     @objc private func onActionMenuExtensionClicked(_ sender: Any) {
         guard let cell = sender as? TUIButtonCell else { return }
         let data = cell.buttonData
-        let info = data.tui_extValueObj as? TUIExtensionInfo
+        let info = data?.tui_extValueObj as? TUIExtensionInfo
         if let info = info, let onClicked = info.onClicked {
             var param: [String: Any] = [:]
             if let userID = friendProfile?.userID, !userID.isEmpty {
-                param[TUICore_TUIContactExtension_FriendProfileActionMenu_UserID] = userID
+                param["TUICore_TUIContactExtension_FriendProfileActionMenu_UserID"] = userID
             }
             if let navigationController = navigationController {
-                param[TUICore_TUIContactExtension_FriendProfileActionMenu_PushVC] = navigationController
+                param["TUICore_TUIContactExtension_FriendProfileActionMenu_PushVC"] = navigationController
             }
             onClicked(param)
         }
@@ -411,28 +419,28 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
 
     @objc private func onVoiceCall(_ sender: Any) {
         let param: [String: Any] = [
-            TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey: [userFullInfo?.userID ?? ""],
-            TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey: "0"
+            "TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey": [userFullInfo?.userID ?? ""],
+            "TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey": "0"
         ]
-        TUICore.callService(TUICore_TUICallingService, method: TUICore_TUICallingService_ShowCallingViewMethod, param: param)
+        TUICore.callService("TUICore_TUICallingService", method: "TUICore_TUICallingService_ShowCallingViewMethod", param: param)
     }
 
     @objc private func onVideoCall(_ sender: Any) {
         let param: [String: Any] = [
-            TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey: [userFullInfo?.userID ?? ""],
-            TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey: "1"
+            "TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey": [userFullInfo?.userID ?? ""],
+            "TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey": "1"
         ]
-        TUICore.callService(TUICore_TUICallingService, method: TUICore_TUICallingService_ShowCallingViewMethod, param: param)
+        TUICore.callService("TUICore_TUICallingService", method: "TUICore_TUICallingService_ShowCallingViewMethod", param: param)
     }
 
     @objc private func onDeleteFriend(_ sender: Any) {
-        V2TIMManager.sharedInstance().delete(fromFriendList: [friendProfile?.userID ?? ""], delete: .FRIEND_TYPE_BOTH, succ: { [weak self] _ in
+        V2TIMManager.sharedInstance().deleteFromFriendList(userIDList: [friendProfile?.userID ?? ""], deleteType: .FRIEND_TYPE_BOTH, succ: { [weak self] _ in
             guard let self = self else { return }
             self.modified = true
-            TUIConversationPin.sharedInstance().removeTopConversation("c2c_\(self.friendProfile?.userID ?? "")", callback: nil)
+            TUIConversationPin.sharedInstance.removeTopConversation("c2c_\(self.friendProfile?.userID ?? "")", callback: nil)
             let conversationID = "c2c_\(self.friendProfile?.userID ?? "")"
             if !conversationID.isEmpty {
-                TUICore.notifyEvent(TUICore_TUIConversationNotify, subKey: TUICore_TUIConversationNotify_RemoveConversationSubKey, object: self, param: [TUICore_TUIConversationNotify_RemoveConversationSubKey_ConversationID: conversationID])
+                TUICore.notifyEvent("TUICore_TUIConversationNotify", subKey: "TUICore_TUIConversationNotify_RemoveConversationSubKey", object: self, param: ["TUICore_TUIConversationNotify_RemoveConversationSubKey_ConversationID": conversationID])
             }
             self.navigationController?.popToRootViewController(animated: true)
         }, fail: nil)
@@ -444,31 +452,31 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
             title = friendRemark
         }
         let param: [String: Any] = [
-            TUICore_TUIChatObjectFactory_ChatViewController_Title: title,
-            TUICore_TUIChatObjectFactory_ChatViewController_UserID: friendProfile?.userID ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_ConversationID: "c2c_\(userFullInfo?.userID ?? "")"
+            "TUICore_TUIChatObjectFactory_ChatViewController_Title": title,
+            "TUICore_TUIChatObjectFactory_ChatViewController_UserID": friendProfile?.userID ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_ConversationID": "c2c_\(userFullInfo?.userID ?? "")"
         ]
-        navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Classic, param: param, forResult: nil)
+        navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Classic", param: param, forResult: nil)
     }
 
     @objc private func onMessageDoNotDisturb(_ cell: TUICommonContactSwitchCell) {
         let opt: V2TIMReceiveMessageOpt = cell.switcher.isOn ? .RECEIVE_NOT_NOTIFY_MESSAGE : .RECEIVE_MESSAGE
-        V2TIMManager.sharedInstance().setC2CReceiveMessageOpt([friendProfile?.userID ?? ""], opt: opt, succ: nil, fail: nil)
+        V2TIMManager.sharedInstance().setC2CReceiveMessageOpt(userIDList: [friendProfile?.userID ?? ""], opt: opt, succ: nil, fail: nil)
     }
 
     @objc private func onTopMostChat(_ cell: TUICommonContactSwitchCell) {
         if cell.switcher.isOn {
-            TUIConversationPin.sharedInstance().addTopConversation("c2c_\(friendProfile?.userID ?? "")", callback: { success, errorMessage in
+            TUIConversationPin.sharedInstance.addTopConversation("c2c_\(friendProfile?.userID ?? "")", callback: { success, errorMessage in
                 if !success {
                     cell.switcher.isOn.toggle()
-                    TUITool.makeToast(errorMessage)
+                    TUITool.makeToast(errorMessage ?? "")
                 }
             })
         } else {
-            TUIConversationPin.sharedInstance().removeTopConversation("c2c_\(friendProfile?.userID ?? "")", callback: { success, errorMessage in
+            TUIConversationPin.sharedInstance.removeTopConversation("c2c_\(friendProfile?.userID ?? "")", callback: { success, errorMessage in
                 if !success {
                     cell.switcher.isOn.toggle()
-                    TUITool.makeToast(errorMessage)
+                    TUITool.makeToast(errorMessage ?? "")
                 }
             })
         }

@@ -6,7 +6,7 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
     var selectContent: String?
     var selectAllContentCallback: TUIReferenceSelectAllContentCallback?
     var currentOriginView: TUIReplyQuoteView_Minimalist?
-    private var originMessageObservation: NSKeyValueObservation?
+    var longPressGesture: UILongPressGestureRecognizer?
 
     lazy var senderLabel: UILabel = {
         let label = UILabel()
@@ -49,15 +49,9 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         setupViews()
     }
 
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupViews()
-    }
-
-    override public func prepareForReuse() {
-        super.prepareForReuse()
-        originMessageObservation?.invalidate()
-        originMessageObservation = nil
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     private func setupViews() {
@@ -69,14 +63,18 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         contentView.addSubview(bottomContainer)
     }
 
-    override public func fill(with data: TUIBubbleMessageCellData) {
+    override public func fill(with data: TUICommonCellData) {
         guard let data = data as? TUIReferenceMessageCellData else { return }
         super.fill(with: data)
         referenceData = data
-        senderLabel.text = "\(data.sender.safeValue):"
+        senderLabel.text = "\(data.sender ?? ""):"
         senderLabel.rtlAlignment = TUITextRTLAlignment.leading
         selectContent = data.content
-        textView.attributedText = data.content.getFormatEmojiString(with: textView.font!, emojiLocations: data.emojiLocations as? NSMutableArray)
+        var location: [[NSValue: NSAttributedString]]? = data.emojiLocations
+        textView.attributedText = data.content.getFormatEmojiString(withFont: textView.font!, emojiLocations: &location)
+        if let location = location {
+            data.emojiLocations = location
+        }
 
         if TUISwift.isRTL() {
             textView.textAlignment = .right
@@ -85,19 +83,19 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         }
 
         var lineImage: UIImage? = nil
-        if bubbleData.direction == .MsgDirectionIncoming {
+        if bubbleData.direction == .incoming {
             lineImage = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath_Minimalist("msg_reply_line_income"))
         } else {
             lineImage = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath_Minimalist("msg_reply_line_outcome"))
         }
-        lineImage = lineImage?.rtl_imageFlippedForRightToLeftLayoutDirection()
+        lineImage = lineImage?.rtlImageFlippedForRightToLeftLayoutDirection()
 
         let ei = NSCoder.uiEdgeInsets(for: "{10,0,20,0}")
         let rtlEI = rtlEdgeInsetsWithInsets(ei)
         quoteLineView.image = lineImage?.resizableImage(withCapInsets: rtlEI, resizingMode: .stretch)
         bottomContainer.isHidden = CGSizeEqualToSize(data.bottomContainerSize, .zero)
 
-        originMessageObservation = data.observe(\.originMessage, options: [.new, .initial]) { [weak self] _, _ in
+        data.onOriginMessageChange = { [weak self] _ in
             guard let self = self else { return }
             self.setNeedsUpdateConstraints()
             self.updateConstraintsIfNeeded()
@@ -109,10 +107,10 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         layoutIfNeeded()
     }
 
-    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData) {
+    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData?) {
         guard let referenceData = referenceData else { return }
-        let param: [String: Any] = [TUICore_TUIChatExtension_BottomContainer_CellData: referenceData]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID, parentView: bottomContainer ?? UIView(), param: param)
+        let param: [String: Any] = ["TUICore_TUIChatExtension_BottomContainer_CellData": referenceData]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID", parentView: bottomContainer ?? UIView(), param: param)
     }
 
     func updateUI(with referenceData: TUIReferenceMessageCellData?) {
@@ -127,7 +125,7 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
             currentOriginView?.fill(with: quoteData)
         }
 
-        if referenceData.direction == .MsgDirectionIncoming {
+        if referenceData.direction == .incoming {
             textView.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_content_recv_text_color", defaultColor: "#000000")
             senderLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_recv_text_color", defaultColor: "#888888")
             quoteView.backgroundColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_bg_color", defaultColor: "#4444440c")
@@ -145,12 +143,12 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         }
 
         quoteView.snp.remakeConstraints { make in
-            if referenceData.direction == .MsgDirectionIncoming {
+            if referenceData.direction == .incoming {
                 make.leading.equalTo(bubbleView).offset(15)
             } else {
                 make.trailing.equalTo(bubbleView).offset(-15)
             }
-            make.top.equalTo(bubbleView.snp.bottom).offset(messageData.messageContainerAppendSize.height + 6)
+            make.top.equalTo(bubbleView.snp.bottom).offset((messageData?.messageContainerAppendSize.height ?? 0) + 6)
             make.size.equalTo(referenceData.quoteSize)
         }
 
@@ -160,7 +158,7 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
             make.size.equalTo(referenceData.senderSize)
         }
 
-        let hideSenderLabel = (referenceData.originCellData?.innerMessage.status == .MSG_STATUS_LOCAL_REVOKED) && !referenceData.showRevokedOriginMessage
+        let hideSenderLabel = (referenceData.originCellData?.innerMessage?.status == .MSG_STATUS_LOCAL_REVOKED) && !referenceData.showRevokedOriginMessage
         senderLabel.isHidden = hideSenderLabel
 
         currentOriginView?.snp.remakeConstraints { make in
@@ -181,7 +179,7 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
             make.top.equalTo(bubbleView.snp.bottom)
             make.bottom.equalTo(quoteView.snp.centerY)
             make.width.equalTo(17)
-            if referenceData.direction == .MsgDirectionIncoming {
+            if referenceData.direction == .incoming {
                 make.leading.equalTo(container).offset(-1)
             } else {
                 make.trailing.equalTo(container)
@@ -216,13 +214,13 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         }
 
         if let quoteView = view as? TUITextReplyQuoteView_Minimalist {
-            if referenceData?.direction == .MsgDirectionIncoming {
+            if referenceData?.direction == .incoming {
                 quoteView.textLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_recv_text_color", defaultColor: "#888888")
             } else {
                 quoteView.textLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_text_color", defaultColor: "#888888")
             }
         } else if let quoteView = view as? TUIMergeReplyQuoteView_Minimalist {
-            if referenceData?.direction == .MsgDirectionIncoming {
+            if referenceData?.direction == .incoming {
                 quoteView.titleLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_recv_text_color", defaultColor: "#888888")
             } else {
                 quoteView.titleLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_text_color", defaultColor: "#888888")
@@ -266,8 +264,8 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         let size = referenceData.bottomContainerSize
         let offset = quoteLineView.isHidden ? 0 : 2
 
-        bottomContainer?.snp.remakeConstraints { make in
-            if referenceData.direction == .MsgDirectionIncoming {
+        bottomContainer.snp.remakeConstraints { make in
+            if referenceData.direction == .incoming {
                 make.leading.equalTo(container).offset(offset)
             } else {
                 make.trailing.equalTo(container).offset(-offset)
@@ -282,18 +280,16 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
             quoteView.frame = newRect
         }
 
-        if let messageModifyRepliesButton = messageModifyRepliesButton, !messageModifyRepliesButton.isHidden {
+        if !messageModifyRepliesButton.isHidden {
             let oldRect = messageModifyRepliesButton.frame
             let newRect = CGRect(x: oldRect.origin.x, y: oldRect.origin.y + oldRect.size.height + 5, width: oldRect.size.width, height: oldRect.size.height)
             messageModifyRepliesButton.frame = newRect
         }
 
         for view in replyAvatarImageViews {
-            if let view = view as? UIView {
-                let oldRect = view.frame
-                let newRect = CGRect(x: oldRect.origin.x, y: oldRect.origin.y + oldRect.size.height + 5, width: oldRect.size.width, height: oldRect.size.height)
-                view.frame = newRect
-            }
+            let oldRect = view.frame
+            let newRect = CGRect(x: oldRect.origin.x, y: oldRect.origin.y + oldRect.size.height + 5, width: oldRect.size.width, height: oldRect.size.height)
+            view.frame = newRect
         }
 
         if !quoteLineView.isHidden {
@@ -310,9 +306,7 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
     // MARK: - TUITextViewDelegate
 
     public func onLongPressTextViewMessage(_ textView: UITextView) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIMessageCellDelegate.onLongPressMessage(_:))) {
-            delegate.onLongPressMessage(self)
-        }
+        delegate?.onLongPressMessage(self)
     }
 
     // MARK: - UITextViewDelegate
@@ -385,9 +379,9 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
 
         // Calculate the size of revoke string
         var messageRevokeRect = CGRect.zero
-        let showRevokeStr = referenceCellData.originCellData?.innerMessage.status == .MSG_STATUS_LOCAL_REVOKED && !referenceCellData.showRevokedOriginMessage
+        let showRevokeStr = referenceCellData.originCellData?.innerMessage?.status == .MSG_STATUS_LOCAL_REVOKED && !referenceCellData.showRevokedOriginMessage
         if showRevokeStr {
-            let msgRevokeStr = TUISwift.timCommonLocalizableString("TUIKitReferenceOriginMessageRevoke")!
+            let msgRevokeStr = TUISwift.timCommonLocalizableString("TUIKitReferenceOriginMessageRevoke")
             messageRevokeRect = msgRevokeStr.boundingRect(with: CGSize(width: quoteMaxWidth, height: senderSize.height),
                                                           options: .usesLineFragmentOrigin.union(.usesFontLeading),
                                                           attributes: [.font: UIFont.boldSystemFont(ofSize: 12.0)],
@@ -399,7 +393,8 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
 
         // Calculate the size of label which displays the content of replying the original message
         let textFont = UIFont.systemFont(ofSize: 16.0)
-        let attributeString = referenceCellData.content.getFormatEmojiString(with: textFont, emojiLocations: nil)
+        var locations: [[NSValue: NSAttributedString]]? = nil
+        let attributeString = referenceCellData.content.getFormatEmojiString(withFont: textFont, emojiLocations: &locations)
 
         let replyContentRect = attributeString.boundingRect(with: CGSize(width: TUISwift.tTextMessageCell_Text_Width_Max(), height: CGFloat(Int.max)), options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
         var size = CGSize(width: ceil(replyContentRect.size.width), height: ceil(replyContentRect.size.height))
@@ -420,16 +415,16 @@ public class TUIReferenceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist
         }
 
         referenceCellData.textSize = size
-        let y = referenceCellData.cellLayout.bubbleInsets.top + TUIBubbleMessageCell_Minimalist.getBubbleTop(referenceCellData)
-        referenceCellData.textOrigin = CGPoint(x: referenceCellData.cellLayout.bubbleInsets.left, y: y)
+        let y = (referenceCellData.cellLayout?.bubbleInsets.top ?? 0) + TUIBubbleMessageCell_Minimalist.getBubbleTop(data: referenceCellData)
+        referenceCellData.textOrigin = CGPoint(x: (referenceCellData.cellLayout?.bubbleInsets.left ?? 0), y: y)
 
-        size.height += referenceCellData.cellLayout.bubbleInsets.top + referenceCellData.cellLayout.bubbleInsets.bottom
-        size.width += referenceCellData.cellLayout.bubbleInsets.left + referenceCellData.cellLayout.bubbleInsets.right
+        size.height += (referenceCellData.cellLayout?.bubbleInsets.top ?? 0) + (referenceCellData.cellLayout?.bubbleInsets.bottom ?? 0)
+        size.width += (referenceCellData.cellLayout?.bubbleInsets.left ?? 0) + (referenceCellData.cellLayout?.bubbleInsets.right ?? 0)
 
-        if referenceCellData.direction == .MsgDirectionIncoming {
-            size.height = max(size.height, TUIBubbleMessageCell_Minimalist.incommingBubble.size.height)
+        if referenceCellData.direction == .incoming {
+            size.height = max(size.height, (TUIBubbleMessageCell_Minimalist.incommingBubble?.size.height ?? 0))
         } else {
-            size.height = max(size.height, TUIBubbleMessageCell_Minimalist.outgoingBubble.size.height)
+            size.height = max(size.height, (TUIBubbleMessageCell_Minimalist.outgoingBubble?.size.height ?? 0))
         }
 
         quoteWidth = senderRect.size.width

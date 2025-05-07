@@ -115,8 +115,9 @@ class TUIMessageController_Minimalist: TUIBaseMessageController_Minimalist, TUIC
 
     func updateAtMeTongue(_ deleteCellData: TUIMessageCellData) {
         guard let conversationData = conversationData else { return }
-        let deleteSeq = deleteCellData.innerMessage.seq
-        if var atMsgSeqs = conversationData.atMsgSeqs, atMsgSeqs.contains(Int(deleteSeq)) {
+        if let deleteSeq = deleteCellData.innerMessage?.seq,
+           var atMsgSeqs = conversationData.atMsgSeqs, atMsgSeqs.contains(Int(deleteSeq))
+        {
             atMsgSeqs.removeAll { $0 == Int(deleteSeq) }
             if atMsgSeqs.count > 0 {
                 let tongue = TUIChatSmallTongue_Minimalist()
@@ -225,14 +226,14 @@ class TUIMessageController_Minimalist: TUIBaseMessageController_Minimalist, TUIC
         }
 
         if offsetY > CGFloat(TMessageController_Header_Height) {
-            tableView.scrollToRow(at: IndexPath(row: index, section: 0), at: .middle, animated: false)
+            tableView.scrollToRow(at: IndexPath(row: index, section: 0), at: .middle, animated: true)
         }
     }
 
     func fillCellHighlightKeyword() {
         guard let uiMsgs = messageSearchDataProvider?.uiMsgs else { return }
         guard let cellData = uiMsgs.first(where: { isLocateMessage($0) }) else { return }
-        if cellData.innerMessage.elemType == .ELEM_TYPE_GROUP_TIPS {
+        if cellData.innerMessage?.elemType == V2TIMElemType.ELEM_TYPE_GROUP_TIPS {
             return
         }
 
@@ -257,11 +258,13 @@ class TUIMessageController_Minimalist: TUIBaseMessageController_Minimalist, TUIC
 
     func isLocateMessage(_ uiMsg: TUIMessageCellData) -> Bool {
         if let locateMessage = locateMessage {
-            if uiMsg.innerMessage.msgID == locateMessage.msgID {
+            if uiMsg.innerMessage?.msgID == locateMessage.msgID {
                 return true
             }
         } else {
-            if let groupID = conversationData?.groupID, !groupID.isEmpty, uiMsg.innerMessage.seq == locateGroupMessageSeq {
+            if let groupID = conversationData?.groupID, !groupID.isEmpty,
+               let seq = uiMsg.innerMessage?.seq, seq == locateGroupMessageSeq
+            {
                 return true
             }
         }
@@ -290,7 +293,7 @@ class TUIMessageController_Minimalist: TUIBaseMessageController_Minimalist, TUIC
             self.tableView.layoutIfNeeded()
 
             for (_, obj) in newUIMsgs.enumerated().reversed() {
-                if obj.direction == .MsgDirectionIncoming {
+                if obj.direction == .incoming {
                     self.C2CIncomingLastMsg = obj.innerMessage
                     break
                 }
@@ -356,8 +359,8 @@ class TUIMessageController_Minimalist: TUIBaseMessageController_Minimalist, TUIC
         messageDataProvider?.preProcessMessage(uiMsgs) { [weak self] in
             guard let self else { return }
             for cellData in uiMsgs {
-                if cellData.innerMessage.msgID == message.msgID {
-                    self.onJump(toRepliesDetailPage: cellData)
+                if cellData.innerMessage?.msgID == message.msgID {
+                    self.onJumpToRepliesDetailPage(cellData)
                     return
                 }
             }
@@ -369,7 +372,7 @@ class TUIMessageController_Minimalist: TUIBaseMessageController_Minimalist, TUIC
         locateMessage = message
         highlightKeyword = matchKeyWord
 
-        let memoryExist = messageDataProvider?.uiMsgs.contains(where: { $0.innerMessage.msgID == message.msgID }) ?? false
+        let memoryExist = messageDataProvider?.uiMsgs.contains(where: { $0.innerMessage?.msgID == message.msgID }) ?? false
         if memoryExist {
             scrollToLocateMessage(false)
             fillCellHighlightKeyword()

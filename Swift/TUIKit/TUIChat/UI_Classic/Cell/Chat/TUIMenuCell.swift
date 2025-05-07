@@ -38,8 +38,8 @@ class TUIMenuCell: UICollectionViewCell {
         }
         
         let size = frame.size
-        let menuCellMargin = TUISwift.tMenuCell_Margin()
-        menu.frame = CGRect(x: menuCellMargin, y: menuCellMargin, width: size.width - 2 * menuCellMargin, height: size.height - 2 * menuCellMargin)
+        let menuCellMargin = TMenuCell_Margin
+        menu.frame = CGRect(x: CGFloat(menuCellMargin), y: CGFloat(menuCellMargin), width: size.width - CGFloat(2 * menuCellMargin), height: size.height - CGFloat(2 * menuCellMargin))
         menu.contentMode = .scaleAspectFit
     }
 }

@@ -38,7 +38,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     class func getDisplayString(message: V2TIMMessage?) -> String? {
         setupDataSource(self)
         guard let message = message else { return "" }
-        return TUIMessageDataProvider.getDisplayString(message)
+        return TUIMessageDataProvider.getDisplayString(message: message)
     }
 
     private static var hasSetupDataSource = false
@@ -125,14 +125,15 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     }
 
     func registerEvents() {
-        TUICore.registerEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_PluginViewSizeChangedSubKey, object: self)
-        TUICore.registerEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_WillForwardTextSubKey, object: self)
-        TUICore.registerEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_DidChangePluginViewSubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_PluginViewSizeChangedSubKey", object: self)
+        TUICore.registerEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_WillForwardTextSubKey", object: self)
+        TUICore.registerEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_DidChangePluginViewSubKey", object: self)
         NotificationCenter.default.addObserver(self, selector: #selector(applicationBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(applicationBecomeActive), name: UIApplication.willEnterForegroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(applicationEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onReceivedSendMessageRequest(_:)), name: NSNotification.Name(TUIChatSendMessageNotification), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onReceivedSendMessageWithoutUpdateUIRequest(_:)), name: NSNotification.Name(TUIChatSendMessageWithoutUpdateUINotification), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onReceivedInsertMessageWithoutUpdateUIRequest(_:)), name: NSNotification.Name(TUIChatInsertMessageWithoutUpdateUINotification), object: nil)
     }
 
     @objc func onReceivedSendMessageRequest(_ notification: Notification) {
@@ -140,8 +141,8 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             return
         }
 
-        let message = userInfo[TUICore_TUIChatService_SendMessageMethod_MsgKey] as? V2TIMMessage
-        let cellData = userInfo[TUICore_TUIChatService_SendMessageMethod_PlaceHolderUIMsgKey] as? TUIMessageCellData
+        let message = userInfo["TUICore_TUIChatService_SendMessageMethod_MsgKey"] as? V2TIMMessage
+        let cellData = userInfo["TUICore_TUIChatService_SendMessageMethod_PlaceHolderUIMsgKey"] as? TUIMessageCellData
 
         if let cellData = cellData, message == nil {
             sendPlaceHolderUIMessage(cellData)
@@ -155,7 +156,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             return
         }
 
-        guard let message = userInfo[TUICore_TUIChatService_SendMessageMethodWithoutUpdateUI_MsgKey] as? V2TIMMessage else {
+        guard let message = userInfo["TUICore_TUIChatService_SendMessageMethodWithoutUpdateUI_MsgKey"] as? V2TIMMessage else {
             return
         }
 
@@ -166,7 +167,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             _ = TUIMessageDataProvider.sendMessage(message, toConversation: conversationData, appendParams: param, Progress: nil, SuccBlock: {
                 print("send message without updating UI succeed")
             }, FailBlock: { code, desc in
-                print("send message without updating UI failed, code: \(code), desc: \(desc ?? "unknown error")")
+                print("send message without updating UI failed, code: \(code), desc: \(desc ?? "")")
             })
         }
     }
@@ -241,6 +242,9 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         messageDataProvider?.clearUIMsgList()
         tableView.reloadData()
         tableView.layoutIfNeeded()
+        if indicatorView?.isAnimating ?? false {
+            indicatorView?.stopAnimating()
+        }
     }
 
     func reloadAndScrollToBottomOfMessage(_ messageID: String, needScroll: Bool = true) {
@@ -284,7 +288,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         guard let messageDataProvider = messageDataProvider else { return nil }
         for i in 0..<messageDataProvider.uiMsgs.count {
             let data = messageDataProvider.uiMsgs[i]
-            if data.innerMessage.msgID == messageID {
+            if data.innerMessage?.msgID == messageID {
                 return IndexPath(row: i, section: 0)
             }
         }
@@ -301,7 +305,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     }
 
     @objc func didTapViewController() {
-        delegate?.didTap?(self)
+        delegate?.didTap(self)
     }
 
     func sendPlaceHolderUIMessage(_ cellData: TUIMessageCellData) {
@@ -311,59 +315,59 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     func sendUIMessage(_ cellData: TUIMessageCellData) {
         guard let conversationData = conversationData, let messageDataProvider = messageDataProvider else { return }
-        cellData.innerMessage.needReadReceipt = isMsgNeedReadReceipt
+        cellData.innerMessage?.needReadReceipt = isMsgNeedReadReceipt
         messageDataProvider.sendUIMsg(cellData, toConversation: conversationData, willSendBlock: { [weak self] _, _ in
             guard let self = self else { return }
-            if cellData.isKind(of: TUIVideoMessageCellData.self) {
+            if cellData.isKind(of: TUIVideoMessageCellData.self) || cellData.isKind(of: TUIImageMessageCellData.self) {
                 DispatchQueue.main.async {
                     self.scrollToBottom(true)
                 }
             } else {
                 self.scrollToBottom(true)
             }
-            self.setUIMessageStatus(cellData, status: .Msg_Status_Sending_2)
+            self.setUIMessageStatus(cellData, status: .sending2)
         }, SuccBlock: { [weak self] in
             guard let self = self else { return }
             self.reloadUIMessage(cellData)
-            self.setUIMessageStatus(cellData, status: .Msg_Status_Succ)
+            self.setUIMessageStatus(cellData, status: .success)
 
-            let param: [String: Any] = [
-                TUICore_TUIChatNotify_SendMessageSubKey_Code: 0,
-                TUICore_TUIChatNotify_SendMessageSubKey_Desc: "",
-                TUICore_TUIChatNotify_SendMessageSubKey_Message: cellData.innerMessage,
-            ]
-            TUICore.notifyEvent(TUICore_TUIChatNotify, subKey: TUICore_TUIChatNotify_SendMessageSubKey, object: self, param: param)
+            if let msg = cellData.innerMessage {
+                let param: [String: Any] = [
+                    "TUICore_TUIChatNotify_SendMessageSubKey_Code": 0,
+                    "TUICore_TUIChatNotify_SendMessageSubKey_Desc": "",
+                    "TUICore_TUIChatNotify_SendMessageSubKey_Message": msg,
+                ]
+                TUICore.notifyEvent("TUICore_TUIChatNotify", subKey: "TUICore_TUIChatNotify_SendMessageSubKey", object: self, param: param)
+            }
         }, FailBlock: { [weak self] code, desc in
             guard let self = self else { return }
             self.reloadUIMessage(cellData)
-            self.setUIMessageStatus(cellData, status: .Msg_Status_Fail)
+            self.setUIMessageStatus(cellData, status: .fail)
             self.makeSendErrorHud(Int(code), desc: desc ?? "")
 
             let param: [String: Any] = [
-                TUICore_TUIChatNotify_SendMessageSubKey_Code: code,
-                TUICore_TUIChatNotify_SendMessageSubKey_Desc: desc ?? "",
+                "TUICore_TUIChatNotify_SendMessageSubKey_Code": code,
+                "TUICore_TUIChatNotify_SendMessageSubKey_Desc": desc ?? "",
             ]
-            TUICore.notifyEvent(TUICore_TUIChatNotify, subKey: TUICore_TUIChatNotify_SendMessageSubKey, object: self, param: param)
+            TUICore.notifyEvent("TUICore_TUIChatNotify", subKey: "TUICore_TUIChatNotify_SendMessageSubKey", object: self, param: param)
         })
     }
 
     func setUIMessageStatus(_ cellData: TUIMessageCellData, status: TMsgStatus) {
         switch status {
-        case .Msg_Status_Init, .Msg_Status_Succ, .Msg_Status_Fail:
+        case .initStatus, .success, .fail:
             changeMsg(cellData, status: status)
-        case .Msg_Status_Sending, .Msg_Status_Sending_2:
+        case .sending, .sending2:
             let delay: Int = cellData.isKind(of: TUIImageMessageCellData.self) || cellData.isKind(of: TUIVideoMessageCellData.self) ? 0 : 1
             if delay == 0 {
-                changeMsg(cellData, status: .Msg_Status_Sending_2)
+                changeMsg(cellData, status: .sending2)
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(delay)) {
-                    if cellData.innerMessage.status == .MSG_STATUS_SENDING {
-                        self.changeMsg(cellData, status: .Msg_Status_Sending_2)
+                    if cellData.innerMessage?.status == .MSG_STATUS_SENDING {
+                        self.changeMsg(cellData, status: .sending2)
                     }
                 }
             }
-        default:
-            break
         }
     }
 
@@ -392,7 +396,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     func sendMessage(_ message: V2TIMMessage, placeHolderCellData: TUIMessageCellData?) {
         var cellData: TUIMessageCellData? = nil
         if message.elemType == .ELEM_TYPE_CUSTOM {
-            cellData = delegate?.onNewMessage?(self, message: message)
+            cellData = delegate?.onNewMessage(self, message: message)
             cellData?.innerMessage = message
         }
         if cellData == nil {
@@ -412,8 +416,8 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     func reloadUIMessage(_ msg: TUIMessageCellData) {
         guard let messageDataProvider = messageDataProvider else { return }
 
-        if let index = messageDataProvider.uiMsgs.firstIndex(of: msg) {
-            let newUIMsgs = messageDataProvider.transUIMsgFromIMMsg([msg.innerMessage])
+        if let index = messageDataProvider.uiMsgs.firstIndex(of: msg), let innerMsg = msg.innerMessage {
+            let newUIMsgs = messageDataProvider.transUIMsgFromIMMsg([innerMsg])
             guard newUIMsgs.count > 0 else { return }
             let newUIMsg = newUIMsgs.first!
             messageDataProvider.preProcessMessage([newUIMsg], callback: { [weak self] in
@@ -437,18 +441,56 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: "kTUINotifyMessageStatusChanged"), object: nil, userInfo: ["msg": msg, "status": status.rawValue, "msgSender": self])
     }
+    
+    @objc func onReceivedInsertMessageWithoutUpdateUIRequest(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let message = userInfo["message"] as? V2TIMMessage,
+              let isNeedScrollToBottom = userInfo["needScrollToBottom"] as? String else {
+            return
+        }
+        guard let messageDataProvider = messageDataProvider else { return }
+        
+        let newUIMsgs = messageDataProvider.transUIMsgFromIMMsg([message])
+        guard !newUIMsgs.isEmpty else {
+            return
+        }
+        
+        let newUIMsg = newUIMsgs.first!
+        weak var weakSelf = self
+        messageDataProvider.preProcessMessage([newUIMsg]) {
+            guard let self = weakSelf else { return }
+            
+            UIView.performWithoutAnimation {
+                self.tableView.beginUpdates()
+                autoreleasepool {
+                    for uiMsg in newUIMsgs {
+                        if let messageDataProvider = self.messageDataProvider {
+                            messageDataProvider.addUIMsg(uiMsg)
+                            let indexPath = IndexPath(row: messageDataProvider.uiMsgs.count - 1, section: 0)
+                            self.tableView.insertRows(at: [indexPath], with: .none)
+                        }
+                    }
+                }
+                self.tableView.endUpdates()
+                
+                if isNeedScrollToBottom == "1" {
+                    self.scrollToBottom(true)
+                }
+            }
+        }
+    }
 
     // MARK: TUINotificationProtocol
 
     public func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
         guard let messageDataProvider = messageDataProvider else { return }
-        if key == TUICore_TUIPluginNotify && subKey == TUICore_TUIPluginNotify_PluginViewSizeChangedSubKey {
-            guard let message = param?[TUICore_TUIPluginNotify_PluginViewSizeChangedSubKey_Message] as? V2TIMMessage else { return }
+        if key == "TUICore_TUIPluginNotify" && subKey == "TUICore_TUIPluginNotify_PluginViewSizeChangedSubKey" {
+            guard let message = param?["TUICore_TUIPluginNotify_PluginViewSizeChangedSubKey_Message"] as? V2TIMMessage else { return }
             for data in messageDataProvider.uiMsgs {
-                if data.innerMessage == message {
+                if let msg = data.innerMessage, msg.msgID == message.msgID {
                     messageCellConfig.removeHeightCacheOfMessageCellData(data)
-                    reloadAndScrollToBottomOfMessage(data.innerMessage.msgID ?? "")
-                    if let indexPath = indexPathOfMessage(data.innerMessage.msgID ?? "") {
+                    reloadAndScrollToBottomOfMessage(data.innerMessage?.msgID ?? "")
+                    if let indexPath = indexPathOfMessage(data.innerMessage?.msgID ?? "") {
                         tableView.beginUpdates()
                         _ = tableView(tableView, heightForRowAt: indexPath)
                         tableView.endUpdates()
@@ -456,10 +498,10 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
                     break
                 }
             }
-        } else if key == TUICore_TUIPluginNotify && subKey == TUICore_TUIPluginNotify_DidChangePluginViewSubKey {
-            guard let data = param?[TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data] as? TUIMessageCellData else { return }
+        } else if key == "TUICore_TUIPluginNotify" && subKey == "TUICore_TUIPluginNotify_DidChangePluginViewSubKey" {
+            guard let data = param?["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data"] as? TUIMessageCellData else { return }
             var isAllowScroll2Bottom = true
-            if let allowScroll2Bottom = param?[TUICore_TUIPluginNotify_DidChangePluginViewSubKey_isAllowScroll2Bottom] as? String, allowScroll2Bottom == "0" {
+            if let allowScroll2Bottom = param?["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_isAllowScroll2Bottom"] as? String, allowScroll2Bottom == "0" {
                 isAllowScroll2Bottom = false
                 let lasData = messageDataProvider.uiMsgs.last
                 let isInBottomPage = tableView.contentSize.height - tableView.contentOffset.y <= TUISwift.screen_Height()
@@ -468,13 +510,13 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
                 }
             }
             messageCellConfig.removeHeightCacheOfMessageCellData(data)
-            if let msgID = data.innerMessage.msgID {
+            if let msgID = data.innerMessage?.msgID {
                 reloadAndScrollToBottomOfMessage(msgID, needScroll: isAllowScroll2Bottom)
             }
         }
-        if key == TUICore_TUIPluginNotify && subKey == TUICore_TUIPluginNotify_WillForwardTextSubKey {
-            guard let text = param?[TUICore_TUIPluginNotify_WillForwardTextSubKey_Text] as? String else { return }
-            delegate?.onForwardText?(self, text: text)
+        if key == "TUICore_TUIPluginNotify" && subKey == "TUICore_TUIPluginNotify_WillForwardTextSubKey" {
+            guard let text = param?["TUICore_TUIPluginNotify_WillForwardTextSubKey_Text"] as? String else { return }
+            delegate?.onForwardText(self, text: text)
         }
     }
 
@@ -487,7 +529,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         DispatchQueue.main.async {
             for cellData in messageDataProvider.uiMsgs {
                 if cellData.msgID == messageID {
-                    self.changeMsg(cellData, status: type == TUIMessageSendingResultType.success ? .Msg_Status_Succ : .Msg_Status_Fail)
+                    self.changeMsg(cellData, status: type == TUIMessageSendingResultType.success ? .success : .fail)
                 }
             }
         }
@@ -495,8 +537,19 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     // MARK: TUIMessageBaseDataProviderDataSource
 
-    static func onGetCustomMessageCellDataClass(businessID: String) -> AnyClass? {
+    static func onGetCustomMessageCellDataClass(businessID: String) -> TUIMessageCellDataDelegate.Type? {
         return TUIMessageCellConfig.getCustomMessageCellDataClass(businessID)
+    }
+
+    func isDataSourceConsistent() -> Bool {
+        let dataSourceCount = messageDataProvider?.uiMsgs.count ?? 0
+        let tableViewCount = tableView.numberOfRows(inSection: 0)
+
+        if dataSourceCount != tableViewCount {
+            print("Data source and UI are inconsistent: Data source count = \(dataSourceCount), Table view count = \(tableViewCount)")
+            return false
+        }
+        return true
     }
 
     private static var lastMsgIndexs: [Int]?
@@ -529,8 +582,6 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             tableView.deleteRows(at: [indexPath], with: rowAnimation)
         case .reload:
             tableView.reloadRows(at: [indexPath], with: rowAnimation)
-        default:
-            break
         }
     }
 
@@ -546,7 +597,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         guard msg.userID == conversationData?.userID || msg.groupID == conversationData?.groupID else { return nil }
         guard msg.status != .MSG_STATUS_LOCAL_REVOKED else { return nil }
 
-        if let customCellData = delegate?.onNewMessage?(self, message: msg) {
+        if let customCellData = delegate?.onNewMessage(self, message: msg) {
             customCellData.innerMessage = msg
             return customCellData
         }
@@ -558,11 +609,11 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         guard let messageDataProvider = messageDataProvider else { return }
         for i in 0..<messageDataProvider.uiMsgs.count {
             let indexPath = IndexPath(row: messageDataProvider.uiMsgs.count - 1 - i, section: 0)
-            if let cell = tableView.cellForRow(at: indexPath) as? TUIMessageCell {
-                let msgTime = cell.messageData.innerMessage.timestamp.timeIntervalSince1970
-                if msgTime <= Double(timestamp) && cell.readReceiptLabel.text != TUISwift.timCommonLocalizableString("Read") {
-                    cell.readReceiptLabel.text = TUISwift.timCommonLocalizableString("Read")
-                }
+            if let cell = tableView.cellForRow(at: indexPath) as? TUIMessageCell,
+               let msgTime = cell.messageData?.innerMessage?.timestamp?.timeIntervalSince1970,
+               msgTime <= Double(timestamp) && cell.readReceiptLabel.text != TUISwift.timCommonLocalizableString("Read")
+            {
+                cell.readReceiptLabel.text = TUISwift.timCommonLocalizableString("Read")
             }
         }
     }
@@ -665,7 +716,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     private func hideKeyboardIfNeeded() {
         view.endEditing(true)
-        TUITool.applicationKeywindow().endEditing(true)
+        TUITool.applicationKeywindow()?.endEditing(true)
     }
 
     func getHeightFromMessageCellData(_ cellData: TUIMessageCellData) -> CGFloat {
@@ -697,7 +748,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         let data = messageDataProvider.uiMsgs[indexPath.row]
         data.showCheckBox = showCheckBox && supportCheckBox(data)
 
-        var cell = delegate?.onShowMessageData?(self, data: data) as? TUIMessageCell
+        var cell = delegate?.onShowMessageData(self, data: data) as? TUIMessageCell
         if cell != nil {
             cell!.delegate = self
             return cell!
@@ -717,8 +768,8 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     }
 
     func tableView(_ tableView: UITableView, willDisplayCell cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        guard let messageCell = cell as? TUIMessageCell else { return }
-        delegate?.willDisplayCell?(self, cell: messageCell, withData: messageCell.messageData)
+        guard let messageCell = cell as? TUIMessageCell, let messageData = messageCell.messageData else { return }
+        delegate?.willDisplayCell(self, cell: messageCell, withData: messageData)
     }
 
     func tableView(_ tableView: UITableView, didEndDisplayingCell cell: UITableViewCell, forRowAt indexPath: IndexPath) {
@@ -727,10 +778,10 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             if let cellData = messageDataProvider.uiMsgs[indexPath.row] as? TUITextMessageCellData {
                 // Delete after TUICallKit is connected according to the standard process
                 if (cellData.isAudioCall || cellData.isVideoCall) && cellData.showUnreadPoint {
-                    cellData.innerMessage.localCustomInt = 1
+                    cellData.innerMessage?.localCustomInt = 1
                     cellData.showUnreadPoint = false
                 }
-                TUICore.notifyEvent(TUICore_TUIChatNotify, subKey: TUICore_TUIChatNotify_MessageDisplayedSubKey, object: cellData, param: nil)
+                TUICore.notifyEvent("TUICore_TUIChatNotify", subKey: "TUICore_TUIChatNotify_MessageDisplayedSubKey", object: cellData, param: nil)
             }
         }
     }
@@ -778,9 +829,10 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     // MARK: TUIMessageCellDelegate
 
     public func onSelectMessage(_ cell: TUIMessageCell) {
-        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageClicked?(cell, messageCellData: cell.messageData), result == true { return }
+        guard let messageData = cell.messageData else { return }
+        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageClicked(cell, messageCellData: messageData), result == true { return }
 
-        if cell.messageData.innerMessage.hasRiskContent && !(cell is TUIReferenceMessageCell) {
+        if (messageData.innerMessage?.hasRiskContent ?? false) && !(cell is TUIReferenceMessageCell) {
             return
         }
 
@@ -794,11 +846,11 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
         hideKeyboardIfNeeded()
 
-        if TUIMessageCellConfig.isPluginCustomMessageCellData(cell.messageData) {
+        if let messageData = cell.messageData, TUIMessageCellConfig.isPluginCustomMessageCellData(messageData) {
             var param = [String: Any]()
-            param[TUICore_TUIPluginNotify_PluginCustomCellClick_Cell] = cell
+            param["TUICore_TUIPluginNotify_PluginCustomCellClick_Cell"] = cell
             if let navigationController = navigationController {
-                param[TUICore_TUIPluginNotify_PluginCustomCellClick_PushVC] = navigationController
+                param["TUICore_TUIPluginNotify_PluginCustomCellClick_PushVC"] = navigationController
             }
             cell.pluginMsgSelectCallback?(param)
         } else if let textCell = cell as? TUITextMessageCell {
@@ -825,76 +877,76 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             showOrderMessage(orderCell)
         }
 
-        delegate?.onSelectMessageContent?(self, cell: cell)
+        delegate?.onSelectMessageContent(self, cell: cell)
     }
 
     // MARK: - TUIMessageCellDelegate
 
     public func onLongPressMessage(_ cell: TUIMessageCell) {
-        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageLongClicked?(cell, messageCellData: cell.messageData), result == true { return }
+        guard let data = cell.messageData else { return }
+        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageLongClicked(cell, messageCellData: data), result == true { return }
 
         TUITool.applicationKeywindow()?.endEditing(false)
-        if let data = cell.messageData {
-            if !data.canLongPress() || data is TUISystemMessageCellData {
-                return
+
+        if !data.canLongPress() || data is TUISystemMessageCellData {
+            return
+        }
+        menuUIMsg = data
+        if let chatPopMenu = chatPopMenu, chatPopMenu.superview != nil {
+            return
+        }
+
+        let menu = TUIChatPopMenu(hasEmojiView: true, frame: .zero)
+        chatPopMenu = menu
+        menu.targetCellData = data
+        menu.targetCell = cell
+
+        let isPluginCustomMessage = TUIMessageCellConfig.isPluginCustomMessageCellData(data)
+        let isChatNormalMessageOrCustomMessage = !isPluginCustomMessage
+
+        if isChatNormalMessageOrCustomMessage {
+            addChatCommonActionToCell(cell, ofMenu: menu)
+        } else {
+            addChatPluginCommonActionToCell(cell, ofMenu: menu)
+        }
+
+        addExtensionActionToCell(cell, ofMenu: menu)
+
+        if let textCell = cell as? TUITextMessageCell {
+            textCell.textView.becomeFirstResponder()
+            textCell.textView.selectAll(self)
+        } else if let referenceCell = cell as? TUIReferenceMessageCell {
+            referenceCell.textView.becomeFirstResponder()
+            referenceCell.textView.selectAll(self)
+        }
+
+        var isFirstResponder = false
+        if let willShowMenu = delegate?.willShowMenu(self, inCell: cell) {
+            isFirstResponder = willShowMenu
+        }
+        if isFirstResponder {
+            NotificationCenter.default.addObserver(self, selector: #selector(menuDidHide(_:)), name: UIMenuController.didHideMenuNotification, object: nil)
+        } else {
+            becomeFirstResponder()
+        }
+
+        if let keyWindow = TUITool.applicationKeywindow() {
+            let frame = keyWindow.convert(cell.container.frame, from: cell)
+
+            var topMarginByCustomView: CGFloat = 0
+            if let margin = delegate?.getTopMarginByCustomView() {
+                topMarginByCustomView = margin
             }
-            menuUIMsg = data
-            if let chatPopMenu = chatPopMenu, chatPopMenu.superview != nil {
-                return
-            }
 
-            let menu = TUIChatPopMenu(hasEmojiView: true, frame: .zero)
-            chatPopMenu = menu
-            menu.targetCellData = data
-            menu.targetCell = cell
+            menu.setArrawPosition(CGPoint(x: frame.origin.x + frame.size.width * 0.5, y: frame.origin.y - 5 - topMarginByCustomView), adjustHeight: frame.size.height + 5)
+            menu.showInView(tableView)
 
-            let isPluginCustomMessage = TUIMessageCellConfig.isPluginCustomMessageCellData(data)
-            let isChatNormalMessageOrCustomMessage = !isPluginCustomMessage
-
-            if isChatNormalMessageOrCustomMessage {
-                addChatCommonActionToCell(cell, ofMenu: menu)
-            } else {
-                addChatPluginCommonActionToCell(cell, ofMenu: menu)
-            }
-
-            addExtensionActionToCell(cell, ofMenu: menu)
-
-            if let textCell = cell as? TUITextMessageCell {
-                textCell.textView.becomeFirstResponder()
-                textCell.textView.selectAll(self)
-            } else if let referenceCell = cell as? TUIReferenceMessageCell {
-                referenceCell.textView.becomeFirstResponder()
-                referenceCell.textView.selectAll(self)
-            }
-
-            var isFirstResponder = false
-            if let willShowMenu = delegate?.willShowMenu?(self, inCell: cell) {
-                isFirstResponder = willShowMenu
-            }
-            if isFirstResponder {
-                NotificationCenter.default.addObserver(self, selector: #selector(menuDidHide(_:)), name: UIMenuController.didHideMenuNotification, object: nil)
-            } else {
-                becomeFirstResponder()
-            }
-
-            if let keyWindow = TUITool.applicationKeywindow() {
-                let frame = keyWindow.convert(cell.container.frame, from: cell)
-
-                var topMarginByCustomView: CGFloat = 0
-                if let margin = delegate?.getTopMarginByCustomView?() {
-                    topMarginByCustomView = margin
-                }
-
-                menu.setArrawPosition(CGPoint(x: frame.origin.x + frame.size.width * 0.5, y: frame.origin.y - 5 - topMarginByCustomView), adjustHeight: frame.size.height + 5)
-                menu.showInView(tableView)
-
-                configSelectActionToCell(cell, ofMenu: menu)
-            }
+            configSelectActionToCell(cell, ofMenu: menu)
         }
     }
 
     @objc func menuDidHide(_ notification: Notification) {
-        delegate?.didHideMenu?(self)
+        delegate?.didHideMenu(self)
         NotificationCenter.default.removeObserver(self, name: UIMenuController.didHideMenuNotification, object: nil)
     }
 
@@ -928,7 +980,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         if let multiAction = multiAction, !isContentModerated {
             menu.addAction(multiAction)
         }
-        if let recallAction = recallAction, imMsg.isSelf && Date().timeIntervalSince(imMsg.timestamp) < Double(TUIChatConfig.shared.timeIntervalForMessageRecall) && isMsgSendSucceed {
+        if let recallAction = recallAction, imMsg.isSelf && Date().timeIntervalSince(imMsg.timestamp ?? Date()) < Double(TUIChatConfig.shared.timeIntervalForMessageRecall) && isMsgSendSucceed {
             menu.addAction(recallAction)
         }
         if let forwardAction = forwardAction, let data = data, canForward(data) && isMsgSendSucceed && !isContentModerated {
@@ -940,7 +992,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         if let quoteAction = quoteAction, isMsgSendSucceed && !isContentModerated {
             menu.addAction(quoteAction)
         }
-        if let groupPinAction = groupPinAction, let data = data, !data.innerMessage.groupID.isNilOrEmpty && (messageDataProvider?.isCurrentUserRoleSuperAdminInGroup() ?? false) && isMsgSendSucceed && !isContentModerated {
+        if let groupPinAction = groupPinAction, let groupID = data?.innerMessage?.groupID, !groupID.isEmpty && (messageDataProvider?.isCurrentUserRoleSuperAdminInGroup() ?? false) && isMsgSendSucceed && !isContentModerated {
             menu.addAction(groupPinAction)
         }
     }
@@ -966,22 +1018,22 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             menu.addAction(replyAction)
             menu.addAction(quoteAction)
         }
-        if let pinAction = pinAction, let data = data, !data.innerMessage.groupID.isNilOrEmpty && (messageDataProvider?.isCurrentUserRoleSuperAdminInGroup() ?? false) && isMsgSendSucceed && !isContentModerated {
+        if let pinAction = pinAction, let groupID = data?.innerMessage?.groupID, !groupID.isEmpty && (messageDataProvider?.isCurrentUserRoleSuperAdminInGroup() ?? false) && isMsgSendSucceed && !isContentModerated {
             menu.addAction(pinAction)
         }
         if let deleteAction = deleteAction {
             menu.addAction(deleteAction)
         }
-        if let recallAction = recallAction, imMsg.isSelf && Date().timeIntervalSince(imMsg.timestamp) < Double(TUIChatConfig.shared.timeIntervalForMessageRecall) && isMsgSendSucceed {
+        if let recallAction = recallAction, imMsg.isSelf && Date().timeIntervalSince(imMsg.timestamp ?? Date()) < Double(TUIChatConfig.shared.timeIntervalForMessageRecall) && isMsgSendSucceed {
             menu.addAction(recallAction)
         }
     }
 
     func addExtensionActionToCell(_ cell: TUIMessageCell, ofMenu menu: TUIChatPopMenu) {
         // extra
-        let infoArray = TUICore.getExtensionList(TUICore_TUIChatExtension_PopMenuActionItem_ClassicExtensionID, param: [
-            TUICore_TUIChatExtension_PopMenuActionItem_TargetVC: self,
-            TUICore_TUIChatExtension_PopMenuActionItem_ClickCell: cell,
+        let infoArray = TUICore.getExtensionList("TUICore_TUIChatExtension_PopMenuActionItem_ClassicExtensionID", param: [
+            "TUICore_TUIChatExtension_PopMenuActionItem_TargetVC": self,
+            "TUICore_TUIChatExtension_PopMenuActionItem_ClickCell": cell,
         ])
 
         for info in infoArray {
@@ -1034,7 +1086,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
                     menu.addAction(quoteAction)
                 }
 
-                if let groupPinAction = groupPinAction, let data = data, !data.innerMessage.groupID.isNilOrEmpty && (self.messageDataProvider?.isCurrentUserRoleSuperAdminInGroup() ?? false) {
+                if let groupPinAction = groupPinAction, let groupID = data?.innerMessage?.groupID, !groupID.isEmpty && (self.messageDataProvider?.isCurrentUserRoleSuperAdminInGroup() ?? false) {
                     menu.addAction(groupPinAction)
                 }
             } else {
@@ -1091,7 +1143,6 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     func setupRecallAction(_ cell: TUIMessageCell) -> TUIChatPopMenuAction? {
         let isRecallShown = TUIChatConfig.shared.enablePopMenuRecallAction
-        let data = cell.messageData
         let recallAction = TUIChatPopMenuAction(title: TUISwift.timCommonLocalizableString("Revoke"),
                                                 image: TUISwift.tuiChatBundleThemeImage("chat_icon_recall_img", defaultImage: "icon_recall"),
                                                 weight: 4000)
@@ -1174,11 +1225,10 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     func setupGroupPinAction(_ cell: TUIMessageCell) -> TUIChatPopMenuAction? {
         let isPinShown = TUIChatConfig.shared.enablePopMenuPinAction
-        let isPinned = messageDataProvider?.isCurrentMessagePin(menuUIMsg?.innerMessage.msgID ?? "") ?? false
+        let isPinned = messageDataProvider?.isCurrentMessagePin(menuUIMsg?.innerMessage?.msgID ?? "") ?? false
         let img = isPinned ? TUISwift.tuiChatBundleThemeImage("chat_icon_group_unpin_img", defaultImage: "icon_unpin") : TUISwift.tuiChatBundleThemeImage("chat_icon_group_pin_img", defaultImage: "icon_pin")
         let groupPinAction = TUIChatPopMenuAction(title: isPinned ? TUISwift.timCommonLocalizableString("TUIKitGroupMessageUnPin") : TUISwift.timCommonLocalizableString("TUIKitGroupMessagePin"),
-                                                  image: img ?? UIImage(),
-                                                  weight: 2900)
+                                                  image: img, weight: 2900)
         { [weak self] in
             self?.onGroupPin(nil, currentStatus: isPinned)
         }
@@ -1190,13 +1240,13 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     }
 
     public func onLongSelectMessageAvatar(_ cell: TUIMessageCell) {
-        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onUserIconLongClicked?(cell, messageCellData: cell.messageData), result == true { return }
+        if let messageData = cell.messageData, let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onUserIconLongClicked(cell, messageCellData: messageData), result == true { return }
 
-        delegate?.onLongSelectMessageAvatar?(self, cell: cell)
+        delegate?.onLongSelectMessageAvatar(self, cell: cell)
     }
 
     public func onRetryMessage(_ cell: TUIMessageCell) {
-        guard let resendMsg = cell.messageData, resendMsg.innerMessage.hasRiskContent == false else { return }
+        guard let resendMsg = cell.messageData, resendMsg.innerMessage?.hasRiskContent == false else { return }
         reSendUIMsg = resendMsg
         let alert = UIAlertController(title: TUISwift.timCommonLocalizableString("TUIKitTipsConfirmResendMessage"), message: nil, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Re_send"), style: .default, handler: { [weak self] _ in
@@ -1208,18 +1258,18 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     }
 
     public func onSelectMessageAvatar(_ cell: TUIMessageCell) {
-        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onUserIconClicked?(cell, messageCellData: cell.messageData), result == true { return }
+        if let messageData = cell.messageData, let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onUserIconClicked(cell, messageCellData: messageData), result == true { return }
 
-        delegate?.onSelectMessageAvatar?(self, cell: cell)
+        delegate?.onSelectMessageAvatar(self, cell: cell)
     }
 
     public func onSelectReadReceipt(_ data: TUIMessageCellData) {
-        if !data.innerMessage.groupID.isNilOrEmpty {
+        if let msg = data.innerMessage, let groupID = data.innerMessage?.groupID, !groupID.isEmpty {
             // Navigate to group message read VC. Should get members first.
-            TUIMessageDataProvider.getMessageReadReceipt([data.innerMessage], succ: { [weak self] receiptList in
+            TUIMessageDataProvider.getMessageReadReceipt([msg], succ: { [weak self] receiptList in
                 guard let self = self else { return }
                 // To avoid the labels in messageReadVC displaying all 0 which is not accurate, try to get message read count before navigation.
-                if let receiptList = receiptList, let receipt = receiptList.first {
+                if let receipt = receiptList?.first {
                     data.messageReceipt = receipt
                     self.pushMessageReadViewController(data)
                 }
@@ -1247,7 +1297,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         }
     }
 
-    public func onJump(toRepliesDetailPage data: TUIMessageCellData) {
+    public func onJumpToRepliesDetailPage(_ data: TUIMessageCellData) {
         guard let conversationData = conversationData else { return }
         hasCoverPage = true
         let repliesDetailVC = TUIRepliesDetailViewController(cellData: data, conversationData: conversationData)
@@ -1261,8 +1311,6 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             self.hasCoverPage = false
         }
     }
-
-    public func onJump(toMessageInfoPage data: TUIMessageCellData, select cell: TUIMessageCell) {}
 
     override public func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         let actions = [#selector(onDelete(_:)), #selector(onRevoke(_:)), #selector(onReSend(_:)), #selector(onCopyMsg(_:)), #selector(onMulitSelect(_:)), #selector(onForward(_:)), #selector(onReply(_:))]
@@ -1290,7 +1338,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             guard let self = self else { return }
             if let menuUIMsg = self.menuUIMsg {
                 self.messageDataProvider?.deleteUIMsgs([menuUIMsg], SuccBlock: nil, FailBlock: { _, desc in
-                    assertionFailure(desc ?? "deleteUIMsgs failed")
+                    assertionFailure(desc ?? "")
                 })
             }
         }
@@ -1325,7 +1373,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         guard let menuUIMsg = menuUIMsg else { return }
         messageDataProvider?.revokeUIMsg(menuUIMsg, SuccBlock: { [weak self] in
             guard let self else { return }
-            self.delegate?.didHideMenu?(self)
+            self.delegate?.didHideMenu(self)
         }, FailBlock: { _, desc in
             assertionFailure(desc ?? "")
         })
@@ -1339,8 +1387,8 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     @objc public func onMulitSelect(_ sender: Any?) {
         guard let menuUIMsg = menuUIMsg else { return }
         enableMultiSelectedMode(true)
-        if menuUIMsg.innerMessage.hasRiskContent == true {
-            delegate?.onSelectMessageMenu?(self, menuType: 0, withData: nil)
+        if menuUIMsg.innerMessage?.hasRiskContent == true {
+            delegate?.onSelectMessageMenu(self, menuType: 0, withData: nil)
             return
         }
         menuUIMsg.selected = true
@@ -1350,27 +1398,27 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
         }
         tableView.endUpdates()
 
-        delegate?.onSelectMessageMenu?(self, menuType: 0, withData: menuUIMsg)
+        delegate?.onSelectMessageMenu(self, menuType: 0, withData: menuUIMsg)
     }
 
     @objc public func onForward(_ sender: Any?) {
-        delegate?.onSelectMessageMenu?(self, menuType: 1, withData: menuUIMsg)
+        delegate?.onSelectMessageMenu(self, menuType: 1, withData: menuUIMsg)
     }
 
     @objc public func onReply(_ sender: Any?) {
-        delegate?.onRelyMessage?(self, data: menuUIMsg)
+        delegate?.onRelyMessage(self, data: menuUIMsg)
     }
 
     @objc public func onReference(_ sender: Any?) {
-        delegate?.onReferenceMessage?(self, data: menuUIMsg)
+        delegate?.onReferenceMessage(self, data: menuUIMsg)
     }
 
     @objc public func onGroupPin(_ sender: Any?, currentStatus: Bool) {
         let groupId = conversationData?.groupID ?? ""
         let pinOrUnpin = !currentStatus
 
-        if let menuUIMsg = menuUIMsg {
-            messageDataProvider?.pinGroupMessage(groupId, message: menuUIMsg.innerMessage, isPinned: pinOrUnpin, succ: {
+        if let menuUIMsg = menuUIMsg, let msg = menuUIMsg.innerMessage {
+            messageDataProvider?.pinGroupMessage(groupId, message: msg, isPinned: pinOrUnpin, succ: {
                 // Success block
             }, fail: { code, _ in
                 if code == 10070 {
@@ -1439,7 +1487,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     func clickSystemMessage(_ cell: TUISystemMessageCell) {
         if let data = cell.messageData as? TUISystemMessageCellData, data.supportReEdit {
-            delegate?.onReEditMessage?(self, data: cell.messageData)
+            delegate?.onReEditMessage(self, data: cell.messageData)
         }
     }
 
@@ -1458,20 +1506,23 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
                 voiceMsg.audioPlayerDidFinishPlayingBlock = { [weak self] in
                     guard let self = self else { return }
                     if !unPlayVoiceMessageAfterSelectVoiceMessage.isEmpty {
-                        let nextVoiceCellData = unPlayVoiceMessageAfterSelectVoiceMessage.first!
-                        let nextIndex = self.indexPathOfMessage(nextVoiceCellData.msgID) ?? IndexPath()
-                        self.scrollCellToBottomOfMessage(nextVoiceCellData.msgID)
+                        if let nextVoiceCellData = unPlayVoiceMessageAfterSelectVoiceMessage.first,
+                           let msgID = nextVoiceCellData.msgID
+                        {
+                            let nextIndex = self.indexPathOfMessage(msgID) ?? IndexPath()
+                            self.scrollCellToBottomOfMessage(msgID)
 
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            if let nextCell = self.tableView.cellForRow(at: nextIndex) as? TUIVoiceMessageCell {
-                                self.playVoiceMessage(nextCell)
-                                unPlayVoiceMessageAfterSelectVoiceMessage.removeFirst()
-                            } else {
-                                // Retry: avoid nextCell being nil
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    if let retryNextCell = self.tableView.cellForRow(at: nextIndex) as? TUIVoiceMessageCell {
-                                        self.playVoiceMessage(retryNextCell)
-                                        unPlayVoiceMessageAfterSelectVoiceMessage.removeFirst()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                if let nextCell = self.tableView.cellForRow(at: nextIndex) as? TUIVoiceMessageCell {
+                                    self.playVoiceMessage(nextCell)
+                                    unPlayVoiceMessageAfterSelectVoiceMessage.removeFirst()
+                                } else {
+                                    // Retry: avoid nextCell being nil
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        if let retryNextCell = self.tableView.cellForRow(at: nextIndex) as? TUIVoiceMessageCell {
+                                            self.playVoiceMessage(retryNextCell)
+                                            unPlayVoiceMessageAfterSelectVoiceMessage.removeFirst()
+                                        }
                                     }
                                 }
                             }
@@ -1486,12 +1537,12 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     func getCurrentUnPlayVoiceMessageAfterSelectVoiceMessage(_ playingCellData: TUIVoiceMessageCellData) -> [TUIVoiceMessageCellData] {
         var neverHitsPlayVoiceQueue = [TUIVoiceMessageCellData]()
+        guard let uiMsgs = messageDataProvider?.uiMsgs else { return neverHitsPlayVoiceQueue }
 
-        for cellData in messageDataProvider?.uiMsgs ?? [] {
-            if let voiceMsg = cellData as? TUIVoiceMessageCellData {
-                if voiceMsg.innerMessage.localCustomInt == 0 &&
-                    voiceMsg.direction == .MsgDirectionIncoming &&
-                    voiceMsg.innerMessage.timestamp.timeIntervalSince1970 >= playingCellData.innerMessage.timestamp.timeIntervalSince1970
+        for cellData in uiMsgs {
+            if let voiceMsg = cellData as? TUIVoiceMessageCellData, let msg = voiceMsg.innerMessage {
+                if msg.localCustomInt == 0 && voiceMsg.direction == .incoming &&
+                    (msg.timestamp?.timeIntervalSince1970 ?? 0) >= (playingCellData.innerMessage?.timestamp?.timeIntervalSince1970 ?? 0)
                 {
                     if voiceMsg != playingCellData {
                         neverHitsPlayVoiceQueue.append(voiceMsg)
@@ -1505,10 +1556,12 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     func showImageMessage(_ cell: TUIImageMessageCell) {
         hideKeyboardIfNeeded()
-        let frame = cell.thumb.convert(cell.thumb.bounds, to: UIApplication.shared.delegate?.window!)
+        guard let msg = cell.messageData?.innerMessage else { return }
+
+        let frame = cell.thumb.convert(cell.thumb.bounds, to: TUITool.applicationKeywindow())
         let mediaView = TUIMediaView(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: TUISwift.screen_Height()))
         mediaView.setThumb(cell.thumb, frame: frame)
-        mediaView.setCurMessage(cell.messageData.innerMessage)
+        mediaView.setCurMessage(msg)
         mediaView.onClose = { [weak self] in
             guard let self else { return }
             self.didCloseMediaMessage(cell)
@@ -1522,10 +1575,12 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
             cell.videoData?.downloadVideo()
         } else {
             hideKeyboardIfNeeded()
-            let frame = cell.thumb.convert(cell.thumb.bounds, to: UIApplication.shared.delegate?.window!)
+            guard let msg = cell.messageData?.innerMessage else { return }
+
+            let frame = cell.thumb.convert(cell.thumb.bounds, to: TUITool.applicationKeywindow())
             let mediaView = TUIMediaView(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: TUISwift.screen_Height()))
             mediaView.setThumb(cell.thumb, frame: frame)
-            mediaView.setCurMessage(cell.messageData.innerMessage)
+            mediaView.setCurMessage(msg)
             mediaView.onClose = { [weak self] in
                 self?.didCloseMediaMessage(cell)
             }
@@ -1569,14 +1624,18 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
     func showLinkMessage(_ cell: TUILinkCell) {
         guard let link = cell.customData?.link else { return }
         if link.count > 0 {
-            TUITool.openLink(with: URL(string: link))
+            if let url = URL(string: link) {
+                TUITool.openLink(with: url)
+            }
         }
     }
 
     func showOrderMessage(_ cell: TUIOrderCell) {
         guard let link = cell.customData?.link else { return }
         if link.count > 0 {
-            TUITool.openLink(with: URL(string: link))
+            if let url = URL(string: link) {
+                TUITool.openLink(with: url)
+            }
         }
     }
 
@@ -1610,8 +1669,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
     func unPinGroupMessage(_ innerMessage: V2TIMMessage) {
         guard let groupId = conversationData?.groupID else { return }
-        guard let msgID = innerMessage.msgID else { return }
-        let isPinned = isCurrentMessagePin(msgID)
+        let isPinned = isCurrentMessagePin(innerMessage.msgID ?? "")
         let pinOrUnpin = !isPinned
 
         messageDataProvider?.pinGroupMessage(groupId, message: innerMessage, isPinned: pinOrUnpin, succ: {}, fail: { _, _ in

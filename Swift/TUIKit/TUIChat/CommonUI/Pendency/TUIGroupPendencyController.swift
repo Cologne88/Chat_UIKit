@@ -62,7 +62,9 @@ class TUIGroupPendencyController: UITableViewController {
     }
 
     @objc private func btnClick(_ cell: TUIGroupPendencyCell) {
-        viewModel?.acceptData(cell.pendencyData)
+        if let pendencyData = cell.pendencyData {
+            viewModel?.acceptData(pendencyData)
+        }
         tableView.reloadData()
     }
 

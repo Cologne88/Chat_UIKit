@@ -45,7 +45,7 @@ public class TUIC2CChatViewController_Minimalist: TUIBaseChatViewController_Mini
             if let messageFeatureDic = lastMsg.parseCloudCustomData(messageFeature) as? [String: Any], messageFeatureDic.keys.contains("needTyping"), messageFeatureDic.keys.contains("version") {
                 let needTyping = messageFeatureDic["needTyping"] as? Int == 1
                 let versionControl = messageFeatureDic["version"] as? Int == 1
-                let timeControl = floor(Date().timeIntervalSince1970) - floor(lastMsg.timestamp.timeIntervalSince1970) <= kC2CTypingTime
+                let timeControl = floor(Date().timeIntervalSince1970) - floor(lastMsg.timestamp?.timeIntervalSince1970 ?? 0) <= kC2CTypingTime
 
                 if needTyping && versionControl && timeControl {
                     sendTypingBaseCondationInVC = true
@@ -62,7 +62,7 @@ public class TUIC2CChatViewController_Minimalist: TUIBaseChatViewController_Mini
         }
 
         let param: [String: Any] = [
-            BussinessID: BussinessID_Typing,
+            "businessID": "user_typing_status",
             "typingStatus": editing ? 1 : 0,
             "version": 1,
             "userAction": 14,

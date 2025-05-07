@@ -3,7 +3,6 @@ import AVFoundation
 import ImSDK_Plus
 import MobileCoreServices
 import Photos
-import ReactiveObjC
 import TIMCommon
 import UIKit
 
@@ -23,6 +22,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
     private var dataProvider: TUIChatDataProvider!
     private var firstAppear: Bool = false
     private var responseKeyboard: Bool = false
+    private var isPageAppears: Bool = false
 
     private var titleView: TUINaviBarIndicatorView?
     private var multiChooseView: TUIMessageMultiChooseView_Minimalist?
@@ -80,7 +80,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     public var conversationData: TUIChatConversationModel? {
         didSet {
-            if let data = conversationData, data.title.isNilOrEmpty || data.faceUrl.isNilOrEmpty {
+            if (conversationData?.title?.isEmpty ?? true) || (conversationData?.faceUrl?.isEmpty ?? true) {
                 checkTitle(force: true)
             }
         }
@@ -103,7 +103,8 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         super.init(nibName: nil, bundle: nil)
         createCachePath()
         TUIAIDenoiseSignatureManager.sharedInstance.updateSignature()
-        NotificationCenter.default.addObserver(self, selector: #selector(reloadTopViewsAndMessagePage), name: Notification.Name(TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadTopViewsAndMessagePage), name: Notification.Name("TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification"), object: nil)
+        TUIChatMediaSendingManager.shared.addCurrentVC(self)
     }
 
     @available(*, unavailable)
@@ -143,7 +144,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         dataProvider = TUIChatDataProvider()
         dataProvider.delegate = self
 
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
     }
 
     override public func willMove(toParent parent: UIViewController?) {
@@ -161,6 +162,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         responseKeyboard = true
+        isPageAppears = true
         if firstAppear == true {
             loadDraft()
             firstAppear = false
@@ -171,6 +173,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        isPageAppears = false
         responseKeyboard = false
         openMultiChooseBoard(isOpen: false)
         messageController?.enableMultiSelectedMode(false)
@@ -182,11 +185,11 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         let fileManager = FileManager.default
 
         let paths = [
-            TUISwift.tuiKit_Image_Path()!,
-            TUISwift.tuiKit_Video_Path()!,
-            TUISwift.tuiKit_Voice_Path()!,
-            TUISwift.tuiKit_File_Path()!,
-            TUISwift.tuiKit_DB_Path()!
+            TUISwift.tuiKit_Image_Path(),
+            TUISwift.tuiKit_Video_Path(),
+            TUISwift.tuiKit_Voice_Path(),
+            TUISwift.tuiKit_File_Path(),
+            TUISwift.tuiKit_DB_Path()
         ]
 
         for path in paths {
@@ -247,14 +250,14 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
             topExtensionView.frame = CGRect(x: 0, y: 0, width: view.frame.size.width, height: 0)
             var param: [String: Any] = [:]
             if let userID = conversationData?.userID, !userID.isEmpty {
-                param[TUICore_TUIChatExtension_ChatViewTopArea_ChatID] = userID
-                param[TUICore_TUIChatExtension_ChatViewTopArea_IsGroup] = "0"
+                param["TUICore_TUIChatExtension_ChatViewTopArea_ChatID"] = userID
+                param["TUICore_TUIChatExtension_ChatViewTopArea_IsGroup"] = "0"
             } else if let groupID = conversationData?.groupID, !groupID.isEmpty {
-                param[TUICore_TUIChatExtension_ChatViewTopArea_IsGroup] = "1"
-                param[TUICore_TUIChatExtension_ChatViewTopArea_ChatID] = groupID
+                param["TUICore_TUIChatExtension_ChatViewTopArea_IsGroup"] = "1"
+                param["TUICore_TUIChatExtension_ChatViewTopArea_ChatID"] = groupID
             }
 
-            TUICore.raiseExtension(TUICore_TUIChatExtension_ChatViewTopArea_MinimalistExtensionID, parentView: topExtensionView, param: param)
+            TUICore.raiseExtension("TUICore_TUIChatExtension_ChatViewTopArea_MinimalistExtensionID", parentView: topExtensionView, param: param)
         }
     }
 
@@ -279,10 +282,10 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     func configNotify() {
         V2TIMManager.sharedInstance().addConversationListener(listener: self)
-        TUICore.registerEvent(TUICore_TUIConversationNotify, subKey: TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIConversationNotify", subKey: "TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey", object: self)
         NotificationCenter.default.addObserver(self, selector: #selector(onFriendInfoChanged(_:)), name: NSNotification.Name("FriendInfoChangedNotification"), object: nil)
 
-        TUICore.registerEvent(TUICore_TUIContactNotify, subKey: TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIContactNotify", subKey: "TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey", object: self)
     }
 
     func setupNavigator() {
@@ -290,15 +293,14 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
         if let naviController = navigationController as? TUINavigationController {
             naviController.uiNaviDelegate = self
-            if let backimg = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("nav_back"))) {
-                naviController.navigationItemBackArrowImage = backimg.rtl_imageFlippedForRightToLeftLayoutDirection()
-            }
+            let backimg = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("nav_back")))
+            naviController.navigationItemBackArrowImage = backimg.rtlImageFlippedForRightToLeftLayoutDirection()
         }
 
         let backButton = UIButton(frame: CGRect(x: 0, y: 0, width: 24, height: 24))
         backButton.addTarget(self, action: #selector(onBackButtonClick), for: .touchUpInside)
         let imgicon = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath_Minimalist("vc_back"))
-        backButton.setImage(imgicon.rtl_imageFlippedForRightToLeftLayoutDirection(), for: .normal)
+        backButton.setImage(imgicon?.rtlImageFlippedForRightToLeftLayoutDirection(), for: .normal)
         let backButtonItem = UIBarButtonItem(customView: backButton)
 
         let infoView = UIView(frame: CGRect(x: 0, y: 0, width: TUISwift.kScale390(200), height: 40))
@@ -349,15 +351,15 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         var rightBarButtonList = [UIBarButtonItem]()
         var param = [String: Any]()
         if let userID = conversationData.userID, !userID.isEmpty {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_UserID] = userID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_UserID"] = userID
         } else if let groupID = conversationData.groupID, !groupID.isEmpty {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_GroupID] = groupID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_GroupID"] = groupID
         }
-        param[TUICore_TUIChatExtension_NavigationMoreItem_ItemSize] = itemSize
-        param[TUICore_TUIChatExtension_NavigationMoreItem_FilterVideoCall] = !TUIChatConfig.shared.enableVideoCall
-        param[TUICore_TUIChatExtension_NavigationMoreItem_FilterAudioCall] = !TUIChatConfig.shared.enableAudioCall
+        param["TUICore_TUIChatExtension_NavigationMoreItem_ItemSize"] = itemSize
+        param["TUICore_TUIChatExtension_NavigationMoreItem_FilterVideoCall"] = !TUIChatConfig.shared.enableVideoCall
+        param["TUICore_TUIChatExtension_NavigationMoreItem_FilterAudioCall"] = !TUIChatConfig.shared.enableAudioCall
 
-        let extensionList: [TUIExtensionInfo]? = TUICore.getExtensionList(TUICore_TUIChatExtension_NavigationMoreItem_MinimalistExtensionID, param: param)
+        let extensionList: [TUIExtensionInfo]? = TUICore.getExtensionList("TUICore_TUIChatExtension_NavigationMoreItem_MinimalistExtensionID", param: param)
         if let extensionList = extensionList {
             for info in extensionList {
                 if let icon = info.icon, let _ = info.onClicked {
@@ -448,7 +450,8 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         do {
             if let data = draft.data(using: .utf8), let jsonDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                 let draftContent = jsonDict["content"] as? String ?? ""
-                let formatEmojiString = draftContent.getAdvancedFormatEmojiString(with: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: nil)
+                var locations: [[NSValue: NSAttributedString]]? = nil
+                let formatEmojiString = draftContent.getAdvancedFormatEmojiString(withFont: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: &locations)
                 inputController.inputBar?.addDraftToInputBar(formatEmojiString)
 
                 if let messageRootID = jsonDict["messageRootID"] as? String,
@@ -480,7 +483,8 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
                 }
             }
         } catch {
-            let formatEmojiString = draft.getAdvancedFormatEmojiString(with: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: nil)
+            var locations: [[NSValue: NSAttributedString]]? = nil
+            let formatEmojiString = draft.getAdvancedFormatEmojiString(withFont: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: &locations)
             inputController.inputBar?.addDraftToInputBar(formatEmojiString)
         }
     }
@@ -501,7 +505,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
                 "content": content ?? "",
                 "messageReply": [
                     "messageID": previewData.msgID ?? "",
-                    "messageAbstract": (previewData.msgAbstract ?? "").getInternationalStringWithfaceContent(),
+                    "messageAbstract": (previewData.msgAbstract ?? "").getInternationalStringWithFaceContent(),
                     "messageSender": previewData.sender ?? "",
                     "messageType": previewData.type.rawValue,
                     "messageTime": previewData.originMessage?.timestamp?.timeIntervalSince1970 ?? 0, // Compatible for web
@@ -547,20 +551,18 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
         guard let conversationData = conversationData else { return }
         if let userID = conversationData.userID, !userID.isEmpty {
-            V2TIMManager.sharedInstance().getUserStatus([userID]) { [weak self] result in
+            V2TIMManager.sharedInstance().getUserStatus(userIDList: [userID]) { [weak self] result in
                 guard let self = self, let status = result?.first else { return }
                 self.subTitleLabel?.text = self.getUserStatus(status)
             } fail: { _, _ in }
         } else if let groupID = conversationData.groupID, !groupID.isEmpty {
             let filter: V2TIMGroupMemberFilter = .GROUP_MEMBER_FILTER_ALL
-            let filterValue = UInt32(filter.rawValue)
-            V2TIMManager.sharedInstance().getGroupMemberList(groupID, filter: filterValue, nextSeq: 0) { [weak self] _, memberList in
-                guard let self = self else { return }
+            V2TIMManager.sharedInstance().getGroupMemberList(groupID, filter: UInt32(filter.rawValue), nextSeq: 0) { [weak self] _, memberList in
+                guard let self = self, let memberList = memberList else { return }
                 let title = NSMutableString()
                 var memberCount = 0
-                for info in memberList ?? [] {
-                    let name = info.nameCard ?? info.nickName ?? info.userID
-                    if let name = name {
+                for info in memberList {
+                    if let name = info.nameCard ?? info.nickName ?? info.userID {
                         title.append("\(name)，")
                     }
                     memberCount += 1
@@ -595,7 +597,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     func configHeadImageView(_ convData: TUIChatConversationModel) {
         if let groupID = convData.groupID, let groupType = convData.groupType, groupID.count > 0 {
-            convData.avatarImage = TUIGroupAvatar.getNormalGroupCacheAvatar(groupID, groupType: groupType)
+            convData.avatarImage = TUIGroupAvatar.getNormalGroupCacheAvatar(groupID: groupID, groupType: groupType)
         }
 
         faceUrlObservation = convData.observe(\.faceUrl, options: [.new, .initial]) { [weak self] _, _ in
@@ -610,10 +612,10 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
             let param: [String: Any] = [
                 "groupID": groupID ?? "",
                 "faceUrl": pFaceUrl ?? "",
-                "groupType": groupType ?? "",
+                "groupType": groupType,
                 "originAvatarImage": originAvatarImage
             ]
-            TUIGroupAvatar.configAvatar(byParam: param, targetView: self.avatarView ?? UIImageView())
+            TUIGroupAvatar.configAvatar(by: param, targetView: self.avatarView ?? UIImageView())
         }
     }
 
@@ -643,7 +645,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     // MARK: - Event
 
-    public func send(_ message: V2TIMMessage) {
+    public func sendMessage(_ message: V2TIMMessage) {
         messageController?.sendMessage(message)
     }
 
@@ -653,24 +655,25 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     func checkTitle(force: Bool) {
         guard let conversationData = conversationData else { return }
-        if force || conversationData.title.isNilOrEmpty {
+        if force || (conversationData.title?.isEmpty ?? true) {
             if let userID = conversationData.userID, !userID.isEmpty {
-                if conversationData.title.isNilOrEmpty {
+                if conversationData.title?.isEmpty ?? true {
                     conversationData.title = userID
                 }
                 TUIChatDataProvider.getFriendInfo(withUserId: userID, succ: { [weak self] friendInfoResult in
                     guard let self else { return }
-                    if (friendInfoResult.relation.rawValue & V2TIMFriendRelationType.FRIEND_RELATION_TYPE_IN_MY_FRIEND_LIST.rawValue) == 1,
-                       let friendInfo = friendInfoResult.friendInfo, let friendRemark = friendInfo.friendRemark,
-                       let userFullInfo = friendInfo.userFullInfo
-                    {
+                    let isFriend = (friendInfoResult.relation.rawValue & V2TIMFriendRelationType.FRIEND_RELATION_TYPE_IN_MY_FRIEND_LIST.rawValue) == 1
+                    let friendInfo: V2TIMFriendInfo? = friendInfoResult.friendInfo
+                    let friendRemark = friendInfo?.friendRemark ?? ""
+
+                    if isFriend, friendRemark.count > 0 {
                         self.conversationData?.title = friendRemark
-                        self.conversationData?.faceUrl = userFullInfo.faceURL.safeValue
+                        self.conversationData?.faceUrl = friendInfo?.userFullInfo?.faceURL ?? ""
                     } else {
                         TUIChatDataProvider.getUserInfo(withUserId: userID, succ: { userInfo in
-                            if !userInfo.nickName.isNilOrEmpty {
-                                self.conversationData?.title = userInfo.nickName.safeValue
-                                self.conversationData?.faceUrl = userInfo.faceURL.safeValue
+                            if !(userInfo.nickName?.isEmpty ?? true) {
+                                self.conversationData?.title = userInfo.nickName
+                                self.conversationData?.faceUrl = userInfo.faceURL
                             }
                         }, fail: { _, _ in })
                     }
@@ -678,10 +681,10 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
             } else if let groupID = conversationData.groupID, !groupID.isEmpty {
                 TUIChatDataProvider.getGroupInfo(withGroupID: groupID) { [weak self] groupResult in
                     guard let self else { return }
-                    if let info = groupResult.info, let groupName = info.groupName {
+                    if let info = groupResult.info, let groupName = info.groupName, groupName.count > 1 {
                         self.conversationData?.title = groupName
-                        self.conversationData?.faceUrl = info.faceURL.safeValue
-                        self.conversationData?.groupType = info.groupType.safeValue
+                        self.conversationData?.faceUrl = info.faceURL
+                        self.conversationData?.groupType = info.groupType
                     }
                 } fail: { _, _ in }
             }
@@ -701,12 +704,12 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
                 guard let self = self else { return }
                 self.navigationController?.pushViewController(vc, animated: true)
             }, failBlock: { code, desc in
-                TUITool.makeToastError(code, msg: desc)
+                TUITool.makeToastError(Int(code), msg: desc ?? "")
             })
         } else {
             if let groupID = conversationData.groupID {
-                let param = [TUICore_TUIContactObjectFactory_GetGroupInfoVC_GroupID: groupID]
-                navigationController?.push(TUICore_TUIContactObjectFactory_GetGroupInfoVC_Minimalist, param: param, forResult: nil)
+                let param = ["TUICore_TUIContactObjectFactory_GetGroupInfoVC_GroupID": groupID]
+                navigationController?.push("TUICore_TUIContactObjectFactory_GetGroupInfoVC_Minimalist", param: param, forResult: nil)
             }
         }
     }
@@ -718,35 +721,35 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
         var param: [String: Any] = [:]
         if let userID = conversationData?.userID, !userID.isEmpty {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_UserID] = userID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_UserID"] = userID
         } else if let groupID = conversationData?.groupID, !groupID.isEmpty {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_GroupID] = groupID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_GroupID"] = groupID
         }
 
         if let navigationController = navigationController {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_PushVC] = navigationController
+            param["TUICore_TUIChatExtension_NavigationMoreItem_PushVC"] = navigationController
         }
 
         onClicked(param)
     }
 
-    func getUserOrFriendProfileVCWithUserID(_ userID: String, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int, String) -> Void) {
+    func getUserOrFriendProfileVCWithUserID(_ userID: String, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int32, String?) -> Void) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succBlock,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: failBlock
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succBlock,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": failBlock
         ]
 
-        TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
 
     // MARK: - TUICore Notify
 
     public func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
-        if key == TUICore_TUIConversationNotify && subKey == TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey {
+        if key == "TUICore_TUIConversationNotify" && subKey == "TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey" {
             messageController?.clearUImsg()
-        } else if key == TUICore_TUIContactNotify && subKey == TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey {
-            if let conversationID = param?[TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID] as? String, !conversationID.isEmpty {
+        } else if key == "TUICore_TUIContactNotify" && subKey == "TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey" {
+            if let conversationID = param?["TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID"] as? String, !conversationID.isEmpty {
                 updateBackgroundImageUrl(byConversationID: conversationID)
             }
         }
@@ -787,7 +790,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     // MARK: - V2TIMSDKListener
 
-    public func onUserStatusChanged(_ userStatusList: [V2TIMUserStatus]?) {
+    public func onUserStatusChanged(userStatusList: [V2TIMUserStatus]?) {
         guard let userID = conversationData?.userID else { return }
 
         if let statusList = userStatusList {
@@ -825,18 +828,16 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     func inputControllerDidSelectMoreButton(_ inputController: TUIInputController_Minimalist) {
         guard let conversationData = conversationData else { return }
-        if let userID = conversationData.userID, let groupID = conversationData.groupID {
-            let items = dataProvider.getInputMoreActionItemList(userID: userID,
-                                                                groupID: groupID,
-                                                                conversationModel: conversationData,
-                                                                pushVC: navigationController,
-                                                                actionController: self)
-            if !items.isEmpty {
-                let alertVC = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                alertVC.configItems(items)
-                alertVC.addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Cancel"), style: .cancel, handler: nil))
-                present(alertVC, animated: true, completion: nil)
-            }
+        let items = dataProvider.getInputMoreActionItemList(userID: conversationData.userID ?? "",
+                                                            groupID: conversationData.groupID ?? "",
+                                                            conversationModel: conversationData,
+                                                            pushVC: navigationController,
+                                                            actionController: self)
+        if !items.isEmpty {
+            let alertVC = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            alertVC.configItems(items)
+            alertVC.addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Cancel"), style: .cancel, handler: nil))
+            present(alertVC, animated: true, completion: nil)
         }
     }
 
@@ -890,17 +891,17 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     func onSelectMessageAvatar(_ controller: TUIBaseMessageController_Minimalist, cell: TUIMessageCell) {
         var userID: String? = nil
-        if !cell.messageData.innerMessage.groupID.isNilOrEmpty {
-            userID = cell.messageData.innerMessage.sender.safeValue
+        if let groupID = cell.messageData?.innerMessage?.groupID, !groupID.isEmpty {
+            userID = cell.messageData?.innerMessage?.sender ?? ""
         } else {
-            if cell.messageData.isUseMsgReceiverAvatar {
-                if cell.messageData.innerMessage.isSelf {
-                    userID = cell.messageData.innerMessage.userID.safeValue
+            if let avatar = cell.messageData?.isUseMsgReceiverAvatar, avatar == true {
+                if let isSelf = cell.messageData?.innerMessage?.isSelf, isSelf == true {
+                    userID = cell.messageData?.innerMessage?.userID ?? ""
                 } else {
                     userID = V2TIMManager.sharedInstance().getLoginUser()
                 }
             } else {
-                userID = cell.messageData.innerMessage.sender.safeValue
+                userID = cell.messageData?.innerMessage?.sender ?? ""
             }
         }
 
@@ -913,6 +914,8 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
             })
         }
     }
+
+    func onLongSelectMessageAvatar(_ controller: TUIBaseMessageController_Minimalist, cell: TUIMessageCell) {}
 
     func onSelectMessageContent(_ controller: TUIBaseMessageController_Minimalist?, cell: TUIMessageCell) {
         cell.disableDefaultSelectAction = false
@@ -986,8 +989,8 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         }
     }
 
-    public func navigationControllerDidSideSlideReturn(_ controller: TUINavigationController, from fromViewController: UIViewController) {
-        if fromViewController == self {
+    public func navigationControllerDidSideSlideReturn(_ controller: TUINavigationController, from: UIViewController) {
+        if from == self {
             messageController?.readReport()
         }
     }
@@ -1023,7 +1026,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
                     view?.addSubview(multiChooseView!)
                 }
             } else {
-                UIApplication.shared.keyWindow?.addSubview(multiChooseView!)
+                TUITool.applicationKeywindow()?.addSubview(multiChooseView!)
             }
         } else {
             messageController?.enableMultiSelectedMode(false)
@@ -1060,7 +1063,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         }
         var hasUnsupportMsg = false
         for data in uiMsgs {
-            if data.status != .Msg_Status_Succ {
+            if data.status != .success {
                 hasUnsupportMsg = true
                 break
             }
@@ -1096,20 +1099,20 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
     }
 
     private func selectTarget(_ mergeForward: Bool, toForwardMessage uiMsgs: [TUIMessageCellData]?, orForwardText forwardText: String?) {
-        if let vc = TUICore.createObject(TUICore_TUIConversationObjectFactory_Minimalist,
-                                         key: TUICore_TUIConversationObjectFactory_ConversationSelectVC_Minimalist,
+        if let vc = TUICore.createObject("TUICore_TUIConversationObjectFactory_Minimalist",
+                                         key: "TUICore_TUIConversationObjectFactory_ConversationSelectVC_Minimalist",
                                          param: nil) as? (UIViewController & TUIFloatSubViewControllerProtocol)
         {
             vc.navigateValueCallback = { [weak self] param in
                 guard let self else { return }
-                guard let selectList = param[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList] as? [NSDictionary], !selectList.isEmpty else { return }
+                guard let selectList = param["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList"] as? [NSDictionary], !selectList.isEmpty else { return }
                 var targetList = [TUIChatConversationModel]()
                 for selectItem in selectList {
                     let model = TUIChatConversationModel()
-                    model.title = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title] as? String ?? ""
-                    model.userID = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID] as? String ?? ""
-                    model.groupID = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID] as? String ?? ""
-                    model.conversationID = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID] as? String ?? ""
+                    model.title = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title"] as? String ?? ""
+                    model.userID = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID"] as? String ?? ""
+                    model.groupID = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID"] as? String ?? ""
+                    model.conversationID = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID"] as? String ?? ""
                     targetList.append(model)
                 }
                 if let msgs = uiMsgs, msgs.count > 0 {
@@ -1121,7 +1124,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
             let floatVC = TUIFloatViewController()
             floatVC.appendChildViewController(vc, topMargin: TUISwift.kScale390(87.5))
-            floatVC.topGestureView.setTitleText("", subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: TUISwift.timCommonLocalizableString("MultiSelect"))
+            floatVC.topGestureView.setTitleText(mainText: "", subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: TUISwift.timCommonLocalizableString("MultiSelect"))
             floatVC.topGestureView.subTitleLabel.isHidden = true
             present(floatVC, animated: true) { [weak self] in
                 guard let self else { return }
@@ -1166,9 +1169,9 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
                 message.needReadReceipt = (self.conversationData?.msgNeedReadReceipt ?? false) && TUIChatConfig.shared.msgNeedReadReceipt
                 _ = TUIMessageDataProvider.sendMessage(message, toConversation: convCellData, appendParams: appendParams, Progress: nil, SuccBlock: {
                     // Messages sent to other chats need to broadcast the message sending status, which is convenient to refresh the message status after entering the corresponding chat
-                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
+                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
                 }, FailBlock: { _, _ in
-                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
+                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
                 })
                 Thread.sleep(forTimeInterval: timeInterval)
             }
@@ -1192,11 +1195,11 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
             replyData.msgID = data.msgID
             replyData.msgAbstract = desc
             replyData.sender = data.senderName
-            replyData.type = data.innerMessage.elemType
+            replyData.type = data.innerMessage?.elemType ?? .ELEM_TYPE_NONE
             replyData.originMessage = data.innerMessage
 
             var cloudResultDic = [AnyHashable: Any]()
-            if let cloudCustomData = data.innerMessage.cloudCustomData as Data?,
+            if let cloudCustomData = data.innerMessage?.cloudCustomData as Data?,
                let originDic = TUITool.jsonData2Dictionary(cloudCustomData)
             {
                 cloudResultDic.merge(originDic) { current, _ in current }
@@ -1214,21 +1217,22 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
     }
 
     private func replyReferenceMessageDesc(_ data: TUIMessageCellData) -> String {
+        guard let msg = data.innerMessage else { return "" }
         var desc = ""
-        switch data.innerMessage.elemType {
+        switch msg.elemType {
         case .ELEM_TYPE_FILE:
-            if let fileElem = data.innerMessage.fileElem {
-                desc = fileElem.filename.safeValue
+            if let fileElem = msg.fileElem {
+                desc = fileElem.filename ?? ""
             }
         case .ELEM_TYPE_MERGER:
-            if let mergerElem = data.innerMessage.mergerElem {
-                desc = mergerElem.title.safeValue
+            if let mergerElem = msg.mergerElem {
+                desc = mergerElem.title ?? ""
             }
         case .ELEM_TYPE_CUSTOM:
-            desc = TUIMessageDataProvider.getDisplayString(data.innerMessage) ?? ""
+            desc = TUIMessageDataProvider.getDisplayString(message: msg) ?? ""
         case .ELEM_TYPE_TEXT:
-            if let textElem = data.innerMessage.textElem {
-                desc = textElem.text.safeValue
+            if let textElem = data.innerMessage?.textElem {
+                desc = textElem.text ?? ""
             }
         default:
             break
@@ -1246,7 +1250,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
             referenceData.msgID = data.msgID
             referenceData.msgAbstract = desc
             referenceData.sender = data.senderName
-            referenceData.type = data.innerMessage.elemType
+            referenceData.type = data.innerMessage?.elemType ?? .ELEM_TYPE_NONE
             referenceData.originMessage = data.innerMessage
             self.inputController.showReferencePreview(referenceData)
         }
@@ -1265,16 +1269,16 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         appendParams.isOnlineUserOnly = false
         appendParams.priority = .PRIORITY_NORMAL
         for conversation in conversations {
-            let message = V2TIMManager.sharedInstance().createTextMessage(text)!
+            guard let message = V2TIMManager.sharedInstance().createTextMessage(text: text) else { return }
             DispatchQueue.main.async {
                 if conversation.conversationID == self.conversationData?.conversationID {
                     self.messageController?.sendMessage(message)
                 } else {
                     message.needReadReceipt = self.conversationData?.msgNeedReadReceipt ?? false && TUIChatConfig.shared.msgNeedReadReceipt
                     _ = TUIMessageBaseDataProvider.sendMessage(message, toConversation: conversation, appendParams: appendParams, Progress: nil, SuccBlock: {
-                        NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
+                        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
                     }, FailBlock: { _, _ in
-                        NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
+                        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
                     })
                 }
             }
@@ -1289,14 +1293,14 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
                 guard let self = self else { return }
                 self.navigationController?.pushViewController(vc, animated: true)
             }, failBlock: { code, desc in
-                TUITool.makeToastError(code, msg: desc)
+                TUITool.makeToastError(Int(code), msg: desc ?? "")
             })
         }
     }
 
     // MARK: - V2TIMConversationListener
 
-    public func onConversationChanged(_ conversationList: [V2TIMConversation]) {
+    public func onConversationChanged(conversationList: [V2TIMConversation]) {
         guard let conversationData = conversationData else { return }
         for conv in conversationList {
             if conv.conversationID == conversationData.conversationID {
@@ -1317,8 +1321,9 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
     // MARK: TUIChatMediaDataListener
 
     public func onProvideImage(_ imageUrl: String) {
-        let message = V2TIMManager.sharedInstance().createImageMessage(imageUrl)!
-        send(message)
+        if let message = V2TIMManager.sharedInstance().createImageMessage(imagePath: imageUrl) {
+            sendMessage(message)
+        }
     }
 
     public func onProvideImageError(_ errorMessage: String) {
@@ -1333,7 +1338,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
 
     public func onProvideVideo(_ videoUrl: String, snapshot: String, duration: Int, placeHolderCellData: TUIMessageCellData?) {
         if let url = URL(string: videoUrl),
-           let message = V2TIMManager.sharedInstance().createVideoMessage(videoUrl, type: url.pathExtension, duration: Int32(duration), snapshotPath: snapshot)
+           let message = V2TIMManager.sharedInstance().createVideoMessage(videoFilePath: videoUrl, type: url.pathExtension, duration: Int32(duration), snapshotPath: snapshot)
         {
             sendMessage(message, placeHolderCellData: placeHolderCellData)
         }
@@ -1344,8 +1349,9 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
     }
 
     public func onProvideFile(_ fileUrl: String, filename: String, fileSize: Int) {
-        let message = V2TIMManager.sharedInstance().createFileMessage(fileUrl, fileName: filename)!
-        send(message)
+        if let message = V2TIMManager.sharedInstance().createFileMessage(filePath: fileUrl, fileName: filename) {
+            sendMessage(message)
+        }
     }
 
     public func onProvideFileError(_ errorMessage: String) {

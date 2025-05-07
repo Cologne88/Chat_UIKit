@@ -25,12 +25,11 @@ class TUIGroupConversationListViewDataProvider_Minimalist: NSObject {
         var groupList: [String] = []
         var nonameList: [TUICommonContactCellData_Minimalist] = []
 
-        V2TIMManager.sharedInstance().getJoinedGroupList { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+       V2TIMManager.sharedInstance().getJoinedGroupList { [weak self] infoList in
+           guard let self = self, let infoList = infoList else { return }
             for group in infoList {
                 let data = TUICommonContactCellData_Minimalist(groupInfo: group)
-                let groupKey = data.title.safeValue.firstPinYin().uppercased()
+                let groupKey = data.title?.firstPinYin().uppercased() ?? ""
                 if groupKey.isEmpty || !groupKey.first!.isLetter {
                     nonameList.append(data)
                     continue

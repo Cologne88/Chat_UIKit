@@ -10,7 +10,7 @@ typealias ContactSelectFinishBlock_Minimalist = ([TUICommonContactSelectCellData
 class TUIContactSelectControllerHeaderView_Minimalist: UIView {
     var avatarImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: TUISwift.tuiContactImagePath_Minimalist("contact_info_add_icon"))
+        imageView.image = UIImage.safeImage(TUISwift.tuiContactImagePath_Minimalist("contact_info_add_icon"))
         return imageView
     }()
 
@@ -58,6 +58,8 @@ class TUIContactSelectControllerHeaderView_Minimalist: UIView {
 }
 
 class TUIContactSelectController_Minimalist: UIViewController, UITableViewDelegate, UITableViewDataSource, TUIFloatSubViewControllerProtocol {
+    var floatDataSourceChanged: (([Any]) -> Void)?
+    
     private(set) var selectArray: [TUICommonContactSelectCellData_Minimalist] = []
 
     var finishBlock: ContactSelectFinishBlock_Minimalist?
@@ -70,8 +72,6 @@ class TUIContactSelectController_Minimalist: UIViewController, UITableViewDelega
     var tableView: UITableView!
     var emptyView: UIView!
     var addNewGroupHeaderView: TUIContactSelectControllerHeaderView_Minimalist!
-    var floatDataSourceChanged: (([TUICommonContactSelectCellData_Minimalist]) -> Void)?
-
     private var isLoadFinishedObservation: NSKeyValueObservation?
     private var groupListObservation: NSKeyValueObservation?
 
@@ -84,9 +84,9 @@ class TUIContactSelectController_Minimalist: UIViewController, UITableViewDelega
         initData()
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        initData()
+        fatalError("init(coder:) has not been implemented")
     }
 
     deinit {
@@ -175,7 +175,7 @@ class TUIContactSelectController_Minimalist: UIViewController, UITableViewDelega
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        tableView.mm_width()(view.mm_w)!.mm_flexToBottom()(0)
+        tableView.mm_width(view.mm_w).mm_flexToBottom(0)
         if maxSelectCount == 1 {
             addNewGroupHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 55)
             addNewGroupHeaderView.isHidden = false

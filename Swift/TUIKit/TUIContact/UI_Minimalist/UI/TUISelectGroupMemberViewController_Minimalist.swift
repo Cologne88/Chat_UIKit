@@ -68,7 +68,7 @@ class TUISelectGroupMemberViewController_Minimalist: UIViewController, UICollect
         tableView.delegate = self
         tableView.dataSource = self
         view.addSubview(tableView)
-        tableView.mm_width()(view.mm_w)!.mm_top()(topStartPosition + 10)!.mm_flexToBottom()(0)
+        tableView.mm_width(view.mm_w).mm_top(topStartPosition + 10).mm_flexToBottom(0)
         return tableView
     }()
 
@@ -112,8 +112,8 @@ class TUISelectGroupMemberViewController_Minimalist: UIViewController, UICollect
     }
 
     private func updateUserPanel() {
-        userPanel.mm_height()(userPanelHeight)!.mm_left()(kUserPanelLeftSpacing)!.mm_flexToRight()(0)!.mm_top()(topStartPosition)
-        selectTable.mm_width()(view.mm_w)!.mm_top()(userPanel.mm_maxY)!.mm_flexToBottom()(0)
+        userPanel.mm_height(userPanelHeight).mm_left(kUserPanelLeftSpacing).mm_flexToRight(0).mm_top(topStartPosition)
+        selectTable.mm_width(view.mm_w).mm_top(userPanel.mm_maxY).mm_flexToBottom(0)
         userPanel.performBatchUpdates({ [weak self] in
             guard let self else { return }
             self.userPanel.reloadSections(IndexSet(integer: 0))
@@ -141,9 +141,7 @@ class TUISelectGroupMemberViewController_Minimalist: UIViewController, UICollect
             return
         }
         cancel()
-        if navigateValueCallback != nil {
-            navigateValueCallback!([TUICore_TUIContactObjectFactory_SelectGroupMemberVC_ResultUserList: users])
-        }
+        navigateValueCallback?(["TUICore_TUIContactObjectFactory_SelectGroupMemberVC_ResultUserList": users])
     }
 
     @objc private func cancel() {
@@ -322,13 +320,12 @@ class TUISelectGroupMemberViewController_Minimalist: UIViewController, UICollect
     }
 
     private func loadData(completion: @escaping (Bool, String?, [TUIUserModel]) -> Void) {
-        guard !isNoData else {
+        guard !isNoData, let groupId = groupId else {
             completion(true, "there is no more data", [])
             return
         }
         V2TIMManager.sharedInstance().getGroupMemberList(groupId, filter: UInt32(V2TIMGroupMemberFilter.GROUP_MEMBER_FILTER_ALL.rawValue), nextSeq: UInt64(pageIndex)) { [weak self] nextSeq, memberList in
-            guard let self = self else { return }
-            guard let memberList = memberList else { return }
+            guard let self = self, let memberList = memberList else { return }
             self.pageIndex = Int(nextSeq)
             self.isNoData = (nextSeq == 0)
             var arrayM = [TUIUserModel]()
@@ -344,20 +341,22 @@ class TUISelectGroupMemberViewController_Minimalist: UIViewController, UICollect
                     }
                 }
 
-                if let selectedUserIDList = self.selectedUserIDList, selectedUserIDList.contains(info.userID.safeValue) {
+                if let selectedUserIDList = self.selectedUserIDList,
+                   let userID = info.userID, selectedUserIDList.contains(userID)
+                {
                     continue
                 }
 
                 let model = TUIUserModel()
-                model.userId = info.userID.safeValue
-                if !info.nameCard.isNilOrEmpty {
-                    model.name = info.nameCard.safeValue
-                } else if !info.friendRemark.isNilOrEmpty {
-                    model.name = info.friendRemark.safeValue
-                } else if !info.nickName.isNilOrEmpty {
-                    model.name = info.nickName.safeValue
+                model.userId = info.userID ?? ""
+                if let nameCard = info.nameCard, !nameCard.isEmpty {
+                    model.name = nameCard
+                } else if let friendRemark = info.friendRemark, !friendRemark.isEmpty {
+                    model.name = friendRemark
+                } else if let nickName = info.nickName, !nickName.isEmpty {
+                    model.name = nickName
                 } else {
-                    model.name = info.userID.safeValue
+                    model.name = info.userID ?? ""
                 }
                 if let faceURL = info.faceURL {
                     model.avatar = faceURL

@@ -4,10 +4,16 @@
 import TIMCommon
 import UIKit
 
-@objc protocol TUIContactControllerListener_Minimalist: NSObjectProtocol {
-    @objc optional func onSelectFriend(_ cell: TUICommonContactCell_Minimalist)
-    @objc optional func onAddNewFriend(_ cell: TUICommonTableViewCell)
-    @objc optional func onGroupConversation(_ cell: TUICommonTableViewCell)
+protocol TUIContactControllerListener_Minimalist: AnyObject {
+    func onSelectFriend(_ cell: TUICommonContactCell_Minimalist) -> Bool
+    func onAddNewFriend(_ cell: TUICommonTableViewCell) -> Bool
+    func onGroupConversation(_ cell: TUICommonTableViewCell) -> Bool
+}
+
+extension TUIContactControllerListener_Minimalist {
+    func onSelectFriend(_ cell: TUICommonContactCell_Minimalist) -> Bool { return false }
+    func onAddNewFriend(_ cell: TUICommonTableViewCell) -> Bool { return false }
+    func onGroupConversation(_ cell: TUICommonTableViewCell) -> Bool { return false }
 }
 
 public class TUIContactController_Minimalist: UIViewController, UITableViewDelegate, UITableViewDataSource, V2TIMFriendshipListener, TUIPopViewDelegate {
@@ -90,7 +96,7 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
 
     func setupNavigator() {
         let moreButton = UIButton(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
-        moreButton.setImage(TUISwift.timCommonDynamicImage("nav_more_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("more"))), for: .normal)
+        moreButton.setImage(TUISwift.timCommonDynamicImage("nav_more_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("more"))), for: .normal)
         moreButton.addTarget(self, action: #selector(onRightItem(_:)), for: .touchUpInside)
         moreButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
         moreButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
@@ -119,12 +125,12 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
     @objc func onRightItem(_ rightBarButton: UIButton) {
         var menus: [TUIPopCellData] = []
         let friend = TUIPopCellData()
-        friend.image = TUISwift.tuiContactDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_friend")))
+        friend.image = TUISwift.tuiContactDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_friend")))
         friend.title = TUISwift.timCommonLocalizableString("ContactsAddFriends")
         menus.append(friend)
 
         let group = TUIPopCellData()
-        group.image = TUISwift.tuiContactDynamicImage("pop_icon_add_group_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_group")))
+        group.image = TUISwift.tuiContactDynamicImage("pop_icon_add_group_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_group")))
         group.title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
         menus.append(group)
 
@@ -138,8 +144,8 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
         let frameInNaviView = navigationController?.view.convert(rightBarButton.frame, from: rightBarButton.superview)
         popView.arrowPoint = CGPoint(x: frameInNaviView?.origin.x ?? 0 + (frameInNaviView?.size.width ?? 0) * 0.5, y: orginY)
         popView.delegate = self
-        popView.setData(menus as! NSMutableArray)
-        popView.show(in: view.window!)
+        popView.setData(menus)
+        popView.showInWindow(view.window!)
     }
 
     public func addToContacts() {
@@ -147,13 +153,28 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
         add.type = .C2C_Minimalist
         add.onSelect = { [weak self] cellModel in
             guard let self = self else { return }
-            self.dismiss(animated: false) {
-                let frc = TUIFriendRequestViewController_Minimalist()
-                frc.profile = cellModel.userInfo
+            self.dismiss(animated: false) { [weak self] in
+                guard let self else { return }
+                var userID = ""
+                if let cellUserID = cellModel.userInfo?.userID, !cellUserID.isEmpty {
+                    userID = cellUserID
+                }
+                var targetViewController: (UIViewController & TUIFloatSubViewControllerProtocol)? = nil
+                if let friendContactData = self.viewModel.contactMap[userID] {
+                    let vc = TUIFriendProfileController_Minimalist()
+                    vc.friendProfile = friendContactData.friendProfile
+                    targetViewController = vc
+                } else {
+                    let frc = TUIFriendRequestViewController_Minimalist()
+                    frc.profile = cellModel.userInfo
+                    targetViewController = frc
+                }
 
                 let bfloatVC = TUIFloatViewController()
-                bfloatVC.appendChildViewController(frc, topMargin: TUISwift.kScale390(87.5))
-                bfloatVC.topGestureView.setTitleText(TUISwift.timCommonLocalizableString("Info"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
+                if let vc = targetViewController {
+                    bfloatVC.appendChildViewController(vc, topMargin: TUISwift.kScale390(87.5))
+                }
+                bfloatVC.topGestureView.setTitleText(mainText: TUISwift.timCommonLocalizableString("Info"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
                 bfloatVC.topGestureView.rightButton.isHidden = true
                 bfloatVC.topGestureView.subTitleLabel.isHidden = true
                 self.present(bfloatVC, animated: true)
@@ -165,7 +186,7 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
 
         let floatVC = TUIFloatViewController()
         floatVC.appendChildViewController(add, topMargin: TUISwift.kScale390(87.5))
-        floatVC.topGestureView.setTitleText(TUISwift.timCommonLocalizableString("TUIKitAddFriend"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
+        floatVC.topGestureView.setTitleText(mainText: TUISwift.timCommonLocalizableString("TUIKitAddFriend"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
         floatVC.topGestureView.rightButton.isHidden = true
         floatVC.topGestureView.subTitleLabel.isHidden = true
         floatVC.topGestureView.leftButtonClickCallback = {
@@ -185,7 +206,7 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
 
                 let bfloatVC = TUIFloatViewController()
                 bfloatVC.appendChildViewController(vc, topMargin: TUISwift.kScale390(87.5))
-                bfloatVC.topGestureView.setTitleText(TUISwift.timCommonLocalizableString("Info"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
+                bfloatVC.topGestureView.setTitleText(mainText: TUISwift.timCommonLocalizableString("Info"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
                 bfloatVC.topGestureView.rightButton.isHidden = true
                 bfloatVC.topGestureView.subTitleLabel.isHidden = true
                 self.present(bfloatVC, animated: true)
@@ -197,7 +218,7 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
 
         let floatVC = TUIFloatViewController()
         floatVC.appendChildViewController(add, topMargin: TUISwift.kScale390(87.5))
-        floatVC.topGestureView.setTitleText(TUISwift.timCommonLocalizableString("TUIKitAddGroup"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
+        floatVC.topGestureView.setTitleText(mainText: TUISwift.timCommonLocalizableString("TUIKitAddGroup"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
         floatVC.topGestureView.rightButton.isHidden = true
         floatVC.topGestureView.subTitleLabel.isHidden = true
         floatVC.topGestureView.leftButtonClickCallback = {
@@ -207,9 +228,8 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
     }
 
     @objc func onSelectFriend(_ cell: TUICommonContactCell_Minimalist) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIContactControllerListener_Minimalist.onSelectFriend(_:))) {
-            delegate.onSelectFriend?(cell)
-            return
+        if let delegate = delegate {
+            if delegate.onSelectFriend(cell) { return }
         }
         let data = cell.contactData
         let vc = TUIFriendProfileController_Minimalist()
@@ -218,9 +238,8 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
     }
 
     @objc func onAddNewFriend(_ cell: TUICommonTableViewCell) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIContactControllerListener_Minimalist.onAddNewFriend(_:))) {
-            delegate.onAddNewFriend?(cell)
-            return
+        if let delegate = delegate {
+            if delegate.onAddNewFriend(cell) { return }
         }
         let vc = TUINewFriendViewController_Minimalist()
         vc.cellClickBlock = { [weak self] cell in
@@ -228,8 +247,7 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
             let controller = TUIUserProfileController_Minimalist(style: .grouped)
             if let pendencyData = cell.pendencyData {
                 V2TIMManager.sharedInstance().getUsersInfo([pendencyData.identifier]) { [weak self] profiles in
-                    guard let self = self else { return }
-                    guard let profiles = profiles else { return }
+                    guard let self = self, let profiles = profiles else { return }
                     controller.userFullInfo = profiles.first
                     controller.pendency = cell.pendencyData
                     controller.actionType = .PCA_PENDENDY_CONFIRM_MINI
@@ -242,20 +260,19 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
     }
 
     @objc func onGroupConversation(_ cell: TUICommonTableViewCell) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIContactControllerListener_Minimalist.onGroupConversation(_:))) {
-            delegate.onGroupConversation?(cell)
-            return
+        if let delegate = delegate {
+            if delegate.onGroupConversation(cell) { return }
         }
         let vc = TUIGroupConversationListController_Minimalist()
         vc.onSelect = { [weak self] cellData in
             guard let self = self else { return }
             let param: [String: Any] = [
-                TUICore_TUIChatObjectFactory_ChatViewController_GroupID: cellData.identifier,
-                TUICore_TUIChatObjectFactory_ChatViewController_Title: cellData.title ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: cellData.avatarImage ?? UIImage(),
-                TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: cellData.avatarUrl?.absoluteString ?? ""
+                "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": cellData.identifier,
+                "TUICore_TUIChatObjectFactory_ChatViewController_Title": cellData.title ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": cellData.avatarImage ?? UIImage(),
+                "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": cellData.avatarUrl?.absoluteString ?? ""
             ]
-            self.navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Minimalist, param: param, forResult: nil)
+            self.navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Minimalist", param: param, forResult: nil)
         }
         navigationController?.pushViewController(vc, animated: true)
     }
@@ -354,5 +371,20 @@ public class TUIContactController_Minimalist: UIViewController, UITableViewDeleg
         var array = [""]
         array.append(contentsOf: viewModel.groupList)
         return array
+    }
+}
+
+class IUContactView_Minimalist: UIView {
+    var view: UIView
+
+    override init(frame: CGRect) {
+        self.view = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        super.init(frame: frame)
+        addSubview(view)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }

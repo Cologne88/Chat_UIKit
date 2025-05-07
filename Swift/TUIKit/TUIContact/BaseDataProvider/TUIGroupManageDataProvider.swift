@@ -100,7 +100,7 @@ class TUIGroupManageDataProvider: NSObject {
                 self.delegate?.insertRows(at: indexPaths, withRowAnimation: .fade)
             }
 
-            self.setupGroupMembers(seq: nextSeq, first: false)
+            self.setupGroupMembers(seq: UInt64(nextSeq), first: false)
         } fail: { _, _ in
             // Handle failure
         }
@@ -142,7 +142,7 @@ class TUIGroupManageDataProvider: NSObject {
         groupInfo.groupID = groupID
         groupInfo.allMuted = mute
 
-        V2TIMManager.sharedInstance().setGroupInfo(groupInfo) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupInfo(info: groupInfo) { [weak self] in
             guard let self = self else { return }
             self.muteAll = mute
             self.groupInfo?.allMuted = mute
@@ -150,7 +150,7 @@ class TUIGroupManageDataProvider: NSObject {
             completion?(0, nil)
         } fail: { [weak self] code, desc in
             self?.muteAll = !mute
-            completion?(Int(code), desc)
+            completion?(Int(code), desc ?? "")
         }
     }
 
@@ -192,7 +192,7 @@ class TUIGroupManageDataProvider: NSObject {
             }
         }
 
-        V2TIMManager.sharedInstance().muteGroupMember(groupID, member: user.userId, muteTime: mute ? 365 * 24 * 3600 : 0) {
+        V2TIMManager.sharedInstance().muteGroupMember(groupID: groupID, memberUserID: user.userId, muteTimeSeconds: mute ? 365 * 24 * 3600 : 0) {
             callback(0, nil, mute)
         } fail: { code, desc in
             callback(Int(code), desc, mute)

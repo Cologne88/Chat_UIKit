@@ -1,4 +1,3 @@
-import ReactiveObjC
 import TIMCommon
 import TUICore
 
@@ -31,7 +30,7 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
         setupTipsView()
         setupGroupPinTips()
         V2TIMManager.sharedInstance().addGroupListener(listener: self)
-        NotificationCenter.default.addObserver(self, selector: #selector(refreshTipsView), name: NSNotification.Name(rawValue: TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshTipsView), name: NSNotification.Name(rawValue: "TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification"), object: nil)
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -48,9 +47,9 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
 
     func setupTipsView() {
         tipsView = UIView(frame: .zero)
-        tipsView!.backgroundColor = TUISwift.rgb(246, green: 234, blue: 190)
+        tipsView!.backgroundColor = TUISwift.rgb(246, g: 234, b: 190)
         view.addSubview(tipsView!)
-        tipsView!.mm_height()(24)?.mm_width()(view.mm_w)
+        tipsView!.mm_height(24).mm_width(view.mm_w)
 
         pendencyLabel = UILabel(frame: .zero)
         tipsView!.addSubview(pendencyLabel!)
@@ -77,8 +76,8 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
                 let pendencyBtnWidth = pendencyBtn?.mm_w ?? 0
                 let gap = (tipsViewWidth - pendencyLabelWidth - pendencyBtnWidth - 8) / 2
 
-                pendencyLabel?.mm_left()(gap)?.mm__centerY()((self.tipsView?.mm_h ?? 0) / 2)
-                pendencyBtn?.mm_hstack()(8)
+                pendencyLabel?.mm_left(gap).mm__centerY((self.tipsView?.mm_h ?? 0) / 2)
+                pendencyBtn?.mm_hstack(8)
 
                 tipsView?.alpha = 1
                 self.refreshTipsView()
@@ -143,7 +142,7 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
                 topView.frame = CGRect(x: 0, y: 0, width: view.frame.size.width, height: 0)
             }
             self.groupPinList = groupPinList
-            NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification"), object: nil)
             if let pinPageVC = self.pinPageVC {
                 let formatGroupPinList = Array(groupPinList.reversed())
                 pinPageVC.groupPinList = formatGroupPinList
@@ -210,9 +209,9 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
     }
 
     func jump2GroupPinHighlightLine(_ originMessage: V2TIMMessage) {
-        guard let msgVC = messageController as? TUIMessageController_Minimalist else { return }
-        guard let originMsgID = originMessage.msgID else { return }
-        msgVC.findMessages([originMsgID], callback: { [weak self] success, _, messages in
+        guard let msgVC = messageController as? TUIMessageController_Minimalist,
+              let msgID = originMessage.msgID else { return }
+        msgVC.findMessages([msgID], callback: { [weak self] success, _, messages in
             guard let self else { return }
             if success, let message = messages?.first, message.status == .MSG_STATUS_SEND_SUCC {
                 msgVC.locateAssignMessage(originMessage, matchKeyWord: "")
@@ -245,18 +244,21 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
         let vc = TUIGroupPendencyController()
         vc.cellClickBlock = { [weak self] cell in
             guard let self = self else { return }
-            if cell.pendencyData.isRejectd || cell.pendencyData.isAccepted {
+            guard let pendencyData = cell.pendencyData else { return }
+            if pendencyData.isRejected || pendencyData.isAccepted {
                 return
             }
-            V2TIMManager.sharedInstance().getUsersInfo([cell.pendencyData.fromUser], succ: { [weak self] profiles in
-                guard let self = self else { return }
+            guard let userID = pendencyData.fromUser else { return }
+            V2TIMManager.sharedInstance().getUsersInfo([userID], succ: { [weak self] profiles in
+                guard let self = self, let first = profiles?.first else { return }
                 let param: [String: Any] = [
-                    TUICore_TUIContactObjectFactory_UserProfileController_UserProfile: profiles?.first as Any,
-                    TUICore_TUIContactObjectFactory_UserProfileController_PendencyData: cell.pendencyData,
-                    TUICore_TUIContactObjectFactory_UserProfileController_ActionType: UInt(3)
+                    "TUICore_TUIContactObjectFactory_UserProfileController_UserProfile": first,
+                    "TUICore_TUIContactObjectFactory_UserProfileController_PendencyData": pendencyData,
+                    "TUICore_TUIContactObjectFactory_UserProfileController_ActionType": UInt(3)
                 ]
-                self.navigationController?.push(TUICore_TUIContactObjectFactory_UserProfileController_Minimalist, param: param, forResult: nil)
-            }, fail: nil)
+                self.navigationController?.push("TUICore_TUIContactObjectFactory_UserProfileController_Minimalist", param: param, forResult: nil)
+            }) { _, _ in
+            }
         }
         vc.viewModel = pendencyViewModel ?? TUIGroupPendencyDataProvider()
         navigationController?.pushViewController(vc, animated: true)
@@ -264,11 +266,11 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
 
     // MARK: - V2TIMGroupListener
 
-    public func onReceiveJoinApplication(_ groupID: String, member: V2TIMGroupMemberInfo, opReason: String) {
+    public func onReceiveJoinApplication(groupID: String?, member: V2TIMGroupMemberInfo, opReason: String?) {
         getPendencyList()
     }
 
-    public func onGroupInfoChanged(_ groupID: String, changeInfoList: [V2TIMGroupChangeInfo]) {
+    public func onGroupInfoChanged(groupID: String?, changeInfoList: [V2TIMGroupChangeInfo]) {
         guard let data = conversationData else { return }
         if groupID != data.groupID {
             return
@@ -285,21 +287,23 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
     // MARK: - TUIInputControllerDelegate
 
     override func inputController(_ inputController: TUIInputController_Minimalist, didSendMessage message: V2TIMMessage) {
-        var msg = message
-        if msg.elemType == .ELEM_TYPE_TEXT {
-            let atUserList = NSMutableArray()
+        var atMessage = message
+        if message.elemType == .ELEM_TYPE_TEXT {
+            var atUserList: [String] = []
             for model in self.atUserList {
-                let userId = model.userId
-                atUserList.add(userId)
+                atUserList.append(model.userId)
             }
             if atUserList.count > 0 {
-                let cloudCustomData = msg.cloudCustomData
-                msg = V2TIMManager.sharedInstance().create(atSignedGroupMessage: msg, atUserList: atUserList)
-                msg.cloudCustomData = cloudCustomData
+                let list = NSMutableArray(array: atUserList)
+                let cloudCustomData = message.cloudCustomData
+                if let msg = V2TIMManager.sharedInstance().createTextAtMessage(text: message.textElem?.text ?? "", atUserList: list) {
+                    msg.cloudCustomData = cloudCustomData
+                    atMessage = msg
+                }
             }
             self.atUserList.removeAll()
         }
-        super.inputController(inputController, didSendMessage: msg)
+        super.inputController(inputController, didSendMessage: atMessage)
     }
 
     let kTUIInputNoramlFont = UIFont.systemFont(ofSize: 16)
@@ -314,13 +318,13 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
         inputController.reset()
 
         var param: [String: Any] = [:]
-        param[TUICore_TUIContactObjectFactory_SelectGroupMemberVC_GroupID] = groupID
-        param[TUICore_TUIContactObjectFactory_SelectGroupMemberVC_Name] = TUISwift.timCommonLocalizableString("TUIKitAtSelectMemberTitle")
-        param[TUICore_TUIContactObjectFactory_SelectGroupMemberVC_OptionalStyle] = 1
+        param["TUICore_TUIContactObjectFactory_SelectGroupMemberVC_GroupID"] = groupID
+        param["TUICore_TUIContactObjectFactory_SelectGroupMemberVC_Name"] = TUISwift.timCommonLocalizableString("TUIKitAtSelectMemberTitle")
+        param["TUICore_TUIContactObjectFactory_SelectGroupMemberVC_OptionalStyle"] = 1
 
-        navigationController?.push(TUICore_TUIContactObjectFactory_SelectGroupMemberVC_Minimalist, param: param, forResult: { [weak self] param in
+        navigationController?.push("TUICore_TUIContactObjectFactory_SelectGroupMemberVC_Minimalist", param: param, forResult: { [weak self] param in
             guard let self = self else { return }
-            guard let modelList = param[TUICore_TUIContactObjectFactory_SelectGroupMemberVC_ResultUserList] as? [TUIUserModel] else { return }
+            guard let modelList = param["TUICore_TUIContactObjectFactory_SelectGroupMemberVC_ResultUserList"] as? [TUIUserModel] else { return }
             let atText = NSMutableString()
             for model in modelList {
                 self.atUserList.append(model)
@@ -334,18 +338,28 @@ public class TUIGroupChatViewController_Minimalist: TUIBaseChatViewController_Mi
 
     override func inputController(_ inputController: TUIInputController_Minimalist, didDeleteAt atText: String) {
         super.inputController(inputController, didDeleteAt: atText)
-        atUserList = atUserList.filter { user -> Bool in atText.range(of: user.name) == nil }
+        for user in atUserList {
+            let userName: String? = user.name
+            if let userName = userName, atText.contains(userName) {
+                if let index = atUserList.firstIndex(of: user) {
+                    atUserList.remove(at: index)
+                }
+                break
+            }
+        }
     }
 
     // MARK: - TUIBaseMessageControllerDelegate
 
-    func onLongSelectMessageAvatar(_ controller: TUIBaseMessageController_Minimalist, cell: TUIMessageCell) {
+    override func onLongSelectMessageAvatar(_ controller: TUIBaseMessageController_Minimalist, cell: TUIMessageCell) {
         guard let messageData = cell.messageData, messageData.identifier != TUILogin.getUserID() else { return }
 
         let atUserExist = atUserList.contains { $0.userId == messageData.identifier }
         if !atUserExist {
             let user = TUIUserModel()
-            user.userId = messageData.identifier
+            if let userID = messageData.identifier {
+                user.userId = userID
+            }
             user.name = messageData.senderName
             atUserList.append(user)
 

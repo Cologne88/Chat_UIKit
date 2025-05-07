@@ -103,7 +103,6 @@
 		FD1060472CF437330024604C /* TCConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCConstants.swift; sourceTree = "<group>"; };
 		FD1060482CF437330024604C /* GenerateTestUserSig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerateTestUserSig.swift; sourceTree = "<group>"; };
 		FD1060B72CF56F6B0024604C /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
-		FD1060B92CF56F720024604C /* pushservice-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "pushservice-Bridging-Header.h"; sourceTree = "<group>"; };
 		FD4166C22D00697D0002902F /* AppDelegateLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegateLoader.h; sourceTree = "<group>"; };
 		FD4166C32D00697D0002902F /* AppDelegateLoader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegateLoader.m; sourceTree = "<group>"; };
 		FFA1E52ABCCAE78D060D1E3D /* Pods-TUIKitDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TUIKitDemo.debug.xcconfig"; path = "Target Support Files/Pods-TUIKitDemo/Pods-TUIKitDemo.debug.xcconfig"; sourceTree = "<group>"; };
@@ -150,7 +149,6 @@
 				9394A4572AB1A92F00F5FD83 /* pushserviceDebug.entitlements */,
 				FD1060B72CF56F6B0024604C /* NotificationService.swift */,
 				48DF2C47253FE1B800BC522F /* Info.plist */,
-				FD1060B92CF56F720024604C /* pushservice-Bridging-Header.h */,
 			);
 			path = pushservice;
 			sourceTree = "<group>";
@@ -251,7 +249,7 @@
 				48DF2C3E253FE1B800BC522F /* Sources */,
 				48DF2C3F253FE1B800BC522F /* Frameworks */,
 				48DF2C40253FE1B800BC522F /* Resources */,
-				EFCCDB130985EDC8D552038C /* [CP] Copy Pods Resources */,
+				A4B96B8B0BA52E72992922D7 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -400,6 +398,21 @@
 			shellPath = /bin/sh;
 			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# -*- coding: utf-8 -*-\ncd ../../../tui-components/iOS\n\necho \"生成 podspec.json 文件\"\nmyarray=(\"TUIChat\" \"TUIContact\" \"TUIConversation\" \"TUIGroup\" \"TUISearch\" \"TIMCommon\")\nrm -r PodspecConfig/JSON\nmkdir PodspecConfig/JSON\nfor item in \"${myarray[@]}\"\ndo\n  pod ipc spec \"PodspecConfig/$item.podspec\" > \"PodspecConfig/JSON/$item.podspec.json\"\ndone\n\n\necho \"开始依赖检查\"\nif [[ $(python -c 'import platform; print(platform.python_version_tuple()[0])') == \"2\" ]]; then\n  python pod_analysis_for_im.py\nelse\n  python3 pod_analysis_for_im.py\nfi\n\nret=$?\n\n# 检查 Python 脚本的返回值并根据返回值执行不同操作\n#if [ $ret -eq 0 ]; then\n#  echo \"cocoapods 依赖检查通过\" >&2\n#else\n#  echo \"cocoapods 依赖检查不通过\" >&2\n#  exit 1\n#fi\n";
 		};
+		A4B96B8B0BA52E72992922D7 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-pushservice/Pods-pushservice-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		AC78EE56CEA9485C33F0F521 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -413,21 +426,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TUIKitDemo/Pods-TUIKitDemo-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		EFCCDB130985EDC8D552038C /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-pushservice/Pods-pushservice-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		F0366C65ED6EF54A5BCB1591 /* [CP] Check Pods Manifest.lock */ = {
@@ -573,7 +571,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = impushservice;
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "pushservice/pushservice-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -601,7 +599,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = com.imchat.imchat.pushservice_Production_SignProvision;
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "pushservice/pushservice-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -626,7 +624,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.tuikit.demo.pushservice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "pushservice/pushservice-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

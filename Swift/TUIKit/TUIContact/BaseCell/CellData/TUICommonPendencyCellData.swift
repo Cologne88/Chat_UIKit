@@ -2,9 +2,9 @@ import TIMCommon
 
 class TUICommonPendencyCellData: TUICommonCellData {
     var application: V2TIMFriendApplication
-    var identifier: String
+    var identifier: String = ""
     var avatarUrl: URL?
-    var title: String
+    var title: String = ""
     var addSource: String?
     var addWording: String?
     var isAccepted: Bool = false
@@ -15,8 +15,16 @@ class TUICommonPendencyCellData: TUICommonCellData {
 
     init(application: V2TIMFriendApplication) {
         self.application = application
-        self.identifier = application.userID.safeValue
-        self.title = application.nickName.isNilOrEmpty ? application.userID.safeValue : application.nickName.safeValue
+        if let userID = application.userID {
+            self.identifier = userID
+        }
+        if let nickName = application.nickName {
+            self.title = nickName
+        } else {
+            if let userID = application.userID {
+                self.title = userID
+            }
+        }
         if let addSource = application.addSource {
             let prefixLength = "AddSource_Type_".count
             if addSource.count > prefixLength {
@@ -25,7 +33,7 @@ class TUICommonPendencyCellData: TUICommonCellData {
             }
         }
         self.addWording = application.addWording
-        self.avatarUrl = URL(string: application.faceUrl.safeValue)
+        self.avatarUrl = URL(string: application.faceUrl ?? "")
         super.init()
     }
 
@@ -43,22 +51,22 @@ class TUICommonPendencyCellData: TUICommonCellData {
     }
 
     func agreeWithSuccess(success: (() -> Void)?, failure: ((Int, String) -> Void)?) {
-        V2TIMManager.sharedInstance().accept(application, type: V2TIMFriendAcceptType.FRIEND_ACCEPT_AGREE_AND_ADD, succ: { _ in
+        V2TIMManager.sharedInstance().acceptFriendApplication(application: application, acceptType: .FRIEND_ACCEPT_AGREE_AND_ADD) { _ in
             success?()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("TUIKitFriendApplicationApproved"))
-        }, fail: { code, msg in
-            TUITool.makeToastError(Int(code), msg: msg)
-            failure?(Int(code), msg ?? "")
-        })
+        } fail: { code, desc in
+            TUITool.makeToastError(Int(code), msg: desc)
+            failure?(Int(code), desc ?? "")
+        }
     }
 
     func rejectWithSuccess(success: (() -> Void)?, failure: ((Int, String) -> Void)?) {
-        V2TIMManager.sharedInstance().refuse(application, succ: { _ in
+        V2TIMManager.sharedInstance().refuseFriendApplication(application: application) { _ in
             success?()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("TUIKitFirendRequestRejected"))
-        }, fail: { code, msg in
-            failure?(Int(code), msg ?? "")
-            TUITool.makeToastError(Int(code), msg: msg)
-        })
+        } fail: { code, desc in
+            failure?(Int(code), desc ?? "")
+            TUITool.makeToastError(Int(code), msg: desc ?? "")
+        }
     }
 }

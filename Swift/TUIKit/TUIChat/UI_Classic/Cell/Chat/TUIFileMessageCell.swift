@@ -1,5 +1,4 @@
 import ImSDK_Plus
-import ReactiveObjC
 import TIMCommon
 import TUICore
 import UIKit
@@ -95,7 +94,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
         fileContainer.layer.insertSublayer(borderLayer, at: 0)
         fileContainer.layer.mask = maskLayer
 
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
         TUIMessageProgressManager.shared.addDelegate(self)
     }
 
@@ -108,14 +107,10 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
 
     @objc private func downloadClick() {
         downloadImageView.frame = .zero
-        if let delegate = delegate, delegate.responds(to: #selector(TUIMessageCellDelegate.onSelectMessage(_:))) {
-            delegate.onSelectMessage(self)
-        } else {
-            print("Delegate does not implement onSelectMessage")
-        }
+        _ = delegate?.onSelectMessage(self)
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIFileMessageCellData else { return }
 
@@ -130,7 +125,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
         prepareReactTagUI(container)
 
         securityStrikeView.isHidden = true
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             bubbleImageView.image = getErrorBubble()
             securityStrikeView.isHidden = false
@@ -139,10 +134,12 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
         }
 
         DispatchQueue.main.async {
-            let uploadProgress = TUIMessageProgressManager.shared.uploadProgress(forMessage: data.msgID)
-            let downloadProgress = TUIMessageProgressManager.shared.downloadProgress(forMessage: data.msgID)
-            self.onUploadProgress(msgID: data.msgID, progress: uploadProgress)
-            self.onDownloadProgress(msgID: data.msgID, progress: downloadProgress)
+            if let msgID = data.msgID {
+                let uploadProgress = TUIMessageProgressManager.shared.uploadProgress(forMessage: msgID)
+                let downloadProgress = TUIMessageProgressManager.shared.downloadProgress(forMessage: msgID)
+                self.onUploadProgress(msgID: msgID, progress: uploadProgress)
+                self.onDownloadProgress(msgID: msgID, progress: downloadProgress)
+            }
         }
 
         setNeedsUpdateConstraints()
@@ -151,7 +148,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
 
         // Update the layers after fileContainer's frame is layout.
         var corner: UIRectCorner = [.bottomLeft, .bottomRight, .topLeft]
-        if data.direction == .MsgDirectionIncoming {
+        if data.direction == .incoming {
             corner = [.bottomLeft, .bottomRight, .topRight]
         }
         let bezierPath = UIBezierPath(roundedRect: fileContainer.bounds, byRoundingCorners: corner, cornerRadii: CGSize(width: 10, height: 10))
@@ -160,7 +157,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
     }
 
     func getErrorBubble() -> UIImage? {
-        if messageData.direction == .MsgDirectionIncoming {
+        if messageData?.direction == .incoming {
             return TUIBubbleMessageCell.incommingErrorBubble
         } else {
             return TUIBubbleMessageCell.outgoingErrorBubble
@@ -183,7 +180,6 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        guard let fileData = fileData else { return }
         guard !CGRectEqualToRect(maskLayer.frame, fileContainer.bounds) else { return }
 
         maskLayer.frame = fileContainer.bounds
@@ -224,7 +220,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
             make.size.equalTo(CGSize(width: textWidth, height: lengthSize.height))
         }
 
-        if messageData.messageContainerAppendSize.height > 0 {
+        if (messageData?.messageContainerAppendSize.height ?? 0) > 0 {
             fileContainer.snp.remakeConstraints { make in
                 make.center.equalTo(container)
                 make.size.equalTo(container)
@@ -236,7 +232,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
 //        borderLayer.frame = fileContainer.bounds
 //
 //        var corner: UIRectCorner = [.bottomLeft, .bottomRight, .topLeft]
-//        if fileData.direction == .MsgDirectionIncoming {
+//        if fileData.direction == .incoming {
 //            corner = [.bottomLeft, .bottomRight, .topRight]
 //        }
 //
@@ -244,7 +240,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
 //        maskLayer.path = bezierPath.cgPath
 //        borderLayer.path = bezierPath.cgPath
 
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             fileContainer.snp.remakeConstraints { make in
                 make.top.equalTo(container).offset(13)
@@ -259,7 +255,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
             securityStrikeView.snp.remakeConstraints { make in
                 make.top.equalTo(fileContainer.snp.bottom)
                 make.width.equalTo(container)
-                make.bottom.equalTo(container).offset(-messageData.messageContainerAppendSize.height)
+                make.bottom.equalTo(container).offset(-(messageData?.messageContainerAppendSize.height ?? 0))
             }
             bubbleImageView.isHidden = false
         } else {
@@ -346,9 +342,9 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
         }
         var str = String(format: "%4.2f%@", len, array[factor])
 
-        if fileData?.direction == .MsgDirectionOutgoing {
-            if length == 0 && (fileData?.status == .Msg_Status_Sending || fileData?.status == .Msg_Status_Sending_2) {
-                str = String(format: "%zd%%", fileData?.direction == .MsgDirectionIncoming ? (fileData?.downladProgress ?? 0) : (fileData?.uploadProgress ?? 0))
+        if fileData?.direction == .outgoing {
+            if length == 0 && (fileData?.status == .sending || fileData?.status == .sending2) {
+                str = String(format: "%zd%%", fileData?.direction == .incoming ? (fileData?.downladProgress ?? 0) : (fileData?.uploadProgress ?? 0))
             }
         } else {
             if !(fileData?.isLocalExist() ?? false) && !(fileData?.isDownloading ?? false) {
@@ -359,7 +355,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
         return str
     }
 
-    override func highlight(whenMatchKeyword keyword: String?) {
+    override open func highlightWhenMatchKeyword(_ keyword: String?) {
         if let _ = keyword {
             if highlightAnimating {
                 return
@@ -396,8 +392,8 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
     }
 
     func prepareReactTagUI(_ containerView: UIView) {
-        let param: [String: Any] = [TUICore_TUIChatExtension_ChatMessageReactPreview_Delegate: self]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_ChatMessageReactPreview_ClassicExtensionID, parentView: containerView, param: param)
+        let param: [String: Any] = ["TUICore_TUIChatExtension_ChatMessageReactPreview_Delegate": self]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_ChatMessageReactPreview_ClassicExtensionID", parentView: containerView, param: param)
     }
 
     // MARK: - V2TIMSDKListener
@@ -411,7 +407,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
     // MARK: - TUIMessageCellProtocol
 
     class func getFileContentSize(_ data: TUIMessageCellData) -> CGSize {
-        let hasRiskContent = data.innerMessage.hasRiskContent
+        let hasRiskContent = data.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             return CGSize(width: 237, height: 62)
         }
@@ -420,7 +416,7 @@ class TUIFileMessageCell: TUIBubbleMessageCell, V2TIMSDKListener, TUIMessageProg
 
     override class func getContentSize(_ data: TUIMessageCellData) -> CGSize {
         var size = getFileContentSize(data)
-        let hasRiskContent = data.innerMessage.hasRiskContent
+        let hasRiskContent = data.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             let bubbleTopMargin: CGFloat = 12
             let bubbleBottomMargin: CGFloat = 12

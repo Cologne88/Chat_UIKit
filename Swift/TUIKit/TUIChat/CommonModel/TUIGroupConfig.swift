@@ -1,23 +1,27 @@
 import Foundation
 
-struct TUIGroupConfigItem: OptionSet {
-    let rawValue: Int
+public struct TUIGroupConfigItem: OptionSet {
+    public let rawValue: Int
+    
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
 
-    static let none = TUIGroupConfigItem([])
-    static let members = TUIGroupConfigItem(rawValue: 1 << 0)
-    static let notice = TUIGroupConfigItem(rawValue: 1 << 1)
-    static let manage = TUIGroupConfigItem(rawValue: 1 << 2)
-    static let alias = TUIGroupConfigItem(rawValue: 1 << 3)
-    static let muteAndPin = TUIGroupConfigItem(rawValue: 1 << 4)
-    static let background = TUIGroupConfigItem(rawValue: 1 << 5)
-    static let clearChatHistory = TUIGroupConfigItem(rawValue: 1 << 6)
-    static let deleteAndLeave = TUIGroupConfigItem(rawValue: 1 << 7)
-    static let transfer = TUIGroupConfigItem(rawValue: 1 << 8)
-    static let dismiss = TUIGroupConfigItem(rawValue: 1 << 9)
-    static let report = TUIGroupConfigItem(rawValue: 1 << 10)
+    public static let none = TUIGroupConfigItem([])
+    public static let members = TUIGroupConfigItem(rawValue: 1 << 0)
+    public static let notice = TUIGroupConfigItem(rawValue: 1 << 1)
+    public static let manage = TUIGroupConfigItem(rawValue: 1 << 2)
+    public static let alias = TUIGroupConfigItem(rawValue: 1 << 3)
+    public static let muteAndPin = TUIGroupConfigItem(rawValue: 1 << 4)
+    public static let background = TUIGroupConfigItem(rawValue: 1 << 5)
+    public static let clearChatHistory = TUIGroupConfigItem(rawValue: 1 << 6)
+    public static let deleteAndLeave = TUIGroupConfigItem(rawValue: 1 << 7)
+    public static let transfer = TUIGroupConfigItem(rawValue: 1 << 8)
+    public static let dismiss = TUIGroupConfigItem(rawValue: 1 << 9)
+    public static let report = TUIGroupConfigItem(rawValue: 1 << 10)
 }
 
-class TUIGroupConfig {
+public class TUIGroupConfig {
     static let shared = TUIGroupConfig()
 
     private var hideGroupMembersItems = false
@@ -34,7 +38,10 @@ class TUIGroupConfig {
 
     private init() {}
 
-    func hideItemsInGroupConfig(_ items: TUIGroupConfigItem) {
+    /**
+     * Hide items in group config interface.
+     */
+    public func hideItemsInGroupConfig(_ items: TUIGroupConfigItem) {
         hideGroupMuteAndPinItems = items.contains(.muteAndPin)
         hideGroupManageItems = items.contains(.manage)
         hideGroupAliasItem = items.contains(.alias)
@@ -47,7 +54,10 @@ class TUIGroupConfig {
         hideGroupReport = items.contains(.report)
     }
 
-    func isItemHiddenInGroupConfig(_ item: TUIGroupConfigItem) -> Bool {
+    /**
+     * Get the hidden status of specified item.
+     */
+    public func isItemHiddenInGroupConfig(_ item: TUIGroupConfigItem) -> Bool {
         if item.contains(.muteAndPin) {
             return hideGroupMuteAndPinItems
         } else if item.contains(.manage) {

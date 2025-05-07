@@ -20,12 +20,12 @@ class TUITranslationDataProvider: NSObject, TUINotificationProtocol, V2TIMAdvanc
 
     static func translateMessage(_ data: TUIMessageCellData, completion: TUITranslateMessageCompletion?) {
         let msg = data.innerMessage
-        guard msg.elemType == .ELEM_TYPE_TEXT, let textElem = msg.textElem else {
+        guard msg?.elemType == .ELEM_TYPE_TEXT else {
             return
         }
         
         // Get @ user's nickname by userID.
-        var atUserIDs = msg.groupAtUserList as? [String]
+        let atUserIDs = msg?.groupAtUserList as? [String]
         if atUserIDs == nil || atUserIDs?.count == 0 {
             // There's not any @user info.
             translateMessage(data, atUsers: nil, completion: completion)
@@ -52,11 +52,12 @@ class TUITranslationDataProvider: NSObject, TUINotificationProtocol, V2TIMAdvanc
             return
         }
         
-        V2TIMManager.sharedInstance()?.getUsersInfo(atUserIDsExcludingAtAll, succ: { infoList in
+        V2TIMManager.sharedInstance().getUsersInfo(atUserIDsExcludingAtAll, succ: { infoList in
+            guard let infoList = infoList else { return }
             var atUserNames = [String]()
             for userID in atUserIDsExcludingAtAll {
-                if let user = infoList?.first(where: { $0.userID == userID }) {
-                    atUserNames.append((user.nickName ?? user.userID) ?? "")
+                if let user = infoList.first(where: { $0.userID == userID }) {
+                    atUserNames.append(user.nickName ?? user.userID ?? "")
                 }
             }
             // Restore @All.
@@ -70,12 +71,11 @@ class TUITranslationDataProvider: NSObject, TUINotificationProtocol, V2TIMAdvanc
     }
     
     static func translateMessage(_ data: TUIMessageCellData, atUsers: [String]?, completion: TUITranslateMessageCompletion?) {
-        let msg = data.innerMessage
-        guard let textElem = msg.textElem else { return }
+        guard let msg = data.innerMessage, let textElem = msg.textElem,
+              let target = TUITranslationConfig.shared.targetLanguageCode else { return }
         
-        let target = TUITranslationConfig.shared.targetLanguageCode
-        let splitResult = textElem.text?.splitTextByEmojiAnd(atUsers: atUsers)
-        let textArray = splitResult?[kSplitStringTextKey] as? [String] ?? []
+        let splitResult = textElem.text?.splitTextByEmojiAndAtUsers(atUsers)
+        let textArray = splitResult?[String.kSplitStringTextKey] as? [String] ?? []
         
         if textArray.isEmpty {
             // Nothing needs to be translated.
@@ -96,8 +96,9 @@ class TUITranslationDataProvider: NSObject, TUINotificationProtocol, V2TIMAdvanc
         }
         
         // Send translate request.
-        V2TIMManager.sharedInstance()?.translateText(textArray, sourceLanguage: nil, targetLanguage: target, completion: { code, desc, result in
-            if code != 0 || result?.count == 0 {
+        V2TIMManager.sharedInstance().translateText(sourceTextList: textArray, sourceLanguage: "", targetLanguage: target, completion: { code, desc, result in
+            guard let result = result else { return }
+            if code != 0 || result.count == 0 {
                 if code == 30007 {
                     TUITool.makeToast(TUISwift.timCommonLocalizableString("TranslateLanguageNotSupport"))
                 } else {
@@ -109,9 +110,9 @@ class TUITranslationDataProvider: NSObject, TUINotificationProtocol, V2TIMAdvanc
                 return
             }
             
-            let text = NSString.replacedString(with: splitResult?[kSplitStringResultKey] as? [String] ?? [],
-                                               index: splitResult?[kSplitStringTextIndexKey] as? [Int] ?? [],
-                                               replaceDict: result ?? [:])
+            let text = String.replacedStringWithArray(splitResult?[String.kSplitStringResultKey] as? [String] ?? [],
+                                                      index: splitResult?[String.kSplitStringTextIndexKey] as? [Int] ?? [],
+                                                      replaceDict: result) ?? ""
             saveTranslationResult(msg, text: text, status: .shown)
             completion?(0, "", data, TUITranslationViewStatus.shown.rawValue, text)
         })

@@ -13,7 +13,7 @@ class TUIContactButtonCellData_Minimalist: TUICommonCellData {
     
     override init() {
         self.title = ""
-        self.style = .ButtonGreen
+        self.style = .green
         self.hideSeparatorLine = false
         super.init()
     }

@@ -49,7 +49,7 @@ class TUIOrderCell_Minimalist: TUIBubbleMessageCell_Minimalist {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         if let data = data as? TUIOrderCellData {
             customData = data
@@ -57,7 +57,7 @@ class TUIOrderCell_Minimalist: TUIBubbleMessageCell_Minimalist {
             descLabel.text = data.desc
             priceLabel.text = data.price
             if let imageUrl = data.imageUrl {
-                iconView.image = UIImage(named: imageUrl)
+                iconView.image = UIImage.safeImage(imageUrl)
             } else {
                 iconView.image = TUISwift.tuiChatBundleThemeImage("chat_custom_order_message_img", defaultImage: "message_custom_order")
             }

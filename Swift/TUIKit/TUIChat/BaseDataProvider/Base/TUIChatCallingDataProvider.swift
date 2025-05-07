@@ -180,7 +180,7 @@ class TUIChatCallingInfo: NSObject, TUIChatCallingInfoProtocol {
             return .unknown
         }
 
-        return (signalingInfo?.groupID.safeValue.count ?? 0 > 0) ? .group : .c2c
+        return (signalingInfo?.groupID?.count ?? 0 > 0) ? .group : .c2c
     }
 
     var participantRole: TUICallParticipantRole {
@@ -288,7 +288,7 @@ class TUIChatCallingInfo: NSObject, TUIChatCallingInfoProtocol {
             break
         }
 
-        return rtlString(display ?? "")
+        return rtlString(display)
     }
 
     func directionForDetailsAppearance() -> TUICallMessageDirection {
@@ -410,22 +410,23 @@ class TUIChatCallingDataProvider: NSObject, TUIChatCallingDataProtocol {
     }
 
     func redialFromMessage(_ innerMessage: V2TIMMessage) {
+        guard let userID = innerMessage.userID else { return }
         var param: [String: Any]?
         var callingInfo: TUIChatCallingInfoProtocol?
         if isCallingMessage(innerMessage, callingInfo: &callingInfo) {
             if callingInfo?.streamMediaType == .voice {
                 param = [
-                    TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey: [innerMessage.userID.safeValue],
-                    TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey: "0"
+                    "TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey": [userID],
+                    "TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey": "0"
                 ]
             } else if callingInfo?.streamMediaType == .video {
                 param = [
-                    TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey: [innerMessage.userID.safeValue],
-                    TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey: "1"
+                    "TUICore_TUICallingService_ShowCallingViewMethod_UserIDsKey": [userID],
+                    "TUICore_TUICallingService_ShowCallingViewMethod_CallTypeKey": "1"
                 ]
             }
             if let param = param {
-                TUICore.callService(TUICore_TUICallingService, method: TUICore_TUICallingService_ShowCallingViewMethod, param: param)
+                TUICore.callService("TUICore_TUICallingService", method: "TUICore_TUICallingService_ShowCallingViewMethod", param: param)
             }
         }
     }
@@ -441,13 +442,13 @@ class TUIChatCallingDataProvider: NSObject, TUIChatCallingDataProtocol {
     }
 
     func callingInfoForMesssage(_ innerMessage: V2TIMMessage) -> TUIChatCallingInfo? {
-        let msgID = innerMessage.msgID.safeValue
+        let msgID = innerMessage.msgID
         if let item = callingCache.object(forKey: msgID as AnyObject) as? TUIChatCallingInfo {
             item.innerMessage = innerMessage
             return item
         }
 
-        guard let info = V2TIMManager.sharedInstance().getSignallingInfo(innerMessage), let data = info.data?.data(using: .utf8) else {
+        guard let info = V2TIMManager.sharedInstance().getSignallingInfo(msg: innerMessage), let data = info.data?.data(using: .utf8) else {
             return nil
         }
 

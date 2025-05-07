@@ -146,7 +146,7 @@ class TUIGroupConversationListController_Minimalist: UIViewController, UIGesture
                 make.top.bottom.trailing.equalTo(headerView!)
             }
             let clearBackgroundView = UIView()
-            clearBackgroundView.mm_fill()
+            clearBackgroundView.mm__fill()
             headerView?.backgroundView = clearBackgroundView
         }
         if let label = headerView?.viewWithTag(1) as? UILabel {
@@ -170,7 +170,7 @@ class TUIGroupConversationListController_Minimalist: UIViewController, UIGesture
             "TUICore_TUIChatObjectFactory_ChatViewController_Title": cell.contactData?.title ?? "",
             "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": cell.contactData?.identifier ?? ""
         ]
-        navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Minimalist, param: param, forResult: nil)
+        navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Minimalist", param: param, forResult: nil)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {

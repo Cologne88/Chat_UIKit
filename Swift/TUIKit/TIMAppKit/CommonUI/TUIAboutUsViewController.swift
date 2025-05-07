@@ -42,7 +42,7 @@ public class TUIAboutUsViewController: UIViewController, UITableViewDelegate, UI
         let versionText = V2TIMManager.sharedInstance().getVersion()
         let versionData = TUICommonTextCellData()
         versionData.key = TUISwift.timCommonLocalizableString("TUIKitAboutUsSDKVersion")
-        versionData.value = versionText ?? ""
+        versionData.value = versionText
         versionData.showAccessory = false
         versionData.ext = ["event_type": "0"]
 
@@ -55,7 +55,7 @@ public class TUIAboutUsViewController: UIViewController, UITableViewDelegate, UI
 
         for (index, key) in keysArray.enumerated() {
             let data = TUICommonTextCellData()
-            data.key = key ?? ""
+            data.key = key
             data.showAccessory = true
             data.ext = extssArray[index]
             data.cselector = #selector(click(_:))
@@ -75,7 +75,7 @@ public class TUIAboutUsViewController: UIViewController, UITableViewDelegate, UI
 
     @objc private func click(_ data: Any?) {
         guard let cell = data as? TUICommonTextCell else { return }
-        guard let dic = cell.data.ext as? [String: String] else { return }
+        guard let dic = cell.data?.ext as? [String: String] else { return }
         let eventType = dic["event_type"]
         let urlStr = dic["url"] ?? ""
         let txt = dic["txt"] ?? ""
@@ -83,7 +83,7 @@ public class TUIAboutUsViewController: UIViewController, UITableViewDelegate, UI
         switch eventType {
         case "101":
             if let url = URL(string: urlStr) {
-                TUIUtil.openLink(with: url)
+                TUIUtil.openLinkWithURL(url)
             }
         case "102":
             showAlert(withText: txt)

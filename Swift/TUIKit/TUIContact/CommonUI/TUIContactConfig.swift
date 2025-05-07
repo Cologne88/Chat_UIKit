@@ -1,19 +1,23 @@
 import Foundation
 
-struct TUIContactConfigItem: OptionSet {
-    let rawValue: Int
+public struct TUIContactConfigItem: OptionSet {
+    public let rawValue: Int
+    
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
 
-    static let none = TUIContactConfigItem([])
-    static let alias = TUIContactConfigItem(rawValue: 1 << 0)
-    static let muteAndPin = TUIContactConfigItem(rawValue: 1 << 1)
-    static let background = TUIContactConfigItem(rawValue: 1 << 2)
-    static let block = TUIContactConfigItem(rawValue: 1 << 3)
-    static let clearChatHistory = TUIContactConfigItem(rawValue: 1 << 4)
-    static let delete = TUIContactConfigItem(rawValue: 1 << 5)
-    static let addFriend = TUIContactConfigItem(rawValue: 1 << 6)
+    public static let none = TUIContactConfigItem([])
+    public static let alias = TUIContactConfigItem(rawValue: 1 << 0)
+    public static let muteAndPin = TUIContactConfigItem(rawValue: 1 << 1)
+    public static let background = TUIContactConfigItem(rawValue: 1 << 2)
+    public static let block = TUIContactConfigItem(rawValue: 1 << 3)
+    public static let clearChatHistory = TUIContactConfigItem(rawValue: 1 << 4)
+    public static let delete = TUIContactConfigItem(rawValue: 1 << 5)
+    public static let addFriend = TUIContactConfigItem(rawValue: 1 << 6)
 }
 
-class TUIContactConfig {
+public class TUIContactConfig {
     static let shared = TUIContactConfig()
 
     private var hideContactAlias: Bool = false
@@ -23,12 +27,13 @@ class TUIContactConfig {
     private var hideContactClearChatHistory: Bool = false
     private var hideContactDelete: Bool = false
     private var hideContactAddFriend: Bool = false
+    
+    private init() {}
 
-    private init() {
-        // 初始化时所有项都不隐藏
-    }
-
-    func hideItemsInContactConfig(_ items: TUIContactConfigItem) {
+    /**
+     * Hide items in contact config interface.
+     */
+    public func hideItemsInContactConfig(_ items: TUIContactConfigItem) {
         hideContactAlias = items.contains(.alias)
         hideContactMuteAndPinItems = items.contains(.muteAndPin)
         hideContactBackgroundItem = items.contains(.background)
@@ -38,7 +43,10 @@ class TUIContactConfig {
         hideContactAddFriend = items.contains(.addFriend)
     }
 
-    func isItemHiddenInContactConfig(_ item: TUIContactConfigItem) -> Bool {
+    /**
+     * Get the hidden status of specified item.
+     */
+    public func isItemHiddenInContactConfig(_ item: TUIContactConfigItem) -> Bool {
         switch item {
         case .alias:
             return hideContactAlias

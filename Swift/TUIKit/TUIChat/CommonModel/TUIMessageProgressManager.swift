@@ -23,7 +23,7 @@ class TUIMessageProgressManager: NSObject, V2TIMSDKListener {
     
     override private init() {
         super.init()
-        V2TIMManager.sharedInstance()?.add(self)
+       V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
     }
     
     func addDelegate(_ delegate: TUIMessageProgressManagerDelegate) {

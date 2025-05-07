@@ -1,9 +1,12 @@
+//
 //  AppDelegate+Redpoint.swift
 //  TUIKitDemo
+//
+//  Created by harvy on 2022/5/5.
+//  Copyright © 2022 Tencent. All rights reserved.
+//
 
 import Foundation
-import ImSDK_Plus
-import ReactiveObjC
 import TIMAppKit
 import TIMCommon
 import TUICore
@@ -66,14 +69,14 @@ extension AppDelegate {
 
         let onTotalUnreadMessageChangedBlock: @convention(block) (AspectInfo, UInt64) -> Void = { _, totalUnreadCount in
             if let app = UIApplication.shared.delegate as? AppDelegate {
-                let unreadCalculationResults = AppDelegate.caculateRealResultAboutSDKTotalCount(totalCount: totalUnreadCount, markUnreadCount: _markUnreadCount, markHideUnreadCount: _markHideUnreadCount)
-                app.onTotalUnreadCountChanged(UInt64(unreadCalculationResults))
+                let unreadCalculationResults = AppDelegate.caculateRealResultAboutSDKTotalCount(totalCount: UInt(totalUnreadCount), markUnreadCount: _markUnreadCount, markHideUnreadCount: _markHideUnreadCount)
+                app.onTotalUnreadCountChanged(UInt(unreadCalculationResults))
                 print("[Redpoint] onTotalUnreadMessageCountChanged, unReadCount:\(app.unReadCount)")
             }
         }
 
         do {
-            try AppDelegate.aspect_hook(#selector(onTotalUnreadMessageCountChanged(_:)),
+            try AppDelegate.aspect_hook(#selector(onTotalUnreadMessageCountChanged(totalUnreadCount:)),
                                         with: [],
                                         usingBlock: onTotalUnreadMessageChangedBlock)
         } catch {
@@ -88,7 +91,7 @@ extension AppDelegate {
         print("[Redpoint] \(#function)")
         // Getting total unread count
         V2TIMManager.sharedInstance().getTotalUnreadMessageCount { [weak self] totalCount in
-            self?.onTotalUnreadCountChanged(totalCount)
+            self?.onTotalUnreadCountChanged(UInt(totalCount))
         } fail: { _, _ in
             // Handle failure
         }
@@ -102,7 +105,7 @@ extension AppDelegate {
         contactDataProvider.loadFriendApplication()
     }
 
-    func onTotalUnreadCountChanged(_ totalUnreadCount: UInt64) {
+    func onTotalUnreadCountChanged(_ totalUnreadCount: UInt) {
         print("[Redpoint] \(#function), \(totalUnreadCount)")
 
         let total = totalUnreadCount
@@ -110,14 +113,14 @@ extension AppDelegate {
         guard let tab = TUITool.applicationKeywindow()?.rootViewController as? TUITabBarController else {
             return
         }
-        let item = tab.tabBarItems.first as? TUITabBarItem
+        let item = tab.tabBarItems.first
         item?.badgeView?.title = total > 0 ? (total > 99 ? "99+" : "\(total)") : ""
         unReadCount = total
     }
 
     @objc func redpoint_clearUnreadMessage() {
         print("[Redpoint] \(#function)")
-        V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount("", cleanTimestamp: 0, cleanSequence: 0) { [weak self] in
+        V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount(conversationID: "", cleanTimestamp: 0, cleanSequence: 0) { [weak self] in
             TUITool.makeToast(NSLocalizedString("MarkAllMessageAsReadSucc", comment: ""))
             self?.onTotalUnreadCountChanged(0)
         } fail: { [weak self] code, desc in
@@ -126,7 +129,7 @@ extension AppDelegate {
         }
 
         if let conversations = markUnreadMap?.keys {
-            V2TIMManager.sharedInstance().markConversation(Array(conversations), markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: false, succ: nil, fail: nil)
+            V2TIMManager.sharedInstance().markConversation(conversationIDList: Array(conversations), markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: false, succ: nil, fail: nil)
         }
     }
 
@@ -141,31 +144,31 @@ extension AppDelegate {
         var contactItem: TUITabBarItem?
         for item in tab.tabBarItems {
             if (item as TUITabBarItem).identity == "contactItem" {
-                contactItem = item as? TUITabBarItem
+                contactItem = item
                 break
             }
         }
-        contactItem?.badgeView?.title = applicationCount == 0 ? "" : "\(applicationCount)"
+        contactItem?.badgeView?.title = (applicationCount == 0 ? "" : "\(applicationCount)")
     }
 
     @objc func updateMarkUnreadCount(_ note: Notification) {
         guard let userInfo = note.userInfo else { return }
-        let markUnreadCount = userInfo[TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadCount] as? Int ?? 0
-        let markHideUnreadCount = userInfo[TUIKitNotification_onConversationMarkUnreadCountChanged_MarkHideUnreadCount] as? Int ?? 0
+        let markUnreadCount = userInfo["TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadCount"] as? Int ?? 0
+        let markHideUnreadCount = userInfo["TUIKitNotification_onConversationMarkUnreadCountChanged_MarkHideUnreadCount"] as? Int ?? 0
         _markUnreadCount = markUnreadCount
         _markHideUnreadCount = markHideUnreadCount
-        if let markUnreadMap = userInfo[TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadMap] as? [String: Any] {
+        if let markUnreadMap = userInfo["TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadMap"] as? [String: Any] {
             self.markUnreadMap = markUnreadMap
         }
         V2TIMManager.sharedInstance().getTotalUnreadMessageCount { [weak self] totalCount in
-            let unreadCalculationResults = AppDelegate.caculateRealResultAboutSDKTotalCount(totalCount: totalCount, markUnreadCount: markUnreadCount, markHideUnreadCount: markHideUnreadCount)
-            self?.onTotalUnreadCountChanged(UInt64(unreadCalculationResults))
+            let unreadCalculationResults = AppDelegate.caculateRealResultAboutSDKTotalCount(totalCount: UInt(totalCount), markUnreadCount: markUnreadCount, markHideUnreadCount: markHideUnreadCount)
+            self?.onTotalUnreadCountChanged(UInt(unreadCalculationResults))
         } fail: { _, _ in
             // Handle failure
         }
     }
 
-    static func caculateRealResultAboutSDKTotalCount(totalCount: UInt64, markUnreadCount: Int, markHideUnreadCount: Int) -> Int {
+    static func caculateRealResultAboutSDKTotalCount(totalCount: UInt, markUnreadCount: Int, markHideUnreadCount: Int) -> Int {
         var unreadCalculationResults = Int(totalCount) + markUnreadCount - markHideUnreadCount
         if unreadCalculationResults < 0 {
             // error protect
@@ -174,7 +177,7 @@ extension AppDelegate {
         return unreadCalculationResults
     }
 
-    func onSetAPPUnreadCount() -> UInt32 {
-        return UInt32(unReadCount) // test
+    func onSetAPPUnreadCount() -> UInt {
+        return unReadCount // test
     }
 }

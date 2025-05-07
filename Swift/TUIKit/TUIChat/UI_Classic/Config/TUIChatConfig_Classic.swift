@@ -2,52 +2,87 @@ import Foundation
 import TIMCommon
 import UIKit
 
-enum TUIAvatarStyleClassic: Int {
+public enum TUIAvatarStyle_Classic: Int {
     case rectangle
     case circle
     case roundedRectangle
 }
 
-struct TUIChatItemWhenLongPressMessageClassic: OptionSet {
-    let rawValue: Int
+public struct TUIChatItemWhenLongPressMessage_Classic: OptionSet {
+    public let rawValue: Int
+    
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
 
-    static let none = TUIChatItemWhenLongPressMessageClassic([])
-    static let reply = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 0)
-    static let emojiReaction = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 1)
-    static let quote = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 2)
-    static let pin = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 3)
-    static let recall = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 4)
-    static let translate = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 5)
-    static let convert = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 6)
-    static let forward = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 7)
-    static let select = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 8)
-    static let copy = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 9)
-    static let delete = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 10)
-    static let info = TUIChatItemWhenLongPressMessageClassic(rawValue: 1 << 11)
+    public static let none = TUIChatItemWhenLongPressMessage_Classic([])
+    public static let reply = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 0)
+    public static let emojiReaction = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 1)
+    public static let quote = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 2)
+    public static let pin = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 3)
+    public static let recall = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 4)
+    public static let translate = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 5)
+    public static let convert = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 6)
+    public static let forward = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 7)
+    public static let select = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 8)
+    public static let copy = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 9)
+    public static let delete = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 10)
+    public static let info = TUIChatItemWhenLongPressMessage_Classic(rawValue: 1 << 11)
 }
 
-protocol TUIChatConfigDelegateClassic: NSObjectProtocol {
+public protocol TUIChatConfigDelegate_Classic: NSObjectProtocol {
+    /**
+     * Tells the delegate a user's avatar in the chat list is clicked.
+     * Returning YES indicates this event has been intercepted, and Chat will not process it further.
+     * Returning NO indicates this event is not intercepted, and Chat will continue to process it.
+     */
     func onUserAvatarClicked(view: UIView, messageCellData: TUIMessageCellData) -> Bool
+    /**
+     * Tells the delegate a user's avatar in the chat list is long pressed.
+     * Returning YES indicates that this event has been intercepted, and Chat will not process it further.
+     * Returning NO indicates that this event is not intercepted, and Chat will continue to process it.
+     */
     func onUserAvatarLongPressed(view: UIView, messageCellData: TUIMessageCellData) -> Bool
+    /**
+     * Tells the delegate a message in the chat list is clicked.
+     * Returning YES indicates that this event has been intercepted, and Chat will not process it further.
+     * Returning NO indicates that this event is not intercepted, and Chat will continue to process it.
+     */
     func onMessageClicked(view: UIView, messageCellData: TUIMessageCellData) -> Bool
+    /**
+     * Tells the delegate a message in the chat list is long pressed.
+     * Returning YES indicates that this event has been intercepted, and Chat will not process it further.
+     * Returning NO indicates that this event is not intercepted, and Chat will continue to process it.
+     */
     func onMessageLongPressed(view: UIView, messageCellData: TUIMessageCellData) -> Bool
 }
 
-class TUIChatConfigClassic: NSObject {
-    static let shared = TUIChatConfigClassic()
+public class TUIChatConfig_Classic: NSObject {
+    public static let shared = TUIChatConfig_Classic()
 
-    weak var delegate: TUIChatConfigDelegateClassic?
+    /**
+     * The object that acts as the delegate of the TUIChatMessageConfig_Minimalist.
+     */
+    public weak var delegate: TUIChatConfigDelegate_Classic?
 
-    var backgroundColor: UIColor? {
+    /**
+     * Customize the backgroud color of message list interface.
+     * This configuration takes effect in all message list interfaces.
+     */
+    public var backgroundColor: UIColor? {
         get {
             return TUIChatConfig.shared.backgroudColor
         }
         set {
-            TUIChatConfig.shared.backgroudColor = newValue ?? .black
+            TUIChatConfig.shared.backgroudColor = newValue ?? UIColor()
         }
     }
 
-    var backgroundImage: UIImage? {
+    /**
+     * Customize the backgroud image of message list interface.
+     * This configuration takes effect in all message list interfaces.
+     */
+    public var backgroundImage: UIImage? {
         get {
             return TUIChatConfig.shared.backgroudImage
         }
@@ -56,16 +91,25 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var avatarStyle: TUIAvatarStyleClassic {
+    /**
+     *  Customize the style of avatar.
+     *  The default value is TUIAvatarStyleCircle.
+     *  This configuration takes effect in all avatars.
+     */
+    public var avatarStyle: TUIAvatarStyle_Classic {
         get {
-            return TUIAvatarStyleClassic(rawValue: TUIConfig.default().avatarType.rawValue)!
+            return TUIAvatarStyle_Classic(rawValue: TUIConfig.default().avatarType.rawValue)!
         }
         set {
             TUIConfig.default().avatarType = TUIKitAvatarType(rawValue: newValue.rawValue)!
         }
     }
 
-    var avatarCornerRadius: CGFloat {
+    /**
+     *  Customize the corner radius of the avatar.
+     *  This configuration takes effect in all avatars.
+     */
+    public var avatarCornerRadius: CGFloat {
         get {
             return TUIConfig.default().avatarCornerRadius
         }
@@ -74,7 +118,12 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var enableGroupGridAvatar: Bool {
+    /**
+     * Display the group avatar in the nine-square grid style.
+     * The default value is YES.
+     * This configuration takes effect in all groups.
+     */
+    public var enableGroupGridAvatar: Bool {
         get {
             return TUIConfig.default().enableGroupGridAvatar
         }
@@ -83,7 +132,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var defaultAvatarImage: UIImage? {
+    /**
+     *  Default avatar image.
+     *  This configuration takes effect in all avatars.
+     */
+    public var defaultAvatarImage: UIImage? {
         get {
             return TUIConfig.default().defaultAvatarImage
         }
@@ -92,7 +145,12 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var enableTypingIndicator: Bool {
+    /**
+     *  Enable the display "Alice is typing..." on one-to-one chat interface.
+     *  The default value is YES.
+     *  This configuration takes effect in all one-to-one chat message list interfaces.
+     */
+    public var enableTypingIndicator: Bool {
         get {
             return TUIChatConfig.shared.enableTypingStatus
         }
@@ -101,7 +159,12 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var isMessageReadReceiptNeeded: Bool {
+    /**
+     *  When sending a message, set this flag to require message read receipt.
+     *  The default value is NO.
+     *  This configuration takes effect in all chat message list interfaces.
+     */
+    public var isMessageReadReceiptNeeded: Bool {
         get {
             return TUIChatConfig.shared.msgNeedReadReceipt
         }
@@ -110,7 +173,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var hideVideoCallButton: Bool {
+    /**
+     *  Hide the "Video Call" button in the message list header.
+     *  The default value is NO.
+     */
+    public var hideVideoCallButton: Bool {
         get {
             return !TUIChatConfig.shared.enableVideoCall
         }
@@ -119,7 +186,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var hideAudioCallButton: Bool {
+    /**
+     *  Hide the "Audio Call" button in the message list header.
+     *  The default value is NO.
+     */
+    public var hideAudioCallButton: Bool {
         get {
             return !TUIChatConfig.shared.enableAudioCall
         }
@@ -128,7 +199,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var enableFloatWindowForCall: Bool {
+    /**
+     * Turn on audio and video call floating windows,
+     * The default value is YES.
+     */
+    public var enableFloatWindowForCall: Bool {
         get {
             return TUIChatConfig.shared.enableFloatWindowForCall
         }
@@ -137,7 +212,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var enableMultiDeviceForCall: Bool {
+    /**
+     * Enable multi-terminal login function for audio and video calls
+     * The default value is NO.
+     */
+    public var enableMultiDeviceForCall: Bool {
         get {
             return TUIChatConfig.shared.enableMultiDeviceForCall
         }
@@ -146,7 +225,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var isExcludedFromUnreadCount: Bool {
+    /**
+     * Set this parameter when the sender sends a message, and the receiver will not update the unread count after receiving the message.
+     * The default value is NO.
+     */
+    public var isExcludedFromUnreadCount: Bool {
         get {
             return TUIConfig.default().isExcludedFromUnreadCount
         }
@@ -155,7 +238,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var isExcludedFromLastMessage: Bool {
+    /**
+     * Set this parameter when the sender sends a message, and the receiver will not update the last message of the conversation after receiving the message.
+     * The default value is NO.
+     */
+    public var isExcludedFromLastMessage: Bool {
         get {
             return TUIConfig.default().isExcludedFromLastMessage
         }
@@ -164,7 +251,12 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var timeIntervalForAllowedMessageRecall: UInt {
+    /**
+     * Time interval within which a message can be recalled after being sent.
+     * The default value is 120 seconds.
+     * If you want to adjust this configuration, please modify the setting on Chat Console synchronously: https://trtc.io/document/34419?platform=web&product=chat&menulabel=uikit#message-recall-settings
+     */
+    public var timeIntervalForAllowedMessageRecall: UInt {
         get {
             return TUIChatConfig.shared.timeIntervalForMessageRecall
         }
@@ -173,7 +265,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var maxAudioRecordDuration: TimeInterval {
+    /**
+     * Maximum audio recording duration, no more than 60s.
+     * The default value is 60 seconds.
+     */
+    public var maxAudioRecordDuration: TimeInterval {
         get {
             return TUIChatConfig.shared.maxAudioRecordDuration
         }
@@ -182,7 +278,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var maxVideoRecordDuration: TimeInterval {
+    /**
+     * Maximum video recording duration, no more than 15s.
+     * The default value is 15 seconds.
+     */
+    public var maxVideoRecordDuration: TimeInterval {
         get {
             return TUIChatConfig.shared.maxVideoRecordDuration
         }
@@ -191,7 +291,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var enableAndroidCustomRing: Bool {
+    /**
+     * Enable custom ringtone.
+     * This config takes effect only for Android devices.
+     */
+    public var enableAndroidCustomRing: Bool {
         get {
             return TUIConfig.default().enableCustomRing
         }
@@ -200,39 +304,56 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    static func hideItemsWhenLongPressMessage(_ items: TUIChatItemWhenLongPressMessageClassic) {
+    /**
+     * Hide the items in the pop-up menu when user presses the message.
+     */
+    public static func hideItemsWhenLongPressMessage(_ items: TUIChatItemWhenLongPressMessage_Classic) {
         let value = items.rawValue
-        TUIChatConfig.shared.enablePopMenuReplyAction = (value & TUIChatItemWhenLongPressMessageClassic.reply.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuEmojiReactAction = (value & TUIChatItemWhenLongPressMessageClassic.emojiReaction.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuReferenceAction = (value & TUIChatItemWhenLongPressMessageClassic.quote.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuPinAction = (value & TUIChatItemWhenLongPressMessageClassic.pin.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuRecallAction = (value & TUIChatItemWhenLongPressMessageClassic.recall.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuTranslateAction = (value & TUIChatItemWhenLongPressMessageClassic.translate.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuConvertAction = (value & TUIChatItemWhenLongPressMessageClassic.convert.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuForwardAction = (value & TUIChatItemWhenLongPressMessageClassic.forward.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuSelectAction = (value & TUIChatItemWhenLongPressMessageClassic.select.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuCopyAction = (value & TUIChatItemWhenLongPressMessageClassic.copy.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuDeleteAction = (value & TUIChatItemWhenLongPressMessageClassic.delete.rawValue) == 0
-        TUIChatConfig.shared.enablePopMenuInfoAction = (value & TUIChatItemWhenLongPressMessageClassic.info.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuReplyAction = (value & TUIChatItemWhenLongPressMessage_Classic.reply.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuEmojiReactAction = (value & TUIChatItemWhenLongPressMessage_Classic.emojiReaction.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuReferenceAction = (value & TUIChatItemWhenLongPressMessage_Classic.quote.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuPinAction = (value & TUIChatItemWhenLongPressMessage_Classic.pin.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuRecallAction = (value & TUIChatItemWhenLongPressMessage_Classic.recall.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuTranslateAction = (value & TUIChatItemWhenLongPressMessage_Classic.translate.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuConvertAction = (value & TUIChatItemWhenLongPressMessage_Classic.convert.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuForwardAction = (value & TUIChatItemWhenLongPressMessage_Classic.forward.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuSelectAction = (value & TUIChatItemWhenLongPressMessage_Classic.select.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuCopyAction = (value & TUIChatItemWhenLongPressMessage_Classic.copy.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuDeleteAction = (value & TUIChatItemWhenLongPressMessage_Classic.delete.rawValue) == 0
+        TUIChatConfig.shared.enablePopMenuInfoAction = (value & TUIChatItemWhenLongPressMessage_Classic.info.rawValue) == 0
     }
 
-    static func setPlayingSoundMessageViaSpeakerByDefault() {
+    /**
+     * Call this method to use speakers instead of handsets by default when playing voice messages.
+     */
+    public static func setPlayingSoundMessageViaSpeakerByDefault() {
         if TUIVoiceMessageCellData.getAudioplaybackStyle() == .handset {
             TUIVoiceMessageCellData.changeAudioPlaybackStyle()
         }
     }
 
-    static func setCustomTopView(_ view: UIView) {
+    /**
+     * Add a custom view at the top of the chat interface.
+     * This view will be displayed at the top of the message list and will not slide up.
+     */
+    public static func setCustomTopView(_ view: UIView) {
         TUIBaseChatViewController.customTopView = view
     }
 
-    func registerCustomMessage(businessID: String, messageCellClassName: String, messageCellDataClassName: String) {
+    /**
+     * Register custom message.
+     * - Parameters:
+     *   - businessID: Customized message‘s businessID, which is unique.
+     *   - messageCellClassName: Customized message's MessagCell class name.
+     *   - messageCellDataClassName: Customized message's MessagCellData class name.
+     */
+    public func registerCustomMessage(businessID: String, messageCellClassName: String, messageCellDataClassName: String) {
         TUIChatConfig.shared.registerCustomMessage(businessID: businessID, messageCellClassName: messageCellClassName, messageCellDataClassName: messageCellDataClassName, styleType: .classic)
     }
 
-    // MARK: - Message style
+    // MARK: - Message Style
 
-    enum UIMessageCellLayoutType: Int {
+    public enum UIMessageCellLayoutType: Int {
         case text
         case image
         case video
@@ -241,7 +362,10 @@ class TUIChatConfigClassic: NSObject {
         case system
     }
 
-    var sendTextMessageColor: UIColor? {
+    /**
+     * The color of send text message.
+     */
+    public var sendTextMessageColor: UIColor? {
         get {
             return TUITextMessageCell.outgoingTextColor
         }
@@ -250,7 +374,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var sendTextMessageFont: UIFont? {
+    /**
+     * The font of send text message.
+     */
+    public var sendTextMessageFont: UIFont? {
         get {
             return TUITextMessageCell.outgoingTextFont
         }
@@ -258,8 +385,23 @@ class TUIChatConfigClassic: NSObject {
             TUITextMessageCell.outgoingTextFont = newValue
         }
     }
+    
+    /**
+     * The color of receive text message.
+     */
+    public var receiveTextMessageColor: UIColor? {
+        get {
+            return TUITextMessageCell.incommingTextColor
+        }
+        set {
+            TUITextMessageCell.incommingTextColor = newValue
+        }
+    }
 
-    var receiveTextMessageFont: UIFont? {
+    /**
+     * The font of receive text message.
+     */
+    public var receiveTextMessageFont: UIFont? {
         get {
             return TUITextMessageCell.incommingTextFont
         }
@@ -268,7 +410,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var systemMessageTextColor: UIColor {
+    /**
+     * The text color of system message.
+     */
+    public var systemMessageTextColor: UIColor? {
         get {
             return TUISystemMessageCellData.textColor
         }
@@ -277,7 +422,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var systemMessageTextFont: UIFont {
+    /**
+     * The font of system message.
+     */
+    public var systemMessageTextFont: UIFont? {
         get {
             return TUISystemMessageCellData.textFont
         }
@@ -286,7 +434,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var systemMessageBackgroundColor: UIColor {
+    /**
+     * The background color of system message.
+     */
+    public var systemMessageBackgroundColor: UIColor? {
         get {
             return TUISystemMessageCellData.textBackgroundColor
         }
@@ -295,7 +446,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var receiveNicknameFont: UIFont {
+    /**
+     * The font of user's nickname of received messages.
+     */
+    public var receiveNicknameFont: UIFont? {
         get {
             return TUIMessageCell.incommingNameFont
         }
@@ -304,7 +458,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var receiveNicknameColor: UIColor {
+    /**
+     * The color of user's nickname of received messages.
+     */
+    public var receiveNicknameColor: UIColor? {
         get {
             return TUIMessageCell.incommingNameColor
         }
@@ -313,81 +470,121 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    // MARK: MessageLayout
+    // MARK: - Message Layout
 
-    func sendTextMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Text message cell layout of my sent message.
+     */
+    public func sendTextMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .text, isSender: true)
     }
 
-    func receiveTextMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Text message cell layout of my received message.
+     */
+    public func receiveTextMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .text, isSender: false)
     }
 
-    func sendImageMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Image message cell layout of my sent message.
+     */
+    public func sendImageMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .image, isSender: true)
     }
 
-    func receiveImageMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Image message cell layout of my received message.
+     */
+    public func receiveImageMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .image, isSender: false)
     }
 
-    func sendVoiceMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Voice message cell layout of my sent message.
+     */
+    public func sendVoiceMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .voice, isSender: true)
     }
 
-    func receiveVoiceMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Voice message cell layout of my received message.
+     */
+    public func receiveVoiceMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .voice, isSender: false)
     }
 
-    func sendVideoMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Video message cell layout of my sent message.
+     */
+    public func sendVideoMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .video, isSender: true)
     }
 
-    func receiveVideoMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Video message cell layout of my received message.
+     */
+    public func receiveVideoMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .video, isSender: false)
     }
 
-    func sendMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Other message cell layout of my sent message.
+     */
+    public func sendMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .other, isSender: true)
     }
 
-    func receiveMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * Other message cell layout of my received message.
+     */
+    public func receiveMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .other, isSender: false)
     }
 
-    func systemMessageLayout() -> TUIMessageCellLayout {
+    /**
+     * System message cell layout.
+     */
+    public func systemMessageLayout() -> TUIMessageCellLayout {
         return getMessageLayout(ofType: .system, isSender: false)
     }
 
     private func getMessageLayout(ofType type: UIMessageCellLayoutType, isSender: Bool) -> TUIMessageCellLayout {
         switch type {
         case .text:
-            return isSender ? TUIMessageCellLayout.outgoingTextMessage() : TUIMessageCellLayout.incommingTextMessage()
+            return isSender ? TUIMessageCellLayout.outgoingTextMessageLayout : TUIMessageCellLayout.incomingTextMessageLayout
         case .image:
-            return isSender ? TUIMessageCellLayout.outgoingImageMessage() : TUIMessageCellLayout.incommingImageMessage()
+            return isSender ? TUIMessageCellLayout.outgoingImageMessageLayout : TUIMessageCellLayout.incomingImageMessageLayout
         case .video:
-            return isSender ? TUIMessageCellLayout.outgoingVideoMessage() : TUIMessageCellLayout.incommingVideoMessage()
+            return isSender ? TUIMessageCellLayout.outgoingVideoMessageLayout : TUIMessageCellLayout.incomingVideoMessageLayout
         case .voice:
-            return isSender ? TUIMessageCellLayout.outgoingVoiceMessage() : TUIMessageCellLayout.incommingVoiceMessage()
+            return isSender ? TUIMessageCellLayout.outgoingVoiceMessageLayout : TUIMessageCellLayout.incomingVoiceMessageLayout
         case .other:
-            return isSender ? TUIMessageCellLayout.outgoingMessage() : TUIMessageCellLayout.incommingMessage()
+            return isSender ? TUIMessageCellLayout.outgoingMessageLayout : TUIMessageCellLayout.incomingMessageLayout
         case .system:
-            return TUIMessageCellLayout.systemMessage()
+            return TUIMessageCellLayout.systemMessageLayout
         }
     }
 
-    // MARK: - MessageBubble
+    // MARK: - Message Bubble
 
-    var enableMessageBubbleStyle: Bool {
+    /**
+     * Enable the message display in the bubble style.
+     * The default value is YES.
+     */
+    public var enableMessageBubbleStyle: Bool {
         get {
-            return TIMConfig.default().enableMessageBubble
+            return TIMConfig.shared.enableMessageBubble
         }
         set {
-            TIMConfig.default().enableMessageBubble = newValue
+            TIMConfig.shared.enableMessageBubble = newValue
         }
     }
 
-    var sendBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the background image of the sent message bubble in consecutive message.
+     */
+    public var sendBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.outgoingBubble
         }
@@ -398,7 +595,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var sendHighlightBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the background image of the sent message bubble in highlight status.
+     */
+    public var sendHighlightBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.outgoingHighlightedBubble
         }
@@ -409,7 +609,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var sendAnimateLightBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the light background image when the sent message bubble needs to flicker.
+     */
+    public var sendAnimateLightBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.outgoingAnimatedHighlightedAlpha20
         }
@@ -420,7 +623,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var sendAnimateDarkBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the dark background image when the sent message bubble needs to flicker.
+     */
+    public var sendAnimateDarkBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.outgoingAnimatedHighlightedAlpha50
         }
@@ -431,18 +637,22 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var sendErrorBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the background image of the sent error message bubble.
+     */
+    public var sendErrorBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.outgoingErrorBubble
         }
         set {
-            if let image = newValue {
-                TUIBubbleMessageCell.outgoingErrorBubble = image
-            }
+            TUIBubbleMessageCell.outgoingErrorBubble = newValue
         }
     }
 
-    var receiveBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the background image of the received message bubble in consecutive message.
+     */
+    public var receiveBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.incommingBubble
         }
@@ -453,7 +663,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var receiveHighlightBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the background image of the received message bubble in highlight status.
+     */
+    public var receiveHighlightBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.incommingHighlightedBubble
         }
@@ -464,7 +677,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var receiveAnimateLightBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the light background image when the received message bubble needs to flicker.
+     */
+    public var receiveAnimateLightBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.incommingAnimatedHighlightedAlpha20
         }
@@ -475,7 +691,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var receiveAnimateDarkBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the dark background image when the received message bubble needs to flicker.
+     */
+    public var receiveAnimateDarkBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.incommingAnimatedHighlightedAlpha50
         }
@@ -486,7 +705,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var receiveErrorBubbleBackgroundImage: UIImage? {
+    /**
+     * Set the background image of the received error message bubble.
+     */
+    public var receiveErrorBubbleBackgroundImage: UIImage? {
         get {
             return TUIBubbleMessageCell.incommingErrorBubble
         }
@@ -499,7 +721,10 @@ class TUIChatConfigClassic: NSObject {
 
     // MARK: - InputBar
 
-    var inputBarDataSource: TUIChatInputBarConfigDataSource? {
+    /**
+     *  DataSource for inputBar.
+     */
+    public var inputBarDataSource: TUIChatInputBarConfigDataSource? {
         get {
             return TUIChatConfig.shared.inputBarDataSource
         }
@@ -508,7 +733,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var shortcutViewDataSource: TUIChatShortcutViewDataSource? {
+    /**
+     *  DataSource for shortcutView above inputBar.
+     */
+    public var shortcutViewDataSource: TUIChatShortcutViewDataSource? {
         get {
             return TUIChatConfig.shared.shortcutViewDataSource
         }
@@ -517,7 +745,11 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    var showInputBar: Bool {
+    /**
+     *  Show the input bar in the message list interface.
+     *  The default value is YES.
+     */
+    public var showInputBar: Bool {
         get {
             return !TUIChatConfig.shared.enableMainPageInputBar
         }
@@ -526,7 +758,10 @@ class TUIChatConfigClassic: NSObject {
         }
     }
 
-    static func hideItemsInMoreMenu(_ items: TUIChatInputBarMoreMenuItem) {
+    /**
+     *  Hide items in more menu.
+     */
+    public static func hideItemsInMoreMenu(_ items: TUIChatInputBarMoreMenuItem) {
         let value = items.rawValue
         TUIChatConfig.shared.enableWelcomeCustomMessage = (value & TUIChatInputBarMoreMenuItem.customMessage.rawValue) == 0
         TUIChatConfig.shared.showRecordVideoButton = (value & TUIChatInputBarMoreMenuItem.recordVideo.rawValue) == 0
@@ -535,9 +770,12 @@ class TUIChatConfigClassic: NSObject {
         TUIChatConfig.shared.showFileButton = (value & TUIChatInputBarMoreMenuItem.file.rawValue) == 0
     }
 
-    func addStickerGroup(_ group: TUIFaceGroup) {
-        if let service = TIMCommonMediator.share().getObject(TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol {
-            service.append(group)
+    /**
+     * Add sticker group.
+     */
+    public func addStickerGroup(_ group: TUIFaceGroup) {
+        if let service = TIMCommonMediator.shared.getObject(for: TUIEmojiMeditorProtocol.self) {
+            service.appendFaceGroup(group)
         } else {
             print("Failed to get TUIEmojiMeditorProtocol service")
         }

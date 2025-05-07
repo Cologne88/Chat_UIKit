@@ -18,14 +18,14 @@ class TUIFoldConversationListBaseDataProvider: TUIConversationListBaseDataProvid
             return
         }
         let filter = V2TIMConversationListFilter()
-        filter.type = V2TIMConversationType.GROUP
-        filter.markType = UInt(V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue)
+        filter.type = .GROUP
+        filter.markType = V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue
 
-        V2TIMManager.sharedInstance().getConversationList(by: filter, nextSeq: pageIndex, count: pageSize) { [weak self] list, nextSeq, isFinished in
-            guard let self = self else { return }
+        V2TIMManager.sharedInstance().getConversationListByFilter(filter: filter, nextSeq: pageIndex, count: pageSize) { [weak self] list, nextSeq, isFinished in
+            guard let self = self, let list = list else { return }
             self.pageIndex = nextSeq
             self.isLastPage = isFinished
-            self.preprocess(list ?? [])
+            self.preprocess(list)
         } fail: { [weak self] _, _ in
             guard let self = self else { return }
             self.isLastPage = true
@@ -131,18 +131,16 @@ class TUIFoldConversationListBaseDataProvider: TUIConversationListBaseDataProvid
         guard let index = conversationList.firstIndex(of: conversation) else { return }
 
         conversationList.remove(at: index)
-        if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.deleteConversation(at:))) {
-            delegate.deleteConversation!(at: [IndexPath(row: index, section: 0)])
-        }
+        delegate?.deleteConversation(at: [IndexPath(row: index, section: 0)])
 
         let deleteAction: () -> Void = {
-            V2TIMManager.sharedInstance().deleteConversation(conversation.conversationID, succ: { [weak self] in
+            V2TIMManager.sharedInstance().deleteConversation(conversation: conversation.conversationID, succ: { [weak self] in
                 guard let self = self else { return }
                 self.updateMarkUnreadCount()
             }, fail: nil)
         }
 
-        V2TIMManager.sharedInstance().markConversation([conversation.conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue), enableMark: false, succ: { _ in
+        V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversation.conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue), enableMark: false, succ: { _ in
             deleteAction()
         }, fail: { _, _ in
             deleteAction()

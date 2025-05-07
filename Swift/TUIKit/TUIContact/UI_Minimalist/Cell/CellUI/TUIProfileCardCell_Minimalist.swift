@@ -88,7 +88,7 @@ class TUIProfileCardCell_Minimalist: TUICommonTableViewCell {
 
         identifierObservation = data.observe(\.identifier, options: [.new, .initial]) { [weak self] (data, change) in
             guard let self = self, let value = change.newValue else { return }
-            self.identifier.text = "ID: \(value)"
+            self.identifier.text = "ID: \(value ?? "")"
         }
 
         nameObservation = data.observe(\.name, options: [.new, .initial]) { [weak self] (data, change) in
@@ -98,8 +98,8 @@ class TUIProfileCardCell_Minimalist: TUICommonTableViewCell {
         }
 
         avatarUrlObservation = data.observe(\.avatarUrl, options: [.new, .initial]) { [weak self] (data, change) in
-            guard let self = self else { return }
-            self.avatar.sd_setImage(with: change.newValue, placeholderImage: self.cardData?.avatarImage)
+            guard let self = self, let value = change.newValue else { return }
+            self.avatar.sd_setImage(with: value, placeholderImage: self.cardData?.avatarImage)
         }
 
         genderStringObservation = data.observe(\.genderString, options: [.new, .initial]) { [weak self] (data, change) in
@@ -195,7 +195,7 @@ class TUIProfileCardCell_Minimalist: TUICommonTableViewCell {
 
     @objc private func onTapAvatar() {
         if let profileCardCell = self as? TUIProfileCardCell {
-            delegate?.didTap(onAvatar: profileCardCell)
+            delegate?.didTapOnAvatar(profileCardCell)
         }
 
     }

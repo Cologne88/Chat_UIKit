@@ -42,11 +42,11 @@ class TUIGroupNoticeDataProvider: NSObject {
         info.groupID = groupID
         info.notification = notice
 
-        V2TIMManager.sharedInstance().setGroupInfo(info) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupInfo(info: info) { [weak self] in
             callback?(0, nil)
             self?.sendNoticeMessage(notice)
         } fail: { code, desc in
-            callback?(Int(code), desc)
+            callback?(Int(code), desc ?? "")
         }
     }
 

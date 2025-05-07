@@ -31,11 +31,11 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
     
     var hideCallback: TUIChatPopMenuHideCallback?
     var reactClickCallback: ((String) -> Void)?
-    weak var targetCellData: TUIMessageCellData?
+    public weak var targetCellData: TUIMessageCellData?
     weak var targetCell: TUIMessageCell?
     
-    private(set) var emojiContainerView: UIView? = .init()
-    private(set) var containerView: UIView? = .init()
+    public var emojiContainerView: UIView? = .init()
+    public var containerView: UIView? = .init()
     private var actions = [TUIChatPopMenuAction]()
     private var arrawPoint = CGPoint.zero
     private var adjustHeight: CGFloat = 0
@@ -77,8 +77,8 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
         NotificationCenter.default.addObserver(self, selector: #selector(hideWithAnimation), name:
             Notification.Name("kTUIChatPopMenuWillHideNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(hideWithAnimation), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name(TUIDidApplyingThemeChangedNotfication), object: nil)
-        V2TIMManager.sharedInstance()?.addAdvancedMsgListener(listener: self)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
+        V2TIMManager.sharedInstance().addAdvancedMsgListener(listener: self)
     }
     
     // MARK: - UIGestureRecognizerDelegate
@@ -108,7 +108,7 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
     
     // MARK: - V2TIMAdvancedMsgListener
 
-    public func onRecvMessageRevoked(_ msgID: String, operateUser: V2TIMUserFullInfo, reason: String) {
+    public func onRecvMessageRevoked(msgID: String, operateUser: V2TIMUserFullInfo, reason: String?) {
         if msgID == targetCellData?.msgID {
             hideWithAnimation()
         }
@@ -146,7 +146,7 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
         layoutSubview()
     }
     
-    @objc func hideWithAnimation() {
+    @objc public func hideWithAnimation() {
         UIView.animate(withDuration: 0.3, animations: {
             self.alpha = 0
         }) { finished in
@@ -272,7 +272,7 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
         // Corrected vertical coordinates
         if containerY < minTopBottomMargin {
             // The container is too high, and it is planned to adjust the direction of the arrow to upward.
-            if upContainerY + containerH + minTopBottomMargin > superview!.bounds.size.height {
+            if let superview = superview, upContainerY + containerH + minTopBottomMargin > superview.bounds.size.height {
                 /**
                  * After adjusting the upward arrow direction, it will cause the entire container to exceed the screen. At this time, the adjustment strategy is
                  * changed to: keep the arrow direction downward and move self.arrawPoint
@@ -312,7 +312,9 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
             }
         }
 
-        emojiContainerView?.frame = CGRect(x: containerX, y: containerY, width: containerW, height: max(emojiHeight + containerH, 200))
+        if let emojiContainerView = emojiContainerView {
+            emojiContainerView.frame = CGRect(x: containerX, y: containerY, width: containerW, height: max(emojiHeight + containerH, 200))
+        }
         containerView.frame = CGRect(x: containerX, y: containerY + emojiHeight, width: containerW, height: containerH)
 
         /**
@@ -348,20 +350,20 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
         addSubview(containerView!)
 
         actionsView = TUIChatPopActionsView()
-        actionsView?.backgroundColor = TUISwift.tuiChatDynamicColor("chat_pop_menu_bg_color", defaultColor: "#FFFFFF")
-        containerView?.addSubview(actionsView!)
+        actionsView!.backgroundColor = TUISwift.tuiChatDynamicColor("chat_pop_menu_bg_color", defaultColor: "#FFFFFF")
+        containerView!.addSubview(actionsView!)
 
         var i = 0
         for j in 0 ..< actions.count {
             let action = actions[j]
             let actionButton = buttonWithAction(action, tag: j)
-            actionsView?.addSubview(actionButton)
+            actionsView!.addSubview(actionButton)
             i += 1
             if i == maxColumns && i < actions.count {
                 let separatorView = UIView()
                 separatorView.backgroundColor = TUISwift.timCommonDynamicColor("separator_color", defaultColor: "#39393B")
                 separatorView.isHidden = true
-                actionsView?.addSubview(separatorView)
+                actionsView!.addSubview(separatorView)
                 i = 0
             }
         }
@@ -377,7 +379,7 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
         let height = kActionHeight * CGFloat(rows) + CGFloat(rows - 1) * 0.5 + kContainerInsets.top + kContainerInsets.bottom
 
         emojiContainerView?.frame = CGRect(x: 0, y: 0, width: width, height: emojiHeight + height)
-        containerView?.frame = CGRect(x: 0, y: emojiHeight, width: width, height: height)
+        containerView!.frame = CGRect(x: 0, y: emojiHeight, width: width, height: height)
     }
     
     private func setupEmojiSubView() {
@@ -387,8 +389,8 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
     
     private func setupEmojiRecentView() {
         guard let emojiContainerView = emojiContainerView else { return }
-        let param: [String: Any] = [TUICore_TUIChatExtension_ChatPopMenuReactRecentView_Delegate: self]
-        let success = TUICore.raiseExtension(TUICore_TUIChatExtension_ChatPopMenuReactRecentView_ClassicExtensionID, parentView: emojiContainerView, param: param)
+        let param: [String: Any] = ["TUICore_TUIChatExtension_ChatPopMenuReactRecentView_Delegate": self]
+        let success = TUICore.raiseExtension("TUICore_TUIChatExtension_ChatPopMenuReactRecentView_ClassicExtensionID", parentView: emojiContainerView, param: param)
         if !success {
             emojiHeight = 0
         }
@@ -396,8 +398,8 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
     
     private func setupEmojiAdvanceView() {
         guard let emojiContainerView = emojiContainerView else { return }
-        let param: [String: Any] = [TUICore_TUIChatExtension_ChatPopMenuReactRecentView_Delegate: self]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_ChatPopMenuReactDetailView_ClassicExtensionID, parentView: emojiContainerView, param: param)
+        let param: [String: Any] = ["TUICore_TUIChatExtension_ChatPopMenuReactRecentView_Delegate": self]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_ChatPopMenuReactDetailView_ClassicExtensionID", parentView: emojiContainerView, param: param)
     }
 
     private func updateLayout() {

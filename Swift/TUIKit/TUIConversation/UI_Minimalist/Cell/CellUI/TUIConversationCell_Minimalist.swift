@@ -1,6 +1,6 @@
-import ReactiveObjC
 import SDWebImage
 import TIMCommon
+import TUICore
 import UIKit
 
 class TUIConversationCell_Minimalist: TUIConversationCell {
@@ -8,7 +8,7 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
         titleLabel.font = UIFont.boldSystemFont(ofSize: TUISwift.kScale390(14))
-        titleLabel.textColor = TUISwift.tuiDynamicColor("", module: TUIThemeModule.core_Minimalist, defaultColor: "#000000")
+        titleLabel.textColor = TUISwift.tuiDynamicColor("", themeModule: TUIThemeModule.core_Minimalist, defaultColor: "#000000")
         subTitleLabel.font = UIFont.systemFont(ofSize: TUISwift.kScale390(12))
         lastMessageStatusImageView.isHidden = false
     }
@@ -19,9 +19,9 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
     }
     
     override func fill(with convData: TUIConversationCellData) {
-        self.convData = convData;
+        self.convData = convData
         
-        titleLabel.textColor = TUISwift.tuiDynamicColor("", module: TUIThemeModule.core_Minimalist, defaultColor: "#000000")
+        titleLabel.textColor = TUISwift.tuiDynamicColor("", themeModule: TUIThemeModule.core_Minimalist, defaultColor: "#000000")
         if let cellTitleLabelFont = TUIConversationConfig.sharedConfig.cellTitleLabelFont {
             titleLabel.font = cellTitleLabelFont
         }
@@ -39,13 +39,12 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
         configRedPoint(convData)
         configHeadImageView(convData)
         
-        self.titleLabel.text = convData.title.value
+        titleLabel.text = convData.title
         
-        if let imageName = convData.showCheckBox && convData.selected ? TUISwift.timCommonImagePath("icon_select_selected") : TUISwift.timCommonImagePath("icon_select_normal") {
-            selectedIcon.image = UIImage(named: imageName)
-        }
+        let imageName = convData.showCheckBox && convData.selected ? TUISwift.timCommonImagePath("icon_select_selected") : TUISwift.timCommonImagePath("icon_select_normal")
+        selectedIcon.image = UIImage.safeImage(imageName)
         
-        let image = TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.conversation_Minimalist, defaultImg: UIImage(named: TUISwift.tuiConversationImagePath_Minimalist("message_not_disturb")))
+        let image = TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.conversation_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist("message_not_disturb")))
         notDisturbView.image = image
         
         configOnlineStatusIcon(convData)
@@ -75,12 +74,12 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
             convData.avatarImage = avatar ?? TUISwift.defaultGroupAvatarImage(byGroupType: convData.groupType)
         }
         
-        let faceUrl = convData.faceUrl.value
+        let faceUrl = convData.faceUrl
         if let _ = self.convData?.groupID {
             // Group avatar
-            if !faceUrl.isEmpty {
+            if let faceUrl = faceUrl {
                 // The group avatar has been manually set externally
-                self.headImageView.sd_setImage(with: URL(string: faceUrl), placeholderImage: convData.avatarImage)
+                headImageView.sd_setImage(with: URL(string: faceUrl), placeholderImage: convData.avatarImage)
             } else {
                 /**
                  * The group avatar has not been set externally. If the synthetic avatar is allowed, the synthetic avatar will be used; otherwise, the default
@@ -105,12 +104,12 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
                     // fix: The getCacheGroupAvatar needs to request the
                     // network. When the network is disconnected, since the headImageView is not set, the current conversation sends a message, the conversation
                     // is moved up, and the avatar of the first conversation is reused, resulting in confusion of the avatar.
-                    self.headImageView.sd_setImage(with: nil, placeholderImage: convData.avatarImage)
+                    headImageView.sd_setImage(with: nil, placeholderImage: convData.avatarImage)
                     guard let getGroupID = convData.groupID else { return }
                     TUIGroupAvatar.getCacheGroupAvatar(getGroupID) { [weak self] avatar, groupID in
                         guard let self = self, groupID == self.convData?.groupID else { return }
                         
-                        if !avatar.size.equalTo(CGSizeZero) {
+                        if let avatar = avatar {
                             // 2. Hit the cache and assign directly
                             self.headImageView.sd_setImage(with: nil, placeholderImage: avatar)
                         } else {
@@ -134,12 +133,12 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
                     /**
                      * Synthetic avatars are not allowed, use the default avatar directly
                      */
-                    self.headImageView.sd_setImage(with: nil, placeholderImage: convData.avatarImage)
+                    headImageView.sd_setImage(with: nil, placeholderImage: convData.avatarImage)
                 }
             }
         } else {
             // Personal avatar
-            self.headImageView.sd_setImage(with: URL(string: faceUrl), placeholderImage: convData.avatarImage)
+            headImageView.sd_setImage(with: URL(string: faceUrl ?? ""), placeholderImage: convData.avatarImage)
         }
     }
     
@@ -148,7 +147,7 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
             notDisturbRedDot.isHidden = convData.unreadCount == 0
             notDisturbView.isHidden = false
             unReadView.isHidden = true
-            notDisturbView.image = TUISwift.tuiConversationBundleThemeImage("conversation_message_not_disturb_img", defaultImageName: "message_not_disturb")
+            notDisturbView.image = TUISwift.tuiConversationBundleThemeImage("conversation_message_not_disturb_img", defaultImage: "message_not_disturb")
         } else {
             notDisturbRedDot.isHidden = true
             notDisturbView.isHidden = true
@@ -171,11 +170,11 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
     }
     
     override func configOnlineStatusIcon(_ convData: TUIConversationCellData) {
-        TUISwift.racObserveTUIConfig_displayOnlineStatusIcon(self) { [weak self] _ in
+        displayOnlineStatusIconObservation = TUIConfig.default().observe(\.displayOnlineStatusIcon, options: [.new, .initial]) { [weak self] _, _ in
             guard let self = self else { return }
             if convData.onlineStatus == .online && TUIConfig.default().displayOnlineStatusIcon {
                 self.onlineStatusIcon.isHidden = false
-                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_online_status", defaultImage: UIImage(named: TUISwift.timCommonImagePath("icon_online_status"))!)
+                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_online_status", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("icon_online_status")))
             } else if convData.onlineStatus == .offline && TUIConfig.default().displayOnlineStatusIcon {
                 self.onlineStatusIcon.isHidden = true
                 self.onlineStatusIcon.image = nil
@@ -194,11 +193,11 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
     override func getDisplayLastMessageStatusImage(_ convData: TUIConversationCellData) -> UIImage? {
         var image: UIImage? = nil
         if let lastMessage = convData.lastMessage {
-            if lastMessage.status == V2TIMMessageStatus.MSG_STATUS_SENDING || lastMessage.status == V2TIMMessageStatus.MSG_STATUS_SEND_FAIL {
-                if lastMessage.status == V2TIMMessageStatus.MSG_STATUS_SENDING {
-                    image = UIImage(named: TUISwift.tuiConversationImagePath_Minimalist("icon_sendingmark"))
+            if lastMessage.status == .MSG_STATUS_SENDING || lastMessage.status == .MSG_STATUS_SEND_FAIL {
+                if lastMessage.status == .MSG_STATUS_SENDING {
+                    image = UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist("icon_sendingmark"))
                 } else {
-                    image = UIImage(named: TUISwift.tuiConversationImagePath_Minimalist("msg_error_for_conv"))
+                    image = UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist("msg_error_for_conv"))
                 }
             }
         }
@@ -305,11 +304,11 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
         notDisturbRedDot.snp.remakeConstraints { make in
             make.trailing.equalTo(headImageView).offset(3)
             make.top.equalTo(headImageView).offset(1)
-            make.width.height.equalTo(TConversationCell_Margin_Disturb_Dot)
+            make.width.height.equalTo(CGFloat(TConversationCell_Margin_Disturb_Dot))
         }
         
         notDisturbView.snp.remakeConstraints { make in
-            make.width.height.equalTo(TConversationCell_Margin_Disturb)
+            make.width.height.equalTo(CGFloat(TConversationCell_Margin_Disturb))
             make.trailing.equalTo(timeLabel)
             make.top.equalTo(titleLabel)
         }

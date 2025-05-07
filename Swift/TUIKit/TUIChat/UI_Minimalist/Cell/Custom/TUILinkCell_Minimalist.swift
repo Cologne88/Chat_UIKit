@@ -11,9 +11,9 @@ class TUILinkCell_Minimalist: TUIBubbleMessageCell_Minimalist {
         setupViews()
     }
 
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupViews()
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     private func setupViews() {
@@ -30,7 +30,7 @@ class TUILinkCell_Minimalist: TUIBubbleMessageCell_Minimalist {
         container.addSubview(myLinkLabel)
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         if let data = data as? TUILinkCellData {
             customData = data

@@ -30,13 +30,14 @@ class TUITextReplyQuoteView: TUIReplyQuoteView {
     override func fill(with data: TUIReplyQuoteViewData) {
         super.fill(with: data)
         guard let myData = data as? TUITextReplyQuoteViewData else { return }
-        
-        let showRevokeStr = myData.originCellData?.innerMessage.status == .MSG_STATUS_LOCAL_REVOKED && !data.showRevokedOriginMessage
+
+        let showRevokeStr = myData.originCellData?.innerMessage?.status == .MSG_STATUS_LOCAL_REVOKED && !data.showRevokedOriginMessage
+        var locations: [[NSValue: NSAttributedString]]? = nil
         if showRevokeStr {
             let revokeStr = data.supportForReply ? TUISwift.timCommonLocalizableString("TUIKitRepliesOriginMessageRevoke") : TUISwift.timCommonLocalizableString("TUIKitReferenceOriginMessageRevoke")
-            textLabel.attributedText = revokeStr!.getFormatEmojiString(with: textLabel.font, emojiLocations: nil)
+            textLabel.attributedText = revokeStr.getFormatEmojiString(withFont: textLabel.font, emojiLocations: &locations)
         } else {
-            textLabel.attributedText = myData.text.getFormatEmojiString(with: textLabel.font, emojiLocations: nil)
+            textLabel.attributedText = myData.text.getFormatEmojiString(withFont: textLabel.font, emojiLocations: &locations)
         }
 
         setNeedsUpdateConstraints()

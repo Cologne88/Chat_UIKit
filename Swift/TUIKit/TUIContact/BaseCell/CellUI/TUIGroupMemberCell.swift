@@ -24,9 +24,9 @@ class TUIGroupMemberCell: UICollectionViewCell {
         didSet {
             guard let data = data else { return }
             
-            if !data.avatarUrl.isEmpty {
+            if let avatarUrl = data.avatarUrl, !avatarUrl.isEmpty {
                 let image: UIImage? = data.avatarImage
-                head.sd_setImage(with: URL(string: data.avatarUrl), placeholderImage: image ?? TUISwift.defaultAvatarImage())
+                head.sd_setImage(with: URL(string: avatarUrl), placeholderImage: image ?? TUISwift.defaultAvatarImage())
             } else {
                 if let avatarImage = data.avatarImage as UIImage? {
                     head.image = data.avatarImage
@@ -87,7 +87,7 @@ class TUIGroupMemberCell: UICollectionViewCell {
     class func getSize() -> CGSize {
         var headSize = TUISwift.tGroupMemberCell_Head_Size()
         
-        let headMargin = CGFloat(TGroupMembersCell_Margin * (TGroupMembersCell_Column_Count + 1))
+        let headMargin = CGFloat(TGroupMembersCell_Margin) * CGFloat(TGroupMembersCell_Column_Count + 1)
         let headWidth = CGFloat(headSize.width) * CGFloat(TGroupMembersCell_Column_Count) + headMargin
         
         if headWidth > TUISwift.screen_Width() {

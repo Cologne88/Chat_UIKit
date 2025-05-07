@@ -154,7 +154,7 @@ extension V2TIMMessage {
     }
     
     func modifyIfNeeded(callback: @escaping V2TIMMessageModifyCompletion) {
-        V2TIMManager.sharedInstance()?.modifyMessage(self, completion: callback)
+       V2TIMManager.sharedInstance().modifyMessage(msg: self, completion: callback)
     }
 }
 

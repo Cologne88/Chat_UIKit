@@ -1,12 +1,13 @@
 // TUIFindContactViewController_Minimalist.swift
 // TUIContact
 
-import UIKit
 import TIMCommon
 import TUICore
+import UIKit
 
 class TUIFindContactViewController_Minimalist: UIViewController, UISearchBarDelegate, UITableViewDelegate, UITableViewDataSource, TUIFloatSubViewControllerProtocol {
-
+    var floatDataSourceChanged: (([Any]) -> Void)?
+    
     var type: TUIFindContactType_Minimalist = .C2C_Minimalist
     var onSelect: ((TUIFindContactCellModel_Minimalist) -> Void)?
 
@@ -45,16 +46,14 @@ class TUIFindContactViewController_Minimalist: UIViewController, UISearchBarDele
 
     private lazy var noDataEmptyView: TUIContactEmptyView_Minimalist = {
         let view = TUIContactEmptyView_Minimalist(
-            image: UIImage(named: TUISwift.tuiContactImagePath_Minimalist("contact_not_found_icon")),
-            text: (type == .C2C_Minimalist ? TUISwift.timCommonLocalizableString("TUIKitAddUserNoDataTips") : TUISwift.timCommonLocalizableString("TUIKitAddGroupNoDataTips"))
+            image: UIImage.safeImage(TUISwift.tuiContactImagePath_Minimalist("contact_not_found_icon")),
+            text: type == .C2C_Minimalist ? TUISwift.timCommonLocalizableString("TUIKitAddUserNoDataTips") : TUISwift.timCommonLocalizableString("TUIKitAddGroupNoDataTips")
         )
         view.isHidden = true
         return view
     }()
 
-    private lazy var provider: TUIFindContactViewDataProvider_Minimalist = {
-        return TUIFindContactViewDataProvider_Minimalist()
-    }()
+    private lazy var provider: TUIFindContactViewDataProvider_Minimalist = .init()
 
     deinit {
         UIBarButtonItem.appearance(whenContainedInInstancesOf: [UISearchBar.self]).title = TUISwift.timCommonLocalizableString("Cancel")
@@ -96,6 +95,7 @@ class TUIFindContactViewController_Minimalist: UIViewController, UISearchBarDele
     }
 
     // MARK: - UITableViewDelegate/UITableViewDataSource
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let count = (type == .C2C_Minimalist ? provider.users.count : provider.groups.count)
         noDataEmptyView.isHidden = !tipsLabel.isHidden || count > 0 || searchBar.text?.isEmpty == true
@@ -126,6 +126,7 @@ class TUIFindContactViewController_Minimalist: UIViewController, UISearchBarDele
     }
 
     // MARK: - UISearchBarDelegate
+
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
         doSearch(withKeyword: searchBar.text)
     }

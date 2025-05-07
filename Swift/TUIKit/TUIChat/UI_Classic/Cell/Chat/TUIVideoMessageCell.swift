@@ -103,14 +103,14 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
         TUIMessageProgressManager.shared.addDelegate(self)
     }
     
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let videoData = data as? TUIVideoMessageCellData else { return }
         
         self.videoData = videoData
         thumb.image = nil
         
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             thumb.image = TUISwift.timCommonBundleThemeImage("", defaultImage: "icon_security_strike")
             securityStrikeView.textLabel.text = TUISwift.timCommonLocalizableString("TUIKitMessageTypeSecurityStrikeImage")
@@ -128,7 +128,7 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
         
         if videoData.isPlaceHolderCellData {
             thumb.backgroundColor = .gray
-            animateCircleView.progress = data.videoTranscodingProgress * 100
+            animateCircleView.progress = videoData.videoTranscodingProgress * 100
             duration.text = ""
             play.isHidden = true
             downloadImage.isHidden = true
@@ -160,7 +160,7 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
         downloadImage.isHidden = true
         indicator.isHidden = true
 
-        if videoData.direction == .MsgDirectionIncoming {
+        if videoData.direction == .incoming {
             thumbProgressObservation = self.videoData?.observe(\.thumbProgress, options: [.new, .initial]) { [weak self] _, change in
                 guard let self = self, let progress = change.newValue else { return }
                 self.progress.text = "\(progress)%"
@@ -250,6 +250,7 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
     
     override func updateConstraints() {
         super.updateConstraints()
+        guard let messageData = messageData else { return }
             
         if messageData.messageContainerAppendSize.height > 0 {
             let topMargin: CGFloat = 10
@@ -270,10 +271,10 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
             }
         } else {
             thumb.snp.remakeConstraints { make in
-                make.top.equalTo(bubbleView).offset(messageData.cellLayout.bubbleInsets.top)
-                make.bottom.equalTo(bubbleView).offset(-messageData.cellLayout.bubbleInsets.bottom)
-                make.leading.equalTo(bubbleView).offset(messageData.cellLayout.bubbleInsets.left)
-                make.trailing.equalTo(bubbleView).offset(-messageData.cellLayout.bubbleInsets.right)
+                make.top.equalTo(bubbleView).offset(messageData.cellLayout?.bubbleInsets.top ?? 0)
+                make.bottom.equalTo(bubbleView).offset(-(messageData.cellLayout?.bubbleInsets.bottom ?? 0))
+                make.leading.equalTo(bubbleView).offset(messageData.cellLayout?.bubbleInsets.left ?? 0)
+                make.trailing.equalTo(bubbleView).offset(-(messageData.cellLayout?.bubbleInsets.right ?? 0))
             }
             duration.snp.remakeConstraints { make in
                 make.trailing.equalTo(thumb.snp.trailing).offset(-2)
@@ -283,7 +284,7 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
             }
         }
             
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             thumb.snp.remakeConstraints { make in
                 make.top.equalTo(bubbleView).offset(12)
@@ -317,7 +318,7 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
         }
     }
         
-    override func highlight(whenMatchKeyword keyword: String?) {
+    override open func highlightWhenMatchKeyword(_ keyword: String?) {
         if keyword != nil {
             if highlightAnimating {
                 return
@@ -362,7 +363,7 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
         if msgID != videoData?.msgID {
             return
         }
-        if videoData?.direction == .MsgDirectionOutgoing {
+        if videoData?.direction == .outgoing {
             videoData?.uploadProgress = UInt(progress)
         }
     }
@@ -380,9 +381,9 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
         
         var size = CGSize.zero
         var isDir = ObjCBool(false)
-        if !videoCellData.snapshotPath.isEmpty && FileManager.default.fileExists(atPath: videoCellData.snapshotPath, isDirectory: &isDir) {
+        if let snapshotPath = videoCellData.snapshotPath, !snapshotPath.isEmpty && FileManager.default.fileExists(atPath: snapshotPath, isDirectory: &isDir) {
             if !isDir.boolValue {
-                if let image = UIImage(contentsOfFile: videoCellData.snapshotPath) {
+                if let image = UIImage(contentsOfFile: snapshotPath) {
                     size = image.size
                 }
             }
@@ -401,7 +402,7 @@ class TUIVideoMessageCell: TUIBubbleMessageCell, TUIMessageProgressManagerDelega
             size.height = size.height / size.width * TUISwift.tVideoMessageCell_Image_Width_Max()
             size.width = TUISwift.tVideoMessageCell_Image_Width_Max()
         }
-        let hasRiskContent = videoCellData.innerMessage.hasRiskContent
+        let hasRiskContent = videoCellData.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             let bubbleTopMargin: CGFloat = 12
             let bubbleBottomMargin: CGFloat = 12

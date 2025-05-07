@@ -85,7 +85,7 @@ public class TUIStyleSelectViewController: UIViewController, UITableViewDelegate
     private let titleView = TUINaviBarIndicatorView()
     private var datas = [TUIStyleSelectCellModel]()
     private var selectModel: TUIStyleSelectCellModel?
-    
+
     lazy var tableView: UITableView = {
         let tableView = UITableView(frame: self.view.bounds, style: .grouped)
         tableView.delegate = self
@@ -141,7 +141,7 @@ public class TUIStyleSelectViewController: UIViewController, UITableViewDelegate
         navigationItem.titleView = titleView
         navigationItem.title = ""
 
-        let image = UIImage(named: "ic_back_white")?.withRenderingMode(.alwaysOriginal).rtl_imageFlippedForRightToLeftLayoutDirection()
+        let image = UIImage.safeImage("ic_back_white").withRenderingMode(.alwaysOriginal).rtlImageFlippedForRightToLeftLayoutDirection()
         let backButton = UIButton(type: .custom)
         backButton.setImage(image, for: .normal)
         backButton.addTarget(self, action: #selector(back), for: .touchUpInside)

@@ -154,7 +154,9 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
 
     var enableMuliple: Bool = false
     var showContactSelectVC: UIViewController?
-    let dataListObserver = Observer()
+    var dataListObservation: NSKeyValueObservation?
+    
+    var floatDataSourceChanged: (([Any]) -> Void)?
 
     let Id: String = "con"
 
@@ -189,7 +191,8 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
     }
 
     deinit {
-        dataProvider.dataList.removeObserver(dataListObserver)
+        dataListObservation?.invalidate()
+        dataListObservation = nil
         print("\(String(describing: self)) dealloc")
     }
 
@@ -199,7 +202,7 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
         nav.modalPresentationStyle = .fullScreen
         var pVc = presentVC
         if pVc == nil {
-            pVc = UIApplication.shared.keyWindow?.rootViewController
+            pVc = TUITool.applicationKeywindow()?.rootViewController
         }
         if let pVc = pVc {
             pVc.present(nav, animated: true, completion: nil)
@@ -242,10 +245,10 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
         }
         view.addSubview(pickerView)
 
-        dataProvider.dataList.addObserver(dataListObserver, closure: { [weak self] _, _ in
+        dataListObservation = dataProvider.observe(\.dataList, options: [.new, .initial]) { [weak self] _, _ in
             guard let self = self else { return }
             self.tableView.reloadData()
-        })
+        }
     }
 
     func updateLayout() {
@@ -271,12 +274,11 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
         var arrayM: [TUICommonContactSelectCellData] = []
         for convCellData in currentSelectedList {
             let data = TUICommonContactSelectCellData()
-            let faceUrl = convCellData.faceUrl.value
-            if !faceUrl.isEmpty {
+            if let faceUrl = convCellData.faceUrl {
                 data.avatarUrl = URL(string: faceUrl)!
             }
             data.avatarImage = convCellData.avatarImage ?? UIImage()
-            data.title = convCellData.title.value
+            data.title = convCellData.title ?? ""
             data.identifier = convCellData.conversationID ?? ""
             arrayM.append(data)
         }
@@ -287,7 +289,7 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
         if enableMuliple {
             enableMuliple = false
 
-            for cellData in dataProvider.dataList.value {
+            for cellData in dataProvider.dataList {
                 cellData.selected = false
             }
 
@@ -320,9 +322,9 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
             weakSelf?.dealSelectBlock(array)
         }
 
-        let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: [
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey: ids,
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey: selectContactCompletion
+        let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: [
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey": ids,
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey": selectContactCompletion
         ])
 
         if let viewController = vc as? UIViewController {
@@ -348,7 +350,7 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
                 conv.userID = contact.identifier
                 conv.groupID = ""
                 conv.avatarImage = contact.avatarImage
-                conv.faceUrl.value = contact.avatarUrl?.absoluteString ?? ""
+                conv.faceUrl = contact.avatarUrl?.absoluteString
                 conv.selected = !conv.selected
 
                 currentSelectedList.append(conv)
@@ -365,7 +367,7 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
                 conv.userID = contact.identifier
                 conv.groupID = ""
                 conv.avatarImage = contact.avatarImage
-                conv.faceUrl.value = contact.avatarUrl?.absoluteString ?? ""
+                conv.faceUrl = contact.avatarUrl?.absoluteString
                 currentSelectedList = [conv]
                 tryFinishSelected { [weak self] finished in
                     guard let self = self else { return }
@@ -400,7 +402,7 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
     }
 
     func findItemInDataListArray(_ identifier: String) -> TUIConversationCellData? {
-        for cellData in dataProvider.dataList.value {
+        for cellData in dataProvider.dataList {
             if let userID = cellData.userID, userID == identifier {
                 return cellData
             }
@@ -433,14 +435,14 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
         var temMArr: [[String: Any]] = []
         for cellData in currentSelectedList {
             temMArr.append([
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID: cellData.conversationID ?? "",
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title: cellData.title.value,
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID: cellData.userID ?? "",
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID: cellData.groupID ?? ""
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID": cellData.conversationID ?? "",
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title": cellData.title ?? "",
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID": cellData.userID ?? "",
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID": cellData.groupID ?? ""
             ])
         }
         if navigateValueCallback != nil {
-            navigateValueCallback!([TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList: temMArr])
+            navigateValueCallback!(["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList": temMArr])
         }
     }
 
@@ -454,31 +456,31 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
             }
             let cellData = TUIConversationCellData()
             cellData.groupID = groupID
-            cellData.title.value = groupName
+            cellData.title = groupName
             weakSelf?.currentSelectedList = [cellData]
             weakSelf?.notifyFinishSelecting()
             completion(true)
         }
         let param: [String: Any] = [
-            TUICore_TUIContactService_CreateGroupMethod_GroupTypeKey: GroupType_Meeting,
-            TUICore_TUIContactService_CreateGroupMethod_OptionKey: V2TIMGroupAddOpt.GROUP_ADD_ANY,
-            TUICore_TUIContactService_CreateGroupMethod_ContactsKey: contacts,
-            TUICore_TUIContactService_CreateGroupMethod_CompletionKey: createGroupCompletion
+            "TUICore_TUIContactService_CreateGroupMethod_GroupTypeKey": "Meeting",
+            "TUICore_TUIContactService_CreateGroupMethod_OptionKey": V2TIMGroupAddOpt.GROUP_ADD_ANY.rawValue,
+            "TUICore_TUIContactService_CreateGroupMethod_ContactsKey": contacts,
+            "TUICore_TUIContactService_CreateGroupMethod_CompletionKey": createGroupCompletion
         ]
-        TUICore.callService(TUICore_TUIContactService_Minimalist, method: TUICore_TUIContactService_CreateGroupMethod, param: param)
+        TUICore.callService("TUICore_TUIContactService_Minimalist", method: "TUICore_TUIContactService_CreateGroupMethod", param: param)
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return dataProvider.dataList.value.count
+        return dataProvider.dataList.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if let cell = tableView.dequeueReusableCell(withIdentifier: Id, for: indexPath) as? TUIConversationForwardSelectCell_Minimalist {
-            if indexPath.row < 0 || indexPath.row >= dataProvider.dataList.value.count {
+            if indexPath.row < 0 || indexPath.row >= dataProvider.dataList.count {
                 return cell
             }
 
-            let cellData = dataProvider.dataList.value[indexPath.row]
+            let cellData = dataProvider.dataList[indexPath.row]
             cellData.showCheckBox = enableMuliple
             cell.fillWithData(cellData)
             return cell
@@ -488,7 +490,7 @@ class TUIConversationSelectController_Minimalist: UIViewController, UITableViewD
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: false)
-        let cellData = dataProvider.dataList.value[indexPath.row]
+        let cellData = dataProvider.dataList[indexPath.row]
         cellData.selected = !cellData.selected
         if !enableMuliple {
             currentSelectedList = [cellData]

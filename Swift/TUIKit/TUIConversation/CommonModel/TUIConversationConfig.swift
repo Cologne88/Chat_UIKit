@@ -1,7 +1,7 @@
 import Foundation
 import TUICore
 
-enum TUIConversationItemInMoreMenu: UInt {
+public enum TUIConversationItemInMoreMenu: UInt {
     case None = 0
     case Delete = 1
     case MarkRead = 2
@@ -10,28 +10,72 @@ enum TUIConversationItemInMoreMenu: UInt {
     case Clear = 16
 }
 
-protocol TUIConversationConfigDataSource: NSObjectProtocol {
+public protocol TUIConversationConfigDataSource: AnyObject {
+    /**
+     * Implement this method to hide items in more menu.
+     */
     func conversationShouldHideItemsInMoreMenu(_ data: TUIConversationCellData) -> TUIConversationItemInMoreMenu
+    /**
+     * Implement this method to add new items.
+     */
     func conversationShouldAddNewItemsToMoreMenu(_ data: TUIConversationCellData) -> [Any]
 }
 
-class TUIConversationConfig: NSObject {
+public extension TUIConversationConfigDataSource {
+    func conversationShouldHideItemsInMoreMenu(_ data: TUIConversationCellData) -> TUIConversationItemInMoreMenu { return .None }
+    func conversationShouldAddNewItemsToMoreMenu(_ data: TUIConversationCellData) -> [Any] { return [] }
+}
+
+public class TUIConversationConfig: NSObject {
     
-    static let sharedConfig: TUIConversationConfig = {
+    public static let sharedConfig: TUIConversationConfig = {
         let config = TUIConversationConfig()
         return config
     }()
     
-    weak var moreMenuDataSource: TUIConversationConfigDataSource?
-    var listBackgroundColor: UIColor?
-    var cellBackgroundColor: UIColor?
-    var pinnedCellBackgroundColor: UIColor?
-    var cellTitleLabelFont: UIFont?
-    var cellSubtitleLabelFont: UIFont?
-    var cellTimeLabelFont: UIFont?
-    var showCellUnreadCount: Bool = true
-    
-    var avatarCornerRadius: CGFloat {
+    /**
+     *  DataSource of more menu.
+     */
+    public weak var moreMenuDataSource: TUIConversationConfigDataSource?
+    /**
+     *  Background color of conversation list.
+     */
+    public var listBackgroundColor: UIColor?
+    /**
+     *  Background color of cell in conversation list.
+     *  This configuration takes effect in all cells.
+     */
+    public var cellBackgroundColor: UIColor?
+    /**
+     *  Background color of pinned cell in conversation list.
+     *  This configuration takes effect in all pinned cells.
+     */
+    public var pinnedCellBackgroundColor: UIColor?
+    /**
+     *  Font of title label of cell in conversation list.
+     *  This configuration takes effect in all cells.
+     */
+    public var cellTitleLabelFont: UIFont?
+    /**
+     *  Font of subtitle label of cell in conversation list.
+     *  This configuration takes effect in all cells.
+     */
+    public var cellSubtitleLabelFont: UIFont?
+    /**
+     *  Font of time label of cell in conversation list.
+     *  This configuration takes effect in all cells.
+     */
+    public var cellTimeLabelFont: UIFont?
+    /**
+     *  Display unread count icon in each conversation cell.
+     *  The default value is YES.
+     */
+    public var showCellUnreadCount: Bool = true
+    /**
+     *  Corner radius of the avatar.
+     *  This configuration takes effect in all avatars.
+     */
+    public var avatarCornerRadius: CGFloat {
         get {
             return TUIConfig.default().avatarCornerRadius
         }
@@ -39,8 +83,11 @@ class TUIConversationConfig: NSObject {
             TUIConfig.default().avatarCornerRadius = newValue
         }
     }
-    
-    var showUserOnlineStatusIcon: Bool {
+    /**
+     *  Display user's online status icon in conversation and contact list.
+     *  The default value is NO.
+     */
+    public var showUserOnlineStatusIcon: Bool {
         get {
             return TUIConfig.default().displayOnlineStatusIcon
         }

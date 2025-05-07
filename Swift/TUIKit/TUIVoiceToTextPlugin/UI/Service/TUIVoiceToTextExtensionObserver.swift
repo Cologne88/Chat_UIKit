@@ -16,25 +16,25 @@ public class TUIVoiceToTextExtensionObserver: NSObject, TUIExtensionProtocol {
     
     override init() {
         super.init()
-        TUICore.registerExtension(TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID, object: self)
-        TUICore.registerExtension(TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID, object: self)
+        TUICore.registerExtension("TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID", object: self)
+        TUICore.registerExtension("TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID", object: self)
     }
     
     @objc public static func swiftLoad() {
         TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiVoiceToTextThemePath(), themeModule: TUIThemeModule.voiceToText)
         
         // UI extensions in pop menu when message is long pressed.
-        TUICore.registerExtension(TUICore_TUIChatExtension_PopMenuActionItem_ClassicExtensionID, object: TUIVoiceToTextExtensionObserver.shared)
+        TUICore.registerExtension("TUICore_TUIChatExtension_PopMenuActionItem_ClassicExtensionID", object: TUIVoiceToTextExtensionObserver.shared)
         
-        TUICore.registerExtension(TUICore_TUIChatExtension_PopMenuActionItem_MinimalistExtensionID, object: TUIVoiceToTextExtensionObserver.shared)
+        TUICore.registerExtension("TUICore_TUIChatExtension_PopMenuActionItem_MinimalistExtensionID", object: TUIVoiceToTextExtensionObserver.shared)
     }
     
     // MARK: - TUIExtensionProtocol
 
     public func onRaiseExtension(_ extensionID: String, parentView: UIView, param: [AnyHashable: Any]?) -> Bool {
-        guard let data = param?[TUICore_TUIChatExtension_BottomContainer_CellData] as? TUIMessageCellData,
-              data.innerMessage.elemType == .ELEM_TYPE_SOUND,
-              data.innerMessage.status == .MSG_STATUS_SEND_SUCC
+        guard let data = param?["TUICore_TUIChatExtension_BottomContainer_CellData"] as? TUIMessageCellData,
+              data.innerMessage?.elemType == .ELEM_TYPE_SOUND,
+              data.innerMessage?.status == .MSG_STATUS_SEND_SUCC
         else {
             return false
         }
@@ -56,11 +56,12 @@ public class TUIVoiceToTextExtensionObserver: NSObject, TUIExtensionProtocol {
     public func onGetExtension(_ extensionID: String, param: [AnyHashable: Any]?) -> [TUIExtensionInfo]? {
         guard let param = param,
               TUIChatConfig.shared.enablePopMenuConvertAction,
-              let cell = param[TUICore_TUIChatExtension_PopMenuActionItem_ClickCell] as? TUIMessageCell,
-              cell.messageData.innerMessage.elemType == .ELEM_TYPE_SOUND,
-              cell.messageData.innerMessage.status == .MSG_STATUS_SEND_SUCC,
-              !TUIVoiceToTextDataProvider.shouldShowConvertedText(cell.messageData.innerMessage),
-              !cell.messageData.innerMessage.hasRiskContent
+              let cell = param["TUICore_TUIChatExtension_PopMenuActionItem_ClickCell"] as? TUIMessageCell,
+              cell.messageData?.innerMessage?.elemType == .ELEM_TYPE_SOUND,
+              cell.messageData?.innerMessage?.status == .MSG_STATUS_SEND_SUCC,
+              let msg = cell.messageData?.innerMessage,
+              !TUIVoiceToTextDataProvider.shouldShowConvertedText(msg),
+              !msg.hasRiskContent
         else {
             return nil
         }
@@ -73,14 +74,14 @@ public class TUIVoiceToTextExtensionObserver: NSObject, TUIExtensionProtocol {
         info.onClicked = { _ in
             guard let cellData = cell.messageData else { return }
             let message = cellData.innerMessage
-            guard message.elemType == .ELEM_TYPE_SOUND else { return }
+            guard message?.elemType == .ELEM_TYPE_SOUND else { return }
             
             TUIVoiceToTextDataProvider.convertMessage(cellData) { code, _, _, status, text in
                 if code != 0 || (text.count == 0 && status == TUIVoiceToTextViewStatus.hidden.rawValue) {
                     TUITool.makeToast(TUISwift.timCommonLocalizableString("TUIKitConvertToTextFailed"))
                 }
-                let param = [TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data: cellData]
-                TUICore.notifyEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_DidChangePluginViewSubKey, object: nil, param: param)
+                let param = ["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data": cellData]
+                TUICore.notifyEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_DidChangePluginViewSubKey", object: nil, param: param)
             }
         }
         

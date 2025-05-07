@@ -1,13 +1,12 @@
-import UIKit
-import TUICore
 import TIMCommon
+import TUICore
+import UIKit
 
 class TUIFoldListViewController: UIViewController, TUINavigationControllerDelegate, TUIConversationListControllerListener {
-    
     var dismissCallback: ((NSMutableAttributedString, [TUIConversationCellData], [String]) -> Void)?
     var titleView: TUINaviBarIndicatorView?
     var mainTitle: String?
-    
+
     lazy var conv: TUIConversationListController = {
         var conv = TUIConversationListController()
         conv.isShowConversationGroup = false
@@ -47,6 +46,7 @@ class TUIFoldListViewController: UIViewController, TUINavigationControllerDelega
     }
 
     // MARK: - TUINavigationControllerDelegate
+
     func navigationControllerDidClickLeftButton(_ controller: TUINavigationController) {
         excuteDismissCallback()
     }
@@ -76,11 +76,12 @@ class TUIFoldListViewController: UIViewController, TUINavigationControllerDelega
     }
 
     // MARK: TUIConversationListControllerListener
+
     func getConversationDisplayString(_ conversation: V2TIMConversation) -> String? {
         guard let msg = conversation.lastMessage, let customElem = msg.customElem, let data = customElem.data else { return nil }
         guard let param = TUITool.jsonData2Dictionary(data) as? [String: Any] else { return nil }
         guard let businessID = param["businessID"] as? String else { return nil }
-        if businessID == BussinessID_TextLink || (param["text"] as? String)?.count ?? 0 > 0 && (param["link"] as? String)?.count ?? 0 > 0 {
+        if businessID == "text_link" || (param["text"] as? String)?.count ?? 0 > 0 && (param["link"] as? String)?.count ?? 0 > 0 {
             guard let desc = param["text"] as? String else { return nil }
             if msg.status == V2TIMMessageStatus.MSG_STATUS_LOCAL_REVOKED {
                 if msg.hasRiskContent {
@@ -100,19 +101,20 @@ class TUIFoldListViewController: UIViewController, TUINavigationControllerDelega
         }
         return nil
     }
-    
-    private func conversationListController(_ conversationController: TUIConversationListController, didSelectConversation conversation: TUIConversationCellData) {
+
+    func conversationListController(_ conversationController: UIViewController, didSelectConversation conversation: TUIConversationCellData) -> Bool {
         let param: [String: Any] = [
-            TUICore_TUIChatObjectFactory_ChatViewController_ConversationID: conversation.conversationID ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_UserID: conversation.userID ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_GroupID: conversation.groupID ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_Title: conversation.title.value,
-            TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: conversation.faceUrl.value,
-            TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: conversation.avatarImage ?? UIImage(),
-            TUICore_TUIChatObjectFactory_ChatViewController_Draft: conversation.draftText ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr: conversation.atTipsStr ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs: conversation.atMsgSeqs ?? []
+            "TUICore_TUIChatObjectFactory_ChatViewController_ConversationID": conversation.conversationID ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_UserID": conversation.userID ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": conversation.groupID ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_Title": conversation.title ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": conversation.faceUrl ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": conversation.avatarImage ?? UIImage(),
+            "TUICore_TUIChatObjectFactory_ChatViewController_Draft": conversation.draftText ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr": conversation.atTipsStr ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs": conversation.atMsgSeqs ?? []
         ]
-        navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Classic, param: param, forResult: nil)
+        navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Classic", param: param, forResult: nil)
+        return true
     }
 }

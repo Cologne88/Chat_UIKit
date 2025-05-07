@@ -205,7 +205,7 @@ static inline NSString *getTUIFrameWorkName(NSString *bundleKeyClass) {
         return @"TUISearch";
     }
     if ([bundleKeyClass isEqualToString:TUIPollBundle_Key_Class]) {
-        return @"TUIPullPlugin";
+        return @"TUIPollPlugin";
     }
     if ([bundleKeyClass isEqualToString:TUIGroupNoteBundle_Key_Class]) {
         return @"TUIGroupNotePlugin";
@@ -496,13 +496,13 @@ static inline NSBundle *getTUIGetLocalizable(NSString *bundleName) {
 #define TGroupMemberCell_Name_Height 20
 
 // conversation cell
-#define TConversationCell_Height 72.0
-#define TConversationCell_Margin 12.0
-#define TConversationCell_Margin_Text 14.0
-#define TConversationCell_Margin_Disturb 16.0
-#define TConversationCell_Margin_Disturb_Dot 10.0
+#define TConversationCell_Height 72
+#define TConversationCell_Margin 12
+#define TConversationCell_Margin_Text 14
+#define TConversationCell_Margin_Disturb 16
+#define TConversationCell_Margin_Disturb_Dot 10
 
-#define TConversationCell_Height_LiteMode 62.0
+#define TConversationCell_Height_LiteMode 62
 
 // AudioCall cell
 #define TUIAudioCallUserCell_ReuseId @"TUIAudioCallUserCell"
@@ -1030,7 +1030,7 @@ static inline NSBundle *getTUIGetLocalizable(NSString *bundleName) {
     @"TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_CompletionKey"
 
 #define TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod @"TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod"
-#define TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey @"TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey"
+#define TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey @"TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey"
 #define TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey @"TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey"
 #define TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey @"TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey"
 

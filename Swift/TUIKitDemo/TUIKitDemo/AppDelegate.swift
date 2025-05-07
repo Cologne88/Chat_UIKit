@@ -1,4 +1,3 @@
-import ImSDK_Plus
 import TIMAppKit
 import TIMCommon
 import TIMPush
@@ -13,7 +12,7 @@ import TXLiteAVSDK_TRTC
 #endif
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener, TUILoginListener, TUIThemeSelectControllerDelegate, TUILanguageSelectControllerDelegate, V2TIMAPNSListener, TIMPushDelegate, V2TIMSDKListener {
+class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener, TUILoginListener, TUIThemeSelectControllerDelegate, TUILanguageSelectControllerDelegate, V2TIMAPNSListener, V2TIMSDKListener, TIMPushDelegate {
     var window: UIWindow?
     let contactDataProvider: TUIContactViewDataProvider = .init()
     private var _loginConfig: TUILoginConfig?
@@ -22,9 +21,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
     var userID: String?
     var userSig: String?
     var clickNotificationInfo: [String: String] = [:]
-    var lastLoginResultCode: Int = 0
-    var allowRotation: Bool = false
-    var unReadCount: UInt64 = 0
+    var lastLoginResultCode = 0
+    var allowRotation = false
+    var unReadCount: UInt = 0
 
     var pendencyCntObservation: NSKeyValueObservation?
 
@@ -42,9 +41,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
             print("Stack Trace: \(exception.callStackSymbols)")
         }
 
-        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIDemoTheme", key: TUIDemoBundle_Key_Class), themeModule: TUIThemeModule.demo)
+        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIDemoTheme", key: "TIMAppKit.TUIKit"), themeModule: TUIThemeModule.demo)
         TUIThemeSelectController.applyLastTheme()
-        TUIGlobalization.setPreferredLanguage("en")
         setupListener()
         setupGlobalUI()
         setupConfig()
@@ -113,7 +111,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
 
         let config = TUILoginConfig()
         config.initLocalStorageOnly = true
-        TUILogin.login(Int32(public_SDKAPPID), userID: userID!, userSig: userSig!, config: config, succ: {
+        TUILogin.login(Int32(SDKAPPID), userID: userID!, userSig: userSig!, config: config, succ: {
             self.window?.rootViewController = self.preloadMainVC
             self.redpoint_setupTotalUnreadCount()
         }, fail: { code, msg in
@@ -124,7 +122,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
     @objc func loginSDK(_ userID: String, userSig: String, succ: TSucc?, fail: TFail?) {
         self.userID = userID
         self.userSig = userSig
-        TUILogin.login(Int32(public_SDKAPPID), userID: userID, userSig: userSig, config: loginConfig, succ: {
+        TUILogin.login(Int32(SDKAPPID), userID: userID, userSig: userSig, config: loginConfig, succ: {
             if self.preloadMainVC != nil, self.window?.rootViewController == self.preloadMainVC {
                 // main vc has load
             } else {
@@ -145,23 +143,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
 
     func setupListener() {
         TUILogin.add(self)
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
         V2TIMManager.sharedInstance().addConversationListener(listener: self)
-        V2TIMManager.sharedInstance().setAPNSListener(self)
+        V2TIMManager.sharedInstance().setAPNSListener(apnsListener: self)
 
-        NotificationCenter.default.addObserver(self, selector: #selector(updateMarkUnreadCount(_:)), name: NSNotification.Name(TUIKitNotification_onConversationMarkUnreadCountChanged), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onLoginSucc), name: NSNotification.Name(NSNotification.Name.TUILoginSuccess.rawValue), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onLogoutSucc), name: NSNotification.Name(NSNotification.Name.TUILogoutSuccess.rawValue), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateMarkUnreadCount(_:)), name: NSNotification.Name("TUIKitNotification_onConversationMarkUnreadCountChanged"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onLoginSucc), name: NSNotification.Name("TUILoginSuccessNotification"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onLogoutSucc), name: NSNotification.Name("TUILogoutSuccessNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onDisplayCallsRecordForMinimalist(_:)), name: NSNotification.Name(kEnableCallsRecord_mini), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onDisplayCallsRecordForClassic(_:)), name: NSNotification.Name(kEnableCallsRecord), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(startFullScreen), name: NSNotification.Name(kEnableAllRotationOrientationNotification), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(endFullScreen), name: NSNotification.Name(kDisableAllRotationOrientationNotification), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(startFullScreen), name: NSNotification.Name("kEnableAllRotationOrientationNotification"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(endFullScreen), name: NSNotification.Name("kDisableAllRotationOrientationNotification"), object: nil)
     }
 
     func tryAutoLogin() {
         let userID = TCLoginModel.sharedInstance.userID ?? nil
         let userSig = TCLoginModel.sharedInstance.userSig ?? nil
-        if userID != nil && userSig != nil {
+        if userID != nil, userSig != nil {
             loginSDK(userID!, userSig: userSig!, succ: nil, fail: nil)
         }
     }
@@ -182,19 +180,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         let buttonTitle = NSLocalizedString("ChatSecurityWarningReport", comment: "")
         let gotButtonTitle = NSLocalizedString("ChatSecurityWarningGot", comment: "")
 
-        var tipsView: TUIWarningView?
+        var tipsView = TUIWarningView(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: 0),
+                                      tips: tips,
+                                      buttonTitle: buttonTitle,
+                                      buttonAction: nil,
+                                      gotButtonTitle: gotButtonTitle,
+                                      gotButtonAction: nil)
 
-        let gotButtonAction: () -> Void = { [weak tipsView] in
-            tipsView?.frame = .zero
-            tipsView?.removeFromSuperview()
-            NotificationCenter.default.post(name: NSNotification.Name(TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification), object: nil)
-        }
-
-        tipsView = TUIWarningView(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: 0), tips: tips, buttonTitle: buttonTitle, buttonAction: {
+        tipsView.buttonAction = {
             if let url = URL(string: "https://cloud.tencent.com/act/event/report-platform") {
                 TUITool.openLink(with: url)
             }
-        }, gotButtonTitle: gotButtonTitle, gotButtonAction: gotButtonAction)
+        }
+        tipsView.gotButtonAction = { [weak tipsView] in
+            guard let tipsView = tipsView else { return }
+            tipsView.frame = .zero
+            tipsView.removeFromSuperview()
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification), object: nil)
+        }
 
         TUIBaseChatViewController.customTopView = tipsView
     }
@@ -216,7 +219,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
 
     // MARK: - V2TIMConversationListener
 
-    func onTotalUnreadMessageCountChanged(_ totalUnreadCount: UInt64) {
+    @objc func onTotalUnreadMessageCountChanged(totalUnreadCount: UInt64) {
         print("\(#function), totalUnreadCount:\(totalUnreadCount)")
     }
 
@@ -224,13 +227,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
 
     func onConnecting() {}
 
-    func onConnectFailed(_ code: Int32, err: String?) {}
+    func onConnectFailed(code: Int, err: String) {}
 
     func onConnectSuccess() {
         let lastLoginIsNetworkError = (lastLoginResultCode >= 9501 && lastLoginResultCode <= 9525)
-        if V2TIMManager.sharedInstance().getLoginStatus() == V2TIMLoginStatus.STATUS_LOGOUT && userID?.isEmpty == false && userSig?.isEmpty == false && lastLoginIsNetworkError {
+        if V2TIMManager.sharedInstance().getLoginStatus() == V2TIMLoginStatus.STATUS_LOGOUT, userID?.isEmpty == false, userSig?.isEmpty == false, lastLoginIsNetworkError {
             lastLoginResultCode = 0
-            TUILogin.login(Int32(public_SDKAPPID), userID: userID!, userSig: userSig!, config: loginConfig, succ: {
+            TUILogin.login(Int32(SDKAPPID), userID: userID!, userSig: userSig!, config: loginConfig, succ: {
                 self.redpoint_setupTotalUnreadCount()
                 TUITool.makeToast(NSLocalizedString("AppLoginSucc", comment: ""), duration: 1)
             }, fail: { code, _ in
@@ -246,23 +249,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
 
     // MARK: - TUILoginListener
 
+    func onConnectFailed(_ code: Int32, err: String?) {}
+
     func onUserSigExpired() {
-        onUserStatus(.TUser_Status_SigExpired)
+        onUserStatus(.sigExpired)
     }
 
     func onKickedOffline() {
-        onUserStatus(.TUser_Status_ForceOffline)
+        onUserStatus(.forceOffline)
     }
 
     func onLog(_ logLevel: Int, logContent: String) {}
 
     func onUserStatus(_ status: TUIUserStatus) {
         switch status {
-        case TUIUserStatus.TUser_Status_ForceOffline:
+        case TUIUserStatus.forceOffline:
             showKickOffAlert()
-        case TUIUserStatus.TUser_Status_ReConnFailed:
+        case TUIUserStatus.reConnFailed:
             print("\(#function), status:\(status)")
-        case TUIUserStatus.TUser_Status_SigExpired:
+        case TUIUserStatus.sigExpired:
             userSigExpiredAction()
             print("\(#function), status:\(status)")
         default:
@@ -436,8 +441,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
     }
 
     func getMainController_Classic() -> UITabBarController {
-        var backimg = TUISwift.tuiDynamicImage("nav_back_img", themeModule: TUIThemeModule.timCommon, defaultImg: UIImage(named: TUISwift.timCommonImagePath("nav_back")))
-        backimg = backimg?.rtl_imageFlippedForRightToLeftLayoutDirection()
+        var backimg = TUISwift.tuiDynamicImage("nav_back_img", themeModule: TUIThemeModule.timCommon, defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("nav_back")))
+        backimg = backimg.rtlImageFlippedForRightToLeftLayoutDirection()
 
         let tbc = TUITabBarController()
         var items: [TUITabBarItem] = []
@@ -445,12 +450,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         let msgItem = TUITabBarItem()
         msgItem.title = NSLocalizedString("TabBarItemMessageText", comment: "")
         msgItem.identity = "msgItem"
-        msgItem.selectedImage = getDynamicImagePath(isMinimalist: false, imageKey: "tab_msg_selected_img", defaultImage: "session_selected")
-        msgItem.normalImage = getDynamicImagePath(isMinimalist: false, imageKey: "tab_msg_normal_img", defaultImage: "session_normal")
+        msgItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_msg_selected_img", defaultImage: UIImage.safeImage("session_selected"))
+        msgItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_msg_normal_img", defaultImage: UIImage.safeImage("session_normal"))
         let msgNav = TUINavigationController(rootViewController: ConversationController())
-        msgNav.navigationItemBackArrowImage = backimg ?? UIImage()
+        msgNav.navigationItemBackArrowImage = backimg
         msgItem.controller = msgNav
-        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tControllerBackgroundColor(), dark: TUISwift.tControllerBackgroundColorDark())
+        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tController_Background_Color(), dark: TUISwift.tController_Background_Color_Dark())
         msgItem.badgeView = TUIBadgeView()
         msgItem.badgeView?.clearCallback = { [weak self] in
             self?.redpoint_clearUnreadMessage()
@@ -465,20 +470,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         let contactItem = TUITabBarItem()
         contactItem.title = NSLocalizedString("TabBarItemContactText", comment: "")
         contactItem.identity = "contactItem"
-        contactItem.selectedImage = getDynamicImagePath(isMinimalist: false, imageKey: "tab_contact_selected_img", defaultImage: "contact_selected")
-        contactItem.normalImage = getDynamicImagePath(isMinimalist: false, imageKey: "tab_contact_normal_img", defaultImage: "contact_normal")
+        contactItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_contact_selected_img", defaultImage: UIImage.safeImage("contact_selected"))
+        contactItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_contact_normal_img", defaultImage: UIImage.safeImage("contact_normal"))
         let contactNav = TUINavigationController(rootViewController: ContactsController())
-        contactNav.navigationItemBackArrowImage = backimg ?? UIImage()
+        contactNav.navigationItemBackArrowImage = backimg
         contactItem.controller = contactNav
-        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tControllerBackgroundColor(), dark: TUISwift.tControllerBackgroundColorDark())
+        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tController_Background_Color(), dark: TUISwift.tController_Background_Color_Dark())
         contactItem.badgeView = TUIBadgeView()
         items.append(contactItem)
 
         let setItem = TUITabBarItem()
         setItem.title = NSLocalizedString("TabBarItemMeText", comment: "")
         setItem.identity = "setItem"
-        setItem.selectedImage = getDynamicImagePath(isMinimalist: false, imageKey: "tab_me_selected_img", defaultImage: "myself_selected")
-        setItem.normalImage = getDynamicImagePath(isMinimalist: false, imageKey: "tab_me_normal_img", defaultImage: "myself_normal")
+        setItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_me_selected_img", defaultImage: UIImage.safeImage("myself_selected"))
+        setItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_me_normal_img", defaultImage: UIImage.safeImage("myself_normal"))
         let setVC = SettingController()
         setVC.lastLoginUser = userID
         setVC.confirmLogout = {
@@ -492,9 +497,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
             })
         }
         let setNav = TUINavigationController(rootViewController: setVC)
-        setNav.navigationItemBackArrowImage = backimg ?? UIImage()
+        setNav.navigationItemBackArrowImage = backimg
         setItem.controller = setNav
-        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tControllerBackgroundColor(), dark: TUISwift.tControllerBackgroundColorDark())
+        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tController_Background_Color(), dark: TUISwift.tController_Background_Color_Dark())
         items.append(setItem)
         tbc.setTabBarItems(items)
 
@@ -569,12 +574,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         setupConfig()
     }
 
-    func getDynamicImagePath(isMinimalist: Bool, imageKey: String, defaultImage: String) -> UIImage {
-        return TUISwift.tuiDynamicImage(imageKey, themeModule: isMinimalist ? TUIThemeModule.demo_Minimalist : TUIThemeModule.demo, defaultImg: UIImage(named: isMinimalist ? TUISwift.tuiDemoImagePath_Minimalist(defaultImage) : TUISwift.tuiDemoImagePath(defaultImage)))
-    }
-
     func getMainController_Minimalist() -> UITabBarController {
-        let backimg = UIImage(named: "icon_back_blue")?.rtl_imageFlippedForRightToLeftLayoutDirection()
+        let backimg = UIImage.safeImage("icon_back_blue").rtlImageFlippedForRightToLeftLayoutDirection()
 
         let tbc = TUITabBarController()
         var items: [TUITabBarItem] = []
@@ -582,8 +583,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         let msgItem = TUITabBarItem()
         msgItem.title = NSLocalizedString("TabBarItemMessageText_mini", comment: "")
         msgItem.identity = "msgItem"
-        msgItem.selectedImage = getDynamicImagePath(isMinimalist: true, imageKey: "", defaultImage: "session_selected")
-        msgItem.normalImage = getDynamicImagePath(isMinimalist: true, imageKey: "", defaultImage: "session_normal")
+        msgItem.selectedImage = TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("session_selected")))
+        msgItem.normalImage = TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("session_normal")))
         let convVC = ConversationController_Minimalist()
         convVC.getUnReadCount = { [weak self] in
             return UInt(self?.unReadCount ?? 0)
@@ -595,9 +596,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         let msgNav = TUINavigationController(rootViewController: convVC)
         msgItem.controller = msgNav
 
-        msgNav.navigationItemBackArrowImage = backimg ?? UIImage()
+        msgNav.navigationItemBackArrowImage = backimg
         msgNav.navigationBackColor = .white
-        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tControllerBackgroundColorDark())
+        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tController_Background_Color_Dark())
         msgItem.badgeView = TUIBadgeView()
         msgItem.badgeView?.clearCallback = { [weak self] in
             self?.redpoint_clearUnreadMessage()
@@ -612,21 +613,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         let contactItem = TUITabBarItem()
         contactItem.title = NSLocalizedString("TabBarItemContactText_mini", comment: "")
         contactItem.identity = "contactItem"
-        contactItem.selectedImage = getDynamicImagePath(isMinimalist: true, imageKey: "", defaultImage: "contact_selected")
-        contactItem.normalImage = getDynamicImagePath(isMinimalist: true, imageKey: "", defaultImage: "contact_normal")
+        contactItem.selectedImage = TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("contact_selected")))
+        contactItem.normalImage = TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("contact_normal")))
         let contactNav = TUINavigationController(rootViewController: ContactsController_Minimalist())
-        contactNav.navigationItemBackArrowImage = backimg ?? UIImage()
+        contactNav.navigationItemBackArrowImage = backimg
         contactNav.navigationBackColor = .white
         contactItem.controller = contactNav
-        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tControllerBackgroundColorDark())
+        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tController_Background_Color_Dark())
         contactItem.badgeView = TUIBadgeView()
         items.append(contactItem)
 
         let setItem = TUITabBarItem()
         setItem.title = NSLocalizedString("TabBarItemSettingText_mini", comment: "")
         setItem.identity = "setItem"
-        setItem.selectedImage = getDynamicImagePath(isMinimalist: true, imageKey: "", defaultImage: "setting_selected")
-        setItem.normalImage = getDynamicImagePath(isMinimalist: true, imageKey: "", defaultImage: "setting_normal")
+        setItem.selectedImage = TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("setting_selected")))
+        setItem.normalImage = TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("setting_normal")))
         let setVC = SettingController_Minimalist()
         setVC.lastLoginUser = userID
         setVC.confirmLogout = {
@@ -641,10 +642,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         }
 
         let setNav = TUINavigationController(rootViewController: setVC)
-        setNav.navigationItemBackArrowImage = backimg ?? UIImage()
+        setNav.navigationItemBackArrowImage = backimg
         setNav.navigationBackColor = .white
         setItem.controller = setNav
-        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tControllerBackgroundColorDark())
+        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tController_Background_Color_Dark())
         items.append(setItem)
         tbc.setTabBarItems(items)
 
@@ -661,11 +662,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
                 ? NSLocalizedString("TabBarItemCallsRecordText_mini", comment: "")
                 : NSLocalizedString("TabBarItemCallsRecordText_mini", comment: "")
             let selected = isMinimalist
-                ? TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImg: UIImage(named: TUISwift.tuiDemoImagePath_Minimalist("tab_calls_selected")))
-                : TUISwift.tuiDemoDynamicImage("tab_calls_selected_img", defaultImage: UIImage(named: "tab_calls_selected"))
+                ? TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("tab_calls_selected")))
+                : TUISwift.tuiDemoDynamicImage("tab_calls_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("tab_calls_selected")))
             let normal = isMinimalist
-                ? TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImg: UIImage(named: TUISwift.tuiDemoImagePath_Minimalist("tab_calls_normal")))
-                : TUISwift.tuiDemoDynamicImage("tab_calls_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("tab_calls_normal")))
+                ? TUISwift.tuiDynamicImage("", themeModule: .demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("tab_calls_normal")))
+                : TUISwift.tuiDemoDynamicImage("tab_calls_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("tab_calls_normal")))
             let callsItem = TUITabBarItem()
             callsItem.title = title
             callsItem.identity = "callsItem"
@@ -682,7 +683,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
 
     // MARK: - TIMPush
 
-    var businessID: Int {
+    func businessID() -> Int {
         let kAPNSBusiIdByType = UserDefaults.standard.integer(forKey: "kAPNSBusiIdByType")
         if kAPNSBusiIdByType > 0 {
             return kAPNSBusiIdByType
@@ -690,8 +691,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, V2TIMConversationListener
         return Int(kAPNSBusiId)
     }
 
-    var applicationGroupID: String {
+    func applicationGroupID() -> String {
         return kTIMPushAppGroupKey
+    }
+
+    func onRemoteNotificationReceived(_ notice: String?) -> Bool {
+        return false
     }
 
     func navigateToBuiltInChatViewController(userID: String?, groupID: String?) {

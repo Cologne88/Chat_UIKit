@@ -31,14 +31,16 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
 
         tableView.register(TUICommonTextCell.self, forCellReuseIdentifier: "textCell")
         tableView.register(TUICommonAvatarCell.self, forCellReuseIdentifier: "avatarCell")
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
 
         if let loginUser = V2TIMManager.sharedInstance().getLoginUser() {
             V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { [weak self] infoList in
-                guard let self = self else { return }
-                self.profile = infoList?.first
+                guard let self = self, let infoList = infoList else { return }
+                self.profile = infoList.first
                 self.setupData()
-            }, fail: nil)
+            }) { _, _ in
+                // to do
+            }
         }
     }
 
@@ -68,13 +70,13 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
 
             let IDData = TUICommonTextCellData()
             IDData.key = TUISwift.timCommonLocalizableString("ProfileAccount")
-            IDData.value = "\(profile.userID.safeValue)      "
+            IDData.value = "\(profile.userID)      "
             IDData.showAccessory = false
             data.append([nicknameData, IDData])
 
             let signatureData = TUICommonTextCellData()
             signatureData.key = TUISwift.timCommonLocalizableString("ProfileSignature")
-            signatureData.value = profile.selfSignature.isNilOrEmpty == false ? profile.selfSignature.safeValue : ""
+            signatureData.value = profile.selfSignature ?? ""
             signatureData.showAccessory = true
             signatureData.cselector = #selector(didSelectChangeSignature)
 
@@ -103,7 +105,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
         tableView.reloadData()
     }
 
-    func onSelfInfoUpdated(_ info: V2TIMUserFullInfo) {
+    func onSelfInfoUpdated(info: V2TIMUserFullInfo) {
         profile = info
         setupData()
     }
@@ -161,7 +163,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
             }
             let info = V2TIMUserFullInfo()
             info.nickName = content
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                 self.profile?.nickName = content
                 self.setupData()
             }, fail: nil)
@@ -172,7 +174,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
             }
             let info = V2TIMUserFullInfo()
             info.selfSignature = content
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                 self.profile?.selfSignature = content
                 self.setupData()
             }, fail: nil)
@@ -194,7 +196,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
         modify.tag = 0
         modify.delegate = self
         modify.setData(data)
-        modify.show(in: view.window!)
+        modify.showInWindow(view.window!)
     }
 
     @objc private func didSelectChangeSignature() {
@@ -206,7 +208,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
         modify.tag = 1
         modify.delegate = self
         modify.setData(data)
-        modify.show(in: view.window!)
+        modify.showInWindow(view.window!)
     }
 
     @objc private func didSelectSex() {
@@ -232,7 +234,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
             if !urlStr.isEmpty {
                 let info = V2TIMUserFullInfo()
                 info.faceURL = urlStr
-                V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+                V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                     strongSelf.profile?.faceURL = urlStr
                     strongSelf.setupData()
                 }, fail: nil)
@@ -250,7 +252,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
             }
             let info = V2TIMUserFullInfo()
             info.gender = gender
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                 self.profile?.gender = gender
                 self.setupData()
             }, fail: nil)
@@ -269,13 +271,13 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
                let data = tableView.cellForRow(at: pathAtView)
             {
                 if let textCell = data as? TUICommonTextCell,
-                   textCell.textData.value != TUISwift.timCommonLocalizableString("no_set")
+                   textCell.textData?.value != TUISwift.timCommonLocalizableString("no_set")
                 {
-                    UIPasteboard.general.string = textCell.textData.value
-                    let toastString = "copy \(textCell.textData.key)"
+                    UIPasteboard.general.string = textCell.textData?.value
+                    let toastString = "copy \(textCell.textData?.key ?? "")"
                     TUITool.makeToast(toastString)
                 } else if let profileCard = data as? TUIProfileCardCell {
-                    UIPasteboard.general.string = profileCard.cardData.identifier
+                    UIPasteboard.general.string = profileCard.cardData?.identifier
                     TUITool.makeToast("copy")
                 }
             }
@@ -342,7 +344,7 @@ class TUIProfileController: UITableViewController, UIActionSheetDelegate, V2TIMS
             if let birthday = Int(dateStr) {
                 let info = V2TIMUserFullInfo()
                 info.birthday = UInt32(birthday)
-                V2TIMManager.sharedInstance().setSelfInfo(info, succ: {
+                V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: {
                     self.profile?.birthday = UInt32(birthday)
                     self.setupData()
                 }, fail: nil)

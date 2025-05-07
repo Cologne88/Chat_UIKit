@@ -6,7 +6,7 @@ import UIKit
 
 public class TUIMessageCellConfig: NSObject {
     weak var tableView: UITableView?
-    lazy var cellClassMaps: [String: AnyClass] = .init()
+    lazy var cellClassMaps: [String: TUIMessageCellProtocol.Type] = .init()
     lazy var heightCacheMaps: [String: CGFloat] = .init()
     static var gCustomMessageInfoMap: [String: [String: Any]] = .init()
     private static let kIsCustomMessageFromPlugin = "kIsCustomMessageFromPlugin"
@@ -24,26 +24,26 @@ public class TUIMessageCellConfig: NSObject {
         guard let tableView = tableView else { return }
         self.tableView = tableView
 
-        bindMessageCellClass(TUITextMessageCell.self, cellDataClass: TUITextMessageCellData.self, reuseID: TTextMessageCell_ReuseId)
-        bindMessageCellClass(TUIVoiceMessageCell.self, cellDataClass: TUIVoiceMessageCellData.self, reuseID: TVoiceMessageCell_ReuseId)
-        bindMessageCellClass(TUIImageMessageCell.self, cellDataClass: TUIImageMessageCellData.self, reuseID: TImageMessageCell_ReuseId)
-        bindMessageCellClass(TUISystemMessageCell.self, cellDataClass: TUISystemMessageCellData.self, reuseID: TSystemMessageCell_ReuseId)
-        bindMessageCellClass(TUIFaceMessageCell.self, cellDataClass: TUIFaceMessageCellData.self, reuseID: TFaceMessageCell_ReuseId)
-        bindMessageCellClass(TUIVideoMessageCell.self, cellDataClass: TUIVideoMessageCellData.self, reuseID: TVideoMessageCell_ReuseId)
-        bindMessageCellClass(TUIFileMessageCell.self, cellDataClass: TUIFileMessageCellData.self, reuseID: TFileMessageCell_ReuseId)
-        bindMessageCellClass(TUIJoinGroupMessageCell.self, cellDataClass: TUIJoinGroupMessageCellData.self, reuseID: TJoinGroupMessageCell_ReuseId)
-        bindMessageCellClass(TUIMergeMessageCell.self, cellDataClass: TUIMergeMessageCellData.self, reuseID: TMergeMessageCell_ReuserId)
-        bindMessageCellClass(TUIReplyMessageCell.self, cellDataClass: TUIReplyMessageCellData.self, reuseID: TReplyMessageCell_ReuseId)
-        bindMessageCellClass(TUIReferenceMessageCell.self, cellDataClass: TUIReferenceMessageCellData.self, reuseID: TUIReferenceMessageCell_ReuseId)
+        bindMessageCellClass(TUITextMessageCell.self, cellDataClass: TUITextMessageCellData.self, reuseID: "TTextMessageCell")
+        bindMessageCellClass(TUIVoiceMessageCell.self, cellDataClass: TUIVoiceMessageCellData.self, reuseID: "TVoiceMessaageCell")
+        bindMessageCellClass(TUIImageMessageCell.self, cellDataClass: TUIImageMessageCellData.self, reuseID: "TImageMessageCell")
+        bindMessageCellClass(TUISystemMessageCell.self, cellDataClass: TUISystemMessageCellData.self, reuseID: "TSystemMessageCell")
+        bindMessageCellClass(TUIFaceMessageCell.self, cellDataClass: TUIFaceMessageCellData.self, reuseID: "TFaceMessageCell")
+        bindMessageCellClass(TUIVideoMessageCell.self, cellDataClass: TUIVideoMessageCellData.self, reuseID: "TVideoMessageCell")
+        bindMessageCellClass(TUIFileMessageCell.self, cellDataClass: TUIFileMessageCellData.self, reuseID: "TFileMessageCell")
+        bindMessageCellClass(TUIJoinGroupMessageCell.self, cellDataClass: TUIJoinGroupMessageCellData.self, reuseID: "TJoinGroupMessageCell")
+        bindMessageCellClass(TUIMergeMessageCell.self, cellDataClass: TUIMergeMessageCellData.self, reuseID: "TMergeMessageCell")
+        bindMessageCellClass(TUIReplyMessageCell.self, cellDataClass: TUIReplyMessageCellData.self, reuseID: "TUIReplyMessageCell")
+        bindMessageCellClass(TUIReferenceMessageCell.self, cellDataClass: TUIReferenceMessageCellData.self, reuseID: "TUIReferenceMessageCell")
 
         TUIMessageCellConfig.enumerateCustomMessageInfo { [weak self] messageCellName, messageCellDataName, businessID, _ in
-            guard let cellClass = NSClassFromString(messageCellName),
+            guard let cellClass = NSClassFromString(messageCellName) as? TUIMessageCellProtocol.Type,
                   let cellDataClass = NSClassFromString(messageCellDataName) else { return }
             self?.bindMessageCellClass(cellClass, cellDataClass: cellDataClass, reuseID: businessID)
         }
     }
 
-    func bindMessageCellClass(_ cellClass: AnyClass?, cellDataClass: AnyClass?, reuseID: String?) {
+    func bindMessageCellClass(_ cellClass: TUIMessageCellProtocol.Type?, cellDataClass: AnyClass?, reuseID: String?) {
         assert(cellClass != nil, "The UITableViewCell can not be nil")
         assert(cellDataClass != nil, "The cell data class can not be nil")
         assert((reuseID?.count ?? 0) > 0, "The reuse identifier can not be nil")
@@ -60,11 +60,12 @@ extension TUIMessageCellConfig {
     // MARK: - CustomMessageRegister
 
     static func registerBuiltInCustomMessageInfo() {
-        registerCustomMessageCell("TUIChat.TUILinkCell", messageCellData: "TUIChat.TUILinkCellData", forBusinessID: BussinessID_TextLink)
-        registerCustomMessageCell("TUIChat.TUIGroupCreatedCell", messageCellData: "TUIChat.TUIGroupCreatedCellData", forBusinessID: BussinessID_GroupCreate)
-        registerCustomMessageCell("TUIChat.TUIEvaluationCell", messageCellData: "TUIChat.TUIEvaluationCellData", forBusinessID: BussinessID_Evaluation)
-        registerCustomMessageCell("TUIChat.TUIOrderCell", messageCellData: "TUIChat.TUIOrderCellData", forBusinessID: BussinessID_Order)
-        registerCustomMessageCell("TUIMessageCell", messageCellData: "TUIChat.TUITypingStatusCellData", forBusinessID: BussinessID_Typing)
+        registerCustomMessageCell("TUIChat.TUILinkCell", messageCellData: "TUIChat.TUILinkCellData", forBusinessID: "text_link")
+        registerCustomMessageCell("TUIChat.TUIGroupCreatedCell", messageCellData: "TUIChat.TUIGroupCreatedCellData", forBusinessID: "group_create")
+        registerCustomMessageCell("TUIChat.TUIEvaluationCell", messageCellData: "TUIChat.TUIEvaluationCellData", forBusinessID: "evaluation")
+        registerCustomMessageCell("TUIChat.TUIOrderCell", messageCellData: "TUIChat.TUIOrderCellData", forBusinessID: "order")
+        registerCustomMessageCell("TUIMessageCell", messageCellData: "TUIChat.TUITypingStatusCellData", forBusinessID: "user_typing_status")
+        registerCustomMessageCell("TUISystemMessageCell", messageCellData: "TUIChat.TUILocalTipsCellData", forBusinessID: "local_tips")
     }
 
     static func registerExternalCustomMessageInfo() {
@@ -86,9 +87,9 @@ extension TUIMessageCellConfig {
         assert(gCustomMessageInfoMap[businessID] == nil, "businessID can not be same with the exists")
 
         var info = [String: Any]()
-        info[BussinessID] = businessID
-        info[TMessageCell_Name] = messageCellName
-        info[TMessageCell_Data_Name] = messageCellData
+        info["businessID"] = businessID
+        info["TMessageCell_Name"] = messageCellName
+        info["TMessageCell_Data_Name"] = messageCellData
         info[kIsCustomMessageFromPlugin] = isPlugin
 
         gCustomMessageInfoMap[businessID] = info
@@ -96,27 +97,30 @@ extension TUIMessageCellConfig {
 
     static func enumerateCustomMessageInfo(_ callback: @escaping (String, String, String, Bool) -> Void) {
         for (_, info) in gCustomMessageInfoMap {
-            guard let businessID = info[BussinessID] as? String,
-                  let messageCellName = info[TMessageCell_Name] as? String,
-                  let messageCellDataName = info[TMessageCell_Data_Name] as? String,
+            guard let businessID = info["businessID"] as? String,
+                  let messageCellName = info["TMessageCell_Name"] as? String,
+                  let messageCellDataName = info["TMessageCell_Data_Name"] as? String,
                   let isPlugin = info[kIsCustomMessageFromPlugin] as? Bool else { continue }
             callback(messageCellName, messageCellDataName, businessID, isPlugin)
         }
     }
 
-    static func getCustomMessageCellDataClass(_ businessID: String) -> AnyClass? {
+    static func getCustomMessageCellDataClass(_ businessID: String) -> TUIMessageCellDataDelegate.Type? {
         guard let info = gCustomMessageInfoMap[businessID],
-              let messageCellDataName = info[TMessageCell_Data_Name] as? String
+              let messageCellDataName = info["TMessageCell_Data_Name"] as? String
         else {
             return nil
         }
-        return NSClassFromString(messageCellDataName)
+        if let name = NSClassFromString(messageCellDataName) as? TUIMessageCellDataDelegate.Type {
+            return name
+        }
+        return nil
     }
 
     static func isPluginCustomMessageCellData(_ data: TUIMessageCellData) -> Bool {
         var flag = false
         for (_, info) in gCustomMessageInfoMap {
-            if let businessID = info[BussinessID] as? String,
+            if let businessID = info["businessID"] as? String,
                let isPlugin = info[kIsCustomMessageFromPlugin] as? Bool,
                isPlugin && data.reuseId == businessID
             {
@@ -131,7 +135,11 @@ extension TUIMessageCellConfig {
     // MARK: - MessageCellHeight
 
     func getHeightCacheKey(_ msg: TUIMessageCellData) -> String {
-        return msg.msgID.isEmpty ? String(format: "%p", msg) : msg.msgID
+        if let msgID = msg.msgID, !msgID.isEmpty {
+            return msgID
+        } else {
+            return String(format: "%p", msg)
+        }
     }
 
     static var screenWidth: CGFloat = 0

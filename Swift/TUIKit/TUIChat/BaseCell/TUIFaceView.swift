@@ -7,29 +7,29 @@ import UIKit
     @objc optional func faceViewDidBackDelete(_ faceView: TUIFaceView)
 }
 
-class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+open class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     var lineView: UIView!
-    var faceCollectionView: UICollectionView!
-    var faceFlowLayout: UICollectionViewFlowLayout!
-    var pageControl: UIPageControl!
-    private(set) var faceGroups: [TUIFaceGroup] = []
+    public var faceCollectionView: UICollectionView!
+    public var faceFlowLayout: UICollectionViewFlowLayout!
+    public var pageControl: UIPageControl!
+    public var faceGroups: [TUIFaceGroup] = []
     private var sectionIndexInGroup: [Int] = []
     private var pageCountInGroup: [Int] = []
-    private var groupIndexInSection: [Int] = []
-    private var itemIndexs: [IndexPath: Int] = [:]
+    public var groupIndexInSection: [Int] = []
+    public var itemIndexs: [IndexPath: Int] = [:]
     weak var delegate: TUIFaceViewDelegate?
 
     private var sectionCount = 0
     private var curGroupIndex = 0
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
         defaultLayout()
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -38,12 +38,12 @@ class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
 
         faceFlowLayout = TUICollectionRTLFitFlowLayout()
         faceFlowLayout.scrollDirection = .horizontal
-        faceFlowLayout.minimumLineSpacing = TUISwift.tFaceView_Margin()
-        faceFlowLayout.minimumInteritemSpacing = TUISwift.tFaceView_Margin()
-        faceFlowLayout.sectionInset = UIEdgeInsets(top: 0, left: TUISwift.tFaceView_Page_Padding(), bottom: 0, right: TUISwift.tFaceView_Page_Padding())
+        faceFlowLayout.minimumLineSpacing = CGFloat(TFaceView_Margin)
+        faceFlowLayout.minimumInteritemSpacing = CGFloat(TFaceView_Margin)
+        faceFlowLayout.sectionInset = UIEdgeInsets(top: 0, left: CGFloat(TFaceView_Page_Padding), bottom: 0, right: CGFloat(TFaceView_Page_Padding))
 
         faceCollectionView = UICollectionView(frame: .zero, collectionViewLayout: faceFlowLayout)
-        faceCollectionView.register(TUIFaceCell.self, forCellWithReuseIdentifier: TUISwift.tFaceCell_ReuseId())
+        faceCollectionView.register(TUIFaceCell.self, forCellWithReuseIdentifier: "TFaceCell")
         faceCollectionView.isPagingEnabled = true
         faceCollectionView.delegate = self
         faceCollectionView.dataSource = self
@@ -64,19 +64,20 @@ class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
         addSubview(pageControl)
     }
 
-    override func layoutSubviews() {
+    override open func layoutSubviews() {
         super.layoutSubviews()
         defaultLayout()
     }
 
     private func defaultLayout() {
         lineView.frame = CGRect(x: 0, y: 0, width: frame.size.width, height: TUISwift.tLine_Height())
-        pageControl.frame = CGRect(x: 0, y: frame.size.height - TUISwift.tFaceView_Page_Height(), width: frame.size.width, height: TUISwift.tFaceView_Page_Height())
-        faceCollectionView.frame = CGRect(x: 0, y: lineView.frame.origin.y + lineView.frame.size.height + TUISwift.tFaceView_Margin(), width: frame.size.width,
-                                          height: frame.size.height - pageControl.frame.size.height - lineView.frame.size.height - 2 * TUISwift.tFaceView_Margin())
+        pageControl.frame = CGRect(x: 0, y: frame.size.height - CGFloat(TFaceView_Page_Height), width: frame.size.width, height: CGFloat(TFaceView_Page_Height))
+        let y = lineView.frame.origin.y + lineView.frame.size.height + CGFloat(TFaceView_Margin)
+        let height = frame.size.height - pageControl.frame.size.height - lineView.frame.size.height - 2 * CGFloat(TFaceView_Margin)
+        faceCollectionView.frame = CGRect(x: 0, y: y, width: frame.size.width, height: height)
     }
 
-    func setData(_ data: [TUIFaceGroup]) {
+    open func setData(_ data: [TUIFaceGroup]) {
         faceGroups = data
         defaultLayout()
 
@@ -89,12 +90,14 @@ class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
         for (groupIndex, group) in faceGroups.enumerated() {
             sectionIndexInGroup.append(sectionIndex)
             let itemCount = group.rowCount * group.itemCountPerRow
-            let sectionCount = Int(ceil(Double(group.faces.count) / Double(itemCount - (group.needBackDelete ? 1 : 0))))
-            pageCountInGroup.append(sectionCount)
-            for _ in 0..<sectionCount {
-                groupIndexInSection.append(groupIndex)
+            if let count = group.faces?.count {
+                sectionCount = Int(ceil(Double(count) / Double(itemCount - (group.needBackDelete ? 1 : 0))))
+                pageCountInGroup.append(sectionCount)
+                for _ in 0..<sectionCount {
+                    groupIndexInSection.append(groupIndex)
+                }
+                sectionIndex += sectionCount
             }
-            sectionIndex += sectionCount
         }
         sectionCount = sectionIndex
 
@@ -107,7 +110,8 @@ class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
             for itemIndex in 0..<itemCount {
                 let row = itemIndex % face.rowCount
                 let column = itemIndex / face.rowCount
-                let reIndex = face.itemCountPerRow * row + column + Int32(groupSection) * itemCount
+                let count = groupSection * itemCount
+                let reIndex = face.itemCountPerRow * row + column + count
                 itemIndexs[IndexPath(row: Int(itemIndex), section: curSection)] = Int(reIndex)
             }
         }
@@ -119,18 +123,18 @@ class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
         faceCollectionView.reloadData()
     }
 
-    func numberOfSections(in collectionView: UICollectionView) -> Int {
+    public func numberOfSections(in collectionView: UICollectionView) -> Int {
         return sectionCount
     }
 
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let groupIndex = groupIndexInSection[section]
         let group = faceGroups[groupIndex]
         return Int(group.rowCount * group.itemCountPerRow)
     }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TUISwift.tFaceCell_ReuseId(), for: indexPath) as? TUIFaceCell {
+    open func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TFaceCell", for: indexPath) as? TUIFaceCell {
             let groupIndex = groupIndexInSection[indexPath.section]
             let group = faceGroups[groupIndex]
             let itemCount = group.rowCount * group.itemCountPerRow
@@ -138,10 +142,10 @@ class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
                 let data = TUIFaceCellData()
                 data.path = TUISwift.tuiChatFaceImagePath("del_normal")
                 cell.setData(data)
-                cell.face.image = cell.face.image?.rtl_imageFlippedForRightToLeftLayoutDirection()
+                cell.face.image = cell.face.image?.rtlImageFlippedForRightToLeftLayoutDirection()
             } else {
-                if let index = itemIndexs[indexPath], index < group.faces.count {
-                    if let data = group.faces[index] as? TUIFaceCellData {
+                if let index = itemIndexs[indexPath], index < (group.faces?.count ?? 0) {
+                    if let data = group.faces?[index] as? TUIFaceCellData {
                         cell.setData(data)
                     }
                 } else {
@@ -153,28 +157,30 @@ class TUIFaceView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
         return UICollectionViewCell()
     }
 
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    open func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let groupIndex = groupIndexInSection[indexPath.section]
         let faces = faceGroups[groupIndex]
         let itemCount = faces.rowCount * faces.itemCountPerRow
         if indexPath.row == itemCount - 1 && faces.needBackDelete {
             delegate?.faceViewDidBackDelete?(self)
         } else {
-            if let index = itemIndexs[indexPath], index < faces.faces.count {
+            if let index = itemIndexs[indexPath], index < (faces.faces?.count ?? 0) {
                 delegate?.faceView?(self, didSelectItemAtIndexPath: IndexPath(row: index, section: groupIndex))
             }
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+    open func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let groupIndex = groupIndexInSection[indexPath.section]
         let group = faceGroups[groupIndex]
-        let width = (frame.size.width - TUISwift.tFaceView_Page_Padding() * 2 - TUISwift.tFaceView_Margin() * CGFloat(group.itemCountPerRow - 1)) / CGFloat(group.itemCountPerRow)
-        let height = (collectionView.frame.size.height - TUISwift.tFaceView_Margin() * CGFloat(group.rowCount - 1)) / CGFloat(group.rowCount)
+        let padding = CGFloat(TFaceView_Page_Padding) * 2
+        let margin = CGFloat(TFaceView_Margin) * CGFloat(group.itemCountPerRow - 1)
+        let width = (frame.size.width - padding - margin) / CGFloat(group.itemCountPerRow)
+        let height = (collectionView.frame.size.height - CGFloat(TFaceView_Margin) * CGFloat(group.rowCount - 1)) / CGFloat(group.rowCount)
         return CGSize(width: width, height: height)
     }
 
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let curSection = Int(round(scrollView.contentOffset.x / scrollView.frame.size.width))
         if curSection >= groupIndexInSection.count {
             return

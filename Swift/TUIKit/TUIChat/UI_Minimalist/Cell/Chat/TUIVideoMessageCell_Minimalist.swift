@@ -78,22 +78,32 @@ class TUIVideoMessageCell_Minimalist: TUIMessageCell_Minimalist, TUIMessageProgr
         thumb.addSubview(animateCircleView)
         container.addSubview(progress)
 
-        msgTimeLabel.textColor = TUISwift.rgb(255.0, green: 255.0, blue: 255.0)
+        msgTimeLabel.textColor = TUISwift.rgb(255.0, g: 255.0, b: 255.0)
         TUIMessageProgressManager.shared.addDelegate(self)
     }
     
-    override func fill(with data: TUIMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let videoData = data as? TUIVideoMessageCellData else { return }
         self.videoData = videoData
         thumb.image = nil
+        
+        if let hasRiskContent = messageData?.innerMessage?.hasRiskContent, hasRiskContent {
+            thumb.image = TUISwift.timCommonBundleThemeImage("", defaultImage: "icon_security_strike")
+            thumb.contentMode = .scaleAspectFill
+            play.isHidden = true
+            indicator.isHidden = true
+            animateCircleView.isHidden = true
+            return
+        }
+        
         if videoData.thumbImage == nil {
             videoData.downloadThumb()
         }
         
         if videoData.isPlaceHolderCellData {
             thumb.backgroundColor = .gray
-            animateCircleView.progress = data.videoTranscodingProgress * 100
+            animateCircleView.progress = videoData.videoTranscodingProgress * 100
             play.isHidden = true
             indicator.isHidden = true
             animateCircleView.isHidden = false
@@ -118,7 +128,7 @@ class TUIVideoMessageCell_Minimalist: TUIMessageCell_Minimalist, TUIMessageProgr
             self.thumb.image = thumbImage
         }
 
-        if data.direction == .MsgDirectionIncoming {
+        if videoData.direction == .incoming {
             thumbProgressObservation = self.videoData?.observe(\.thumbProgress, options: [.new, .initial]) { [weak self] _, change in
                 guard let self = self, let progress = change.newValue else { return }
                 self.progress.text = "\(progress)%"
@@ -143,8 +153,19 @@ class TUIVideoMessageCell_Minimalist: TUIMessageCell_Minimalist, TUIMessageProgr
     override func updateConstraints() {
         super.updateConstraints()
         
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
+
         thumb.snp.remakeConstraints { make in
-            make.edges.equalTo(container)
+            if hasRiskContent {
+                make.top.equalTo(self.container).offset(12)
+                make.size.equalTo(CGSize(width: 150, height: 150))
+                make.centerX.equalTo(self.container)
+            } else {
+                make.height.equalTo(self.container.snp.height)
+                make.width.equalTo(self.container)
+                make.leading.equalTo(self.container.snp.leading)
+                make.top.equalTo(self.container)
+            }
         }
         
         play.snp.remakeConstraints { make in
@@ -154,14 +175,14 @@ class TUIVideoMessageCell_Minimalist: TUIMessageCell_Minimalist, TUIMessageProgr
         
         msgTimeLabel.snp.makeConstraints { make in
             make.width.equalTo(38)
-            make.height.equalTo(messageData.msgStatusSize.height)
+            make.height.equalTo(messageData?.msgStatusSize.height ?? 0)
             make.bottom.equalTo(container).offset(-TUISwift.kScale390(9))
             make.trailing.equalTo(container).offset(-TUISwift.kScale390(8))
         }
         
         msgStatusView.snp.makeConstraints { make in
             make.width.equalTo(16)
-            make.height.equalTo(messageData.msgStatusSize.height)
+            make.height.equalTo(messageData?.msgStatusSize.height ?? 0)
             make.bottom.trailing.equalTo(msgTimeLabel)
         }
         
@@ -171,7 +192,7 @@ class TUIVideoMessageCell_Minimalist: TUIMessageCell_Minimalist, TUIMessageProgr
         }
     }
     
-    override func highlight(whenMatchKeyword keyword: String?) {
+    override open func highlightWhenMatchKeyword(_ keyword: String?) {
         if keyword != nil {
             if highlightAnimating {
                 return
@@ -216,7 +237,7 @@ class TUIVideoMessageCell_Minimalist: TUIMessageCell_Minimalist, TUIMessageProgr
         if msgID != videoData?.msgID {
             return
         }
-        if videoData?.direction == .MsgDirectionOutgoing {
+        if videoData?.direction == .outgoing {
             videoData?.uploadProgress = UInt(progress)
         }
     }
@@ -232,11 +253,15 @@ class TUIVideoMessageCell_Minimalist: TUIMessageCell_Minimalist, TUIMessageProgr
             return CGSize.zero
         }
         
+        if let hasRishContent = videoCellData.innerMessage?.hasRiskContent, hasRishContent {
+            return CGSizeMake(150, 150)
+        }
+        
         var size = CGSize.zero
         var isDir = ObjCBool(false)
-        if !videoCellData.snapshotPath.isEmpty && FileManager.default.fileExists(atPath: videoCellData.snapshotPath, isDirectory: &isDir) {
+        if let path = videoCellData.snapshotPath, !path.isEmpty && FileManager.default.fileExists(atPath: path, isDirectory: &isDir) {
             if !isDir.boolValue {
-                if let image = UIImage(contentsOfFile: videoCellData.snapshotPath) {
+                if let image = UIImage(contentsOfFile: path) {
                     size = image.size
                 }
             }

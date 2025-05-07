@@ -12,4 +12,4 @@ enum TUICameraViewAspectRatio: UInt {
     case aspectRatio1x1
     case aspectRatio16x9
     case aspectRatio5x4
-} 
+}

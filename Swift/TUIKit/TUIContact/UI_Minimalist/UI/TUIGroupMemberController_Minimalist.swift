@@ -1,8 +1,8 @@
 // TUIGroupMemberController_Minimalist.swift
 // TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate, UITableViewDataSource {
     var groupId: String?
@@ -13,7 +13,7 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
     private var members: [TUIMemberInfoCellData] = []
     private var tag: Int = 0
     private var adminDataprovier: TUISettingAdminDataProvider!
-    
+
     lazy var indicatorView: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .gray)
         indicator.hidesWhenStopped = true
@@ -40,13 +40,13 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
         adminDataprovier = TUISettingAdminDataProvider()
         adminDataprovier.groupID = groupId
 
-        adminDataprovier.loadData { [weak self] code, error in
+        adminDataprovier.loadData { [weak self] _, _ in
             self?.refreshData()
         }
     }
 
     func refreshData() {
-        dataProvider.loadDatas { [weak self] success, err, datas in
+        dataProvider.loadDatas { [weak self] _, _, datas in
             guard let self = self else { return }
             let title = String(format: TUISwift.timCommonLocalizableString("TUIKitGroupProfileGroupCountFormat"), datas.count)
             self.title = title
@@ -59,8 +59,8 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
         view.backgroundColor = .white
 
         // left
-        var image = TUISwift.tuiContactDynamicImage("group_nav_back_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("back")))
-        image = image?.rtl_imageFlippedForRightToLeftLayoutDirection()
+        var image = TUISwift.tuiContactDynamicImage("group_nav_back_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("back")))
+        image = image.rtlImageFlippedForRightToLeftLayoutDirection()
         let leftButton = UIButton(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
         leftButton.addTarget(self, action: #selector(leftBarButtonClick), for: .touchUpInside)
         leftButton.setImage(image, for: .normal)
@@ -125,11 +125,11 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
                 // add
                 self.tag = 1
                 var param: [String: Any] = [:]
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey] = TUISwift.timCommonLocalizableString("GroupAddFirend")
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey] = ids
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey] = displayNames
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey] = selectContactCompletion
-                if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController {
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey"] = TUISwift.timCommonLocalizableString("GroupAddFirend")
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey"] = ids
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey"] = displayNames
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey"] = selectContactCompletion
+                if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController {
                     self.showContactSelectVC = vc
                     self.navigationController?.pushViewController(self.showContactSelectVC!, animated: true)
                 }
@@ -142,11 +142,11 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
                 // delete
                 self.tag = 2
                 var param: [String: Any] = [:]
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey] = TUISwift.timCommonLocalizableString("GroupDeleteFriend")
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_SourceIdsKey] = ids
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey] = displayNames
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey] = selectContactCompletion
-                if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController {
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey"] = TUISwift.timCommonLocalizableString("GroupDeleteFriend")
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_SourceIdsKey"] = ids
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey"] = displayNames
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey"] = selectContactCompletion
+                if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController {
                     self.showContactSelectVC = vc
                     self.navigationController?.pushViewController(self.showContactSelectVC!, animated: true)
                 }
@@ -159,17 +159,21 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
     }
 
     private func addGroupId(_ groupId: String?, members: [String]) {
-        V2TIMManager.sharedInstance().inviteUser(toGroup: groupId, userList: members, succ: { [weak self] resultList in
-            self?.refreshData()
+        guard let groupId = groupId else { return }
+        V2TIMManager.sharedInstance().inviteUserToGroup(groupID: groupId, userList: members) { [weak self] _ in
+            guard let self = self else { return }
+            self.refreshData()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("add_success"))
-        }, fail: { code, desc in
+        } fail: { code, desc in
             TUITool.makeToastError(Int(code), msg: desc)
-        })
+        }
     }
 
     private func deleteGroupId(_ groupId: String?, members: [String]) {
-        V2TIMManager.sharedInstance().kickGroupMember(groupId, memberList: members, reason: "", succ: { [weak self] resultList in
-            self?.refreshData()
+        guard let groupId = groupId else { return }
+        V2TIMManager.sharedInstance().kickGroupMember(groupId, memberList: members, reason: "", succ: { [weak self] _ in
+            guard let self = self else { return }
+            self.refreshData()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("delete_success"))
         }, fail: { code, desc in
             TUITool.makeToastError(Int(code), msg: desc)
@@ -178,11 +182,11 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
 
     func getUserOrFriendProfileVCWithUserID(_ userID: String?, succ: @escaping (UIViewController) -> Void, fail: V2TIMFail?) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID ?? "",
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succ,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: fail ?? { _, _ in }
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID ?? "",
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succ,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": fail ?? { _, _ in }
         ]
-        TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
 
     // MARK: - UITableViewDelegate, UITableViewDataSource
@@ -214,44 +218,48 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
         }
 
         let ac = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        weak var weakSelf = self
 
-        let actionInfo = UIAlertAction(title: TUISwift.timCommonLocalizableString("Info"), style: .default) { _ in
-            weakSelf?.getUserOrFriendProfileVCWithUserID(data.identifier, succ: { vc in
-                weakSelf?.navigationController?.pushViewController(vc, animated: true)
+        let actionInfo = UIAlertAction(title: TUISwift.timCommonLocalizableString("Info"), style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            self.getUserOrFriendProfileVCWithUserID(data.identifier, succ: { vc in
+                self.navigationController?.pushViewController(vc, animated: true)
             }, fail: nil)
         }
 
-        let actionDelete = UIAlertAction(title: TUISwift.timCommonLocalizableString("TUIKitGroupProfileManageDelete"), style: .default) { _ in
-            // delete
+        let actionDelete = UIAlertAction(title: TUISwift.timCommonLocalizableString("TUIKitGroupProfileManageDelete"), style: .default) { [weak self] _ in
+            guard let self = self else { return }
             var list: [String] = []
             list.append(identifier)
-            weakSelf?.deleteGroupId(weakSelf?.groupId, members: list)
+            self.deleteGroupId(self.groupId, members: list)
         }
 
-        let actionAddAdmin = UIAlertAction(title: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdmainAdd"), style: .default) { _ in
+        let actionAddAdmin = UIAlertAction(title: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdmainAdd"), style: .default) { [weak self] _ in
+            guard let self = self else { return }
             let user = TUIUserModel()
             user.userId = identifier
-            weakSelf?.adminDataprovier.settingAdmins(userModels: [user], callback: { code, errorMsg in
+            self.adminDataprovier.settingAdmins(userModels: [user], callback: { [weak self] code, errorMsg in
+                guard let self = self else { return }
                 if code != 0 {
-                    weakSelf?.view.makeToast(errorMsg)
+                    self.view.makeToast(errorMsg ?? "")
                 } else {
                     data.role = V2TIMGroupMemberRole.GROUP_MEMBER_ROLE_ADMIN.rawValue
                 }
-                weakSelf?.tableView.reloadData()
+                self.tableView.reloadData()
             })
         }
 
-        let actionRemoveAdmin = UIAlertAction(title: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdmainDelete"), style: .default) { _ in
+        let actionRemoveAdmin = UIAlertAction(title: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdmainDelete"), style: .default) { [weak self] _ in
+            guard let self = self else { return }
             let user = TUIUserModel()
             user.userId = identifier
-            weakSelf?.adminDataprovier.removeAdmin(userID: identifier, callback: { code, errorMsg in
+            self.adminDataprovier.removeAdmin(userID: identifier, callback: { [weak self] code, errorMsg in
+                guard let self = self else { return }
                 if code != 0 {
-                    weakSelf?.view.makeToast(errorMsg)
+                    self.view.makeToast(errorMsg ?? "")
                 } else {
                     data.role = V2TIMGroupMemberRole.GROUP_MEMBER_ROLE_MEMBER.rawValue
                 }
-                weakSelf?.tableView.reloadData()
+                self.tableView.reloadData()
             })
         }
 
@@ -306,7 +314,7 @@ class TUIGroupMemberController_Minimalist: UIViewController, UITableViewDelegate
                 return
             }
 
-            dataProvider.loadDatas { [weak self] success, err, datas in
+            dataProvider.loadDatas { [weak self] success, _, datas in
                 guard let self = self else { return }
                 self.indicatorView.stopAnimating()
                 if !success {

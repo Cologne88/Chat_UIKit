@@ -14,4 +14,8 @@ class TUIJoinGroupMessageCellData: TUISystemMessageCellData {
         self.userIDList = []
         super.init(direction: direction)
     }
+
+    required init() {
+        fatalError("init() has not been implemented")
+    }
 }

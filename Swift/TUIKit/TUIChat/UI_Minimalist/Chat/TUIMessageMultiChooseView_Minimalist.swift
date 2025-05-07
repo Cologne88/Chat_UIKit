@@ -134,12 +134,12 @@ class TUIMessageMultiChooseView_Minimalist: UIView {
         toolView!.addSubview(titleLabel!)
 
         relayButton = UIButton(type: .custom)
-        relayButton!.setImage(UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_mutilselect_forward")), for: .normal)
+        relayButton!.setImage(UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_mutilselect_forward")), for: .normal)
         relayButton!.addTarget(self, action: #selector(onRelay(_:)), for: .touchUpInside)
         menuView!.addSubview(relayButton!)
 
         deleteButton = UIButton(type: .custom)
-        deleteButton!.setImage(UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_mutilselect_delete")), for: .normal)
+        deleteButton!.setImage(UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_mutilselect_delete")), for: .normal)
         deleteButton!.addTarget(self, action: #selector(onDelete(_:)), for: .touchUpInside)
         menuView!.addSubview(deleteButton!)
 

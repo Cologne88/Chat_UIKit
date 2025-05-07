@@ -66,7 +66,7 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
         }
     }
     
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+    override public init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupViews()
         TUITextMessageCell_Minimalist.setupNotification()
@@ -87,6 +87,7 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
         textView.delegate = self
         textView.tuiTextViewDelegate = self
         bubbleView.addSubview(textView)
+        container.bringSubviewToFront(msgStatusView)
         
         bottomContainer = UIView()
         contentView.addSubview(bottomContainer)
@@ -107,12 +108,12 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
         }
     }
     
-    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData) {
-        let param: [String: Any] = [TUICore_TUIChatExtension_BottomContainer_CellData: textData as Any]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID, parentView: bottomContainer, param: param)
+    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData?) {
+        let param: [String: Any] = ["TUICore_TUIChatExtension_BottomContainer_CellData": textData as Any]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID", parentView: bottomContainer, param: param)
     }
     
-    override public func fill(with data: TUIBubbleMessageCellData) {
+    override public func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         if let data = data as? TUITextMessageCellData {
             textData = data
@@ -120,8 +121,8 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
             voiceReadPoint.isHidden = !data.showUnreadPoint
             bottomContainer.isHidden = CGSizeEqualToSize(data.bottomContainerSize, .zero)
             
-            let textColor: UIColor = data.direction == .MsgDirectionIncoming ? TUITextMessageCell_Minimalist.incommingTextColor! : TUITextMessageCell_Minimalist.outgoingTextColor!
-            let textFont: UIFont = data.direction == .MsgDirectionIncoming ? TUITextMessageCell_Minimalist.incommingTextFont! : TUITextMessageCell_Minimalist.outgoingTextFont!
+            let textColor: UIColor = data.direction == .incoming ? TUITextMessageCell_Minimalist.incommingTextColor! : TUITextMessageCell_Minimalist.outgoingTextColor!
+            let textFont: UIFont = data.direction == .incoming ? TUITextMessageCell_Minimalist.incommingTextFont! : TUITextMessageCell_Minimalist.outgoingTextFont!
 
             textView.attributedText = data.getContentAttributedString(textFont: textFont)
             textView.textColor = textColor
@@ -166,12 +167,12 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
         let size = textData?.bottomContainerSize ?? .zero
         let offset: CGFloat = replyLineView.isHidden ? 0 : 1
         bottomContainer.snp.remakeConstraints { make in
-            if textData?.direction == .MsgDirectionIncoming {
+            if textData?.direction == .incoming {
                 make.leading.equalTo(container).offset(offset)
             } else {
                 make.trailing.equalTo(container).offset(-offset)
             }
-            make.top.equalTo(bubbleView.snp.bottom).offset(messageData.messageContainerAppendSize.height + 6)
+            make.top.equalTo(bubbleView.snp.bottom).offset((messageData?.messageContainerAppendSize.height ?? 0) + 6)
             make.size.equalTo(size)
         }
         
@@ -182,11 +183,9 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
         }
         
         for view in replyAvatarImageViews {
-            if let view = view as? UIView {
-                var newRect = view.frame
-                newRect.origin.y = bottomContainer.frame.maxY + 5
-                view.frame = newRect
-            }
+            var newRect = view.frame
+            newRect.origin.y = bottomContainer.frame.maxY + 5
+            view.frame = newRect
         }
         
         if !replyLineView.isHidden {
@@ -230,7 +229,7 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
     private static var hasSetupNotification = false
     private static func setupNotification() {
         guard !hasSetupNotification else { return }
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: Notification.Name(TUIDidApplyingThemeChangedNotfication), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: Notification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
         hasSetupNotification = true
     }
     
@@ -242,9 +241,7 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
     // MARK: - TUITextViewDelegate
 
     public func onLongPressTextViewMessage(_ textView: UITextView) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIMessageCellDelegate.onLongPressMessage(_:))) {
-            delegate.onLongPressMessage(self)
-        }
+        delegate?.onLongPressMessage(self)
     }
     
     // MARK: - TUIMessageCelllProtocol
@@ -272,7 +269,7 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
             return CGSize.zero
         }
             
-        let textFont = textCellData.direction == .MsgDirectionIncoming ? incommingTextFont! : outgoingTextFont!
+        let textFont = textCellData.direction == .incoming ? incommingTextFont! : outgoingTextFont!
         let attributeString = textCellData.getContentAttributedString(textFont: textFont)
             
         let rect = attributeString.boundingRect(with: CGSize(width: TUISwift.tTextMessageCell_Text_Width_Max(),
@@ -299,18 +296,34 @@ public class TUITextMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, UIT
         }
             
         textCellData.textSize = size
-        let y = textCellData.cellLayout.bubbleInsets.top + TUIBubbleMessageCell_Minimalist.getBubbleTop(textCellData)
-        textCellData.textOrigin = CGPoint(x: textCellData.cellLayout.bubbleInsets.left, y: y)
+        let y = (textCellData.cellLayout?.bubbleInsets.top ?? 0) + TUIBubbleMessageCell_Minimalist.getBubbleTop(data: textCellData)
+        textCellData.textOrigin = CGPoint(x: (textCellData.cellLayout?.bubbleInsets.left ?? 0), y: y)
             
-        size.height += textCellData.cellLayout.bubbleInsets.top + textCellData.cellLayout.bubbleInsets.bottom
-        size.width += textCellData.cellLayout.bubbleInsets.left + textCellData.cellLayout.bubbleInsets.right
+        size.height += (textCellData.cellLayout?.bubbleInsets.top ?? 0) + (textCellData.cellLayout?.bubbleInsets.bottom ?? 0)
+        size.width += (textCellData.cellLayout?.bubbleInsets.left ?? 0) + (textCellData.cellLayout?.bubbleInsets.right ?? 0)
             
-        if textCellData.direction == .MsgDirectionIncoming {
-            size.height = max(size.height, TUIBubbleMessageCell_Minimalist.incommingBubble.size.height)
+        if textCellData.direction == .incoming {
+            size.height = max(size.height, TUIBubbleMessageCell_Minimalist.incommingBubble?.size.height ?? 0)
         } else {
-            size.height = max(size.height, TUIBubbleMessageCell_Minimalist.outgoingBubble.size.height)
+            size.height = max(size.height, TUIBubbleMessageCell_Minimalist.outgoingBubble?.size.height ?? 0)
         }
             
         return size
+    }
+}
+
+class IUChatView_Minimalist: UIView {
+    var view: UIView!
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        self.view = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        addSubview(view)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        self.view = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        addSubview(view)
     }
 }

@@ -1,63 +1,63 @@
 import ImSDK_Plus
 import TIMCommon
 
-enum TUIConversationOnlineStatus: Int {
+public enum TUIConversationOnlineStatus: Int {
     case unknown = 0
     case online = 1
     case offline = 2
 }
 
 public class TUIConversationCellData: TUICommonCellData {
-    var conversationID: String!
-    var groupID: String?
-    var groupType: String?
-    var userID: String?
-    var avatarImage: UIImage?
-    var draftText: String?
-    var unreadCount: Int = 0
-    var subTitle: NSMutableAttributedString?
-    var atTipsStr: String?
-    var atMsgSeqs: [NSNumber]?
-    var time: Date?
-    var isOnTop: Bool = false
-    var showCheckBox: Bool = false
-    var disableSelected: Bool = false
-    var selected: Bool = false
-    var isLiteMode: Bool = false
-    var isNotDisturb: Bool = false
-    var orderKey: UInt = 0
-    var conversationGroupList: [String]?
-    var conversationMarkList: [NSNumber]?
-    var onlineStatus: TUIConversationOnlineStatus = .unknown
-    var isMarkAsUnread: Bool = false
-    var isMarkAsHide: Bool = false
-    var isMarkAsFolded: Bool = false
-    var isLocalConversationFoldList: Bool = false
-    var foldSubTitle: NSMutableAttributedString?
-    var lastMessage: V2TIMMessage?
-    var innerConversation: V2TIMConversation?
+    public var conversationID: String!
+    public var groupID: String?
+    public var groupType: String?
+    public var userID: String?
+    public var avatarImage: UIImage?
+    public var draftText: String?
+    public var unreadCount: Int = 0
+    public var subTitle: NSMutableAttributedString?
+    public var atTipsStr: String?
+    public var atMsgSeqs: [NSNumber]?
+    public var time: Date?
+    public var isOnTop: Bool = false
+    public var showCheckBox: Bool = false
+    public var disableSelected: Bool = false
+    public var selected: Bool = false
+    public var isLiteMode: Bool = false
+    public var isNotDisturb: Bool = false
+    public var orderKey: UInt = 0
+    public var conversationGroupList: [String]?
+    public var conversationMarkList: [NSNumber]?
+    public var onlineStatus: TUIConversationOnlineStatus = .unknown
+    public var isMarkAsUnread: Bool = false
+    public var isMarkAsHide: Bool = false
+    public var isMarkAsFolded: Bool = false
+    public var isLocalConversationFoldList: Bool = false
+    public var foldSubTitle: NSMutableAttributedString?
+    public var lastMessage: V2TIMMessage?
+    public var innerConversation: V2TIMConversation?
 
-    var title: Observable<String> = Observable("")
-    var faceUrl: Observable<String> = Observable("")
+    @objc dynamic var title: String?
+    @objc dynamic var faceUrl: String?
 
     override public required init() {
         super.init()
     }
 
-    class func isMarkedByHideType(_ markList: [NSNumber]?) -> Bool {
+    public class func isMarkedByHideType(_ markList: [NSNumber]?) -> Bool {
         guard let markList = markList else { return false }
         for num in markList {
-            if num == NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_HIDE.rawValue) {
+            if num.intValue == V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_HIDE.rawValue {
                 return true
             }
         }
         return false
     }
 
-    class func isMarkedByUnReadType(_ markList: [NSNumber]?) -> Bool {
+    public class func isMarkedByUnReadType(_ markList: [NSNumber]?) -> Bool {
         guard let markList = markList else { return false }
         for num in markList {
-            if num == NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue) {
+            if num.intValue == V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue {
                 return true
             }
         }
@@ -67,7 +67,7 @@ public class TUIConversationCellData: TUICommonCellData {
     class func isMarkedByFoldType(_ markList: [NSNumber]?) -> Bool {
         guard let markList = markList else { return false }
         for num in markList {
-            if num == NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue) {
+            if num.intValue == V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue {
                 return true
             }
         }

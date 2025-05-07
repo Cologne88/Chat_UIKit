@@ -9,19 +9,34 @@ private enum TUIRecordStatus: Int {
     case cancel
 }
 
-@objc protocol TUIInputBarDelegate: NSObjectProtocol {
-    @objc optional func inputBarDidTouchFace(_ textView: TUIInputBar)
-    @objc optional func inputBarDidTouchMore(_ textView: TUIInputBar)
-    @objc optional func inputBarDidTouchVoice(_ textView: TUIInputBar)
-    @objc optional func inputBarDidChangeInputHeight(_ textView: TUIInputBar, offset: CGFloat)
-    @objc optional func inputBarDidSendText(_ textView: TUIInputBar, text: String)
-    @objc optional func inputBarDidSendVoice(_ textView: TUIInputBar, path: String)
-    @objc optional func inputBarDidInputAt(_ textView: TUIInputBar)
-    @objc optional func inputBarDidDeleteAt(_ textView: TUIInputBar, text: String)
-    @objc optional func inputBarDidTouchKeyboard(_ textView: TUIInputBar)
-    @objc optional func inputBarDidDeleteBackward(_ textView: TUIInputBar)
-    @objc optional func inputTextViewShouldBeginTyping(_ textView: UITextView)
-    @objc optional func inputTextViewShouldEndTyping(_ textView: UITextView)
+protocol TUIInputBarDelegate: AnyObject {
+    func inputBarDidTouchFace(_ textView: TUIInputBar)
+    func inputBarDidTouchMore(_ textView: TUIInputBar)
+    func inputBarDidTouchVoice(_ textView: TUIInputBar)
+    func inputBarDidChangeInputHeight(_ textView: TUIInputBar, offset: CGFloat)
+    func inputBarDidSendText(_ textView: TUIInputBar, text: String)
+    func inputBarDidSendVoice(_ textView: TUIInputBar, path: String)
+    func inputBarDidInputAt(_ textView: TUIInputBar)
+    func inputBarDidDeleteAt(_ textView: TUIInputBar, text: String)
+    func inputBarDidTouchKeyboard(_ textView: TUIInputBar)
+    func inputBarDidDeleteBackward(_ textView: TUIInputBar)
+    func inputTextViewShouldBeginTyping(_ textView: UITextView)
+    func inputTextViewShouldEndTyping(_ textView: UITextView)
+}
+
+extension TUIInputBarDelegate {
+    func inputBarDidTouchFace(_ textView: TUIInputBar) {}
+    func inputBarDidTouchMore(_ textView: TUIInputBar) {}
+    func inputBarDidTouchVoice(_ textView: TUIInputBar) {}
+    func inputBarDidChangeInputHeight(_ textView: TUIInputBar, offset: CGFloat) {}
+    func inputBarDidSendText(_ textView: TUIInputBar, text: String) {}
+    func inputBarDidSendVoice(_ textView: TUIInputBar, path: String) {}
+    func inputBarDidInputAt(_ textView: TUIInputBar) {}
+    func inputBarDidDeleteAt(_ textView: TUIInputBar, text: String) {}
+    func inputBarDidTouchKeyboard(_ textView: TUIInputBar) {}
+    func inputBarDidDeleteBackward(_ textView: TUIInputBar) {}
+    func inputTextViewShouldBeginTyping(_ textView: UITextView) {}
+    func inputTextViewShouldEndTyping(_ textView: UITextView) {}
 }
 
 class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResponderTextViewDelegate {
@@ -98,7 +113,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         setupViews()
         defaultLayout()
 
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: Notification.Name(TUIDidApplyingThemeChangedNotfication), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: Notification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
     }
 
     @available(*, unavailable)
@@ -137,8 +152,8 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         addSubview(keyboardButton)
 
         moreButton.addTarget(self, action: #selector(onMoreButtonClicked(_:)), for: .touchUpInside)
-        moreButton.setImage(getImageFromCache("TypeSelectorBtnHL_Black"), for: .normal)
-        moreButton.setImage(getImageFromCache("TypeSelectorBtnHL_Black"), for: .highlighted)
+        moreButton.setImage(TUISwift.tuiChatBundleThemeImage("chat_TypeSelectorBtn_Black_img", defaultImage: "TypeSelectorBtn_Black"), for: .normal)
+        moreButton.setImage(TUISwift.tuiChatBundleThemeImage("chat_TypeSelectorBtnHL_Black_img", defaultImage: "TypeSelectorBtnHL_Black"), for: .highlighted)
         addSubview(moreButton)
 
         recordButton.titleLabel?.font = UIFont.systemFont(ofSize: 15.0)
@@ -179,7 +194,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         lineView.snp.remakeConstraints { make in
             make.top.equalTo(0)
             make.leading.width.equalToSuperview()
-            make.height.equalTo(TLine_Heigh)
+            make.height.equalTo(TUISwift.tLine_Height())
         }
 
         let buttonSize = TUISwift.tTextView_Button_Size()
@@ -200,7 +215,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         }
 
         faceButton.snp.remakeConstraints { make in
-            make.trailing.equalTo(moreButton.snp.leading).offset(-TUISwift.tTextView_Margin())
+            make.trailing.equalTo(moreButton.snp.leading).offset(-CGFloat(TTextView_Margin))
             make.size.equalTo(buttonSize)
             make.centerY.equalToSuperview()
         }
@@ -231,7 +246,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         self.frame = frame
 
         let buttonSize = TUISwift.tTextView_Button_Size()
-        let bottomMargin = (TUISwift.tTextView_Height() - buttonSize.height) * 0.5
+        let bottomMargin = (CGFloat(TTextView_Height) - buttonSize.height) * 0.5
         let originY = frame.height - buttonSize.height - bottomMargin
 
         faceButton.frame.origin.y = originY
@@ -242,15 +257,15 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
             make.edges.equalTo(faceButton)
         }
 
-        delegate?.inputBarDidChangeInputHeight?(self, offset: offset)
+        delegate?.inputBarDidChangeInputHeight(self, offset: offset)
     }
 
     func getImageFromCache(_ path: String) -> UIImage {
-        return TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath(path))
+        return TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath(path)) ?? UIImage()
     }
 
     func getStickerFromCache(_ path: String) -> UIImage {
-        return TUIImageCache.sharedInstance().getFaceFromCache(path)
+        return TUIImageCache.sharedInstance().getFaceFromCache(path) ?? UIImage()
     }
 
     // MARK: - Evevnt
@@ -266,8 +281,8 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         keyboardButton.isHidden = false
         faceButton.isHidden = false
         inputTextView.resignFirstResponder()
-        layoutButton(height: TUISwift.tTextView_Height())
-        delegate?.inputBarDidTouchVoice?(self)
+        layoutButton(height: CGFloat(TTextView_Height))
+        delegate?.inputBarDidTouchVoice(self)
         keyboardButton.snp.remakeConstraints { make in
             make.edges.equalTo(micButton)
         }
@@ -279,8 +294,8 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         recordButton.isHidden = true
         inputTextView.isHidden = false
         faceButton.isHidden = false
-        layoutButton(height: inputTextView.frame.size.height + 2 * TUISwift.tTextView_Margin())
-        delegate?.inputBarDidTouchKeyboard?(self)
+        layoutButton(height: inputTextView.frame.size.height + 2 * CGFloat(TTextView_Margin))
+        delegate?.inputBarDidTouchKeyboard(self)
     }
 
     @objc func onFaceEmojiButtonClicked(_ sender: UIButton) {
@@ -289,14 +304,14 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         keyboardButton.isHidden = false
         recordButton.isHidden = true
         inputTextView.isHidden = false
-        delegate?.inputBarDidTouchFace?(self)
+        delegate?.inputBarDidTouchFace(self)
         keyboardButton.snp.remakeConstraints { make in
             make.edges.equalTo(faceButton)
         }
     }
 
     @objc func onMoreButtonClicked(_ sender: UIButton) {
-        delegate?.inputBarDidTouchMore?(self)
+        delegate?.inputBarDidTouchMore(self)
     }
 
     @objc func onRecordButtonTouchDown(_ sender: UIButton) {
@@ -323,13 +338,13 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
                 self.recordView = nil
             }
         } else {
+            if _recordView != nil {
+                recordView?.removeFromSuperview()
+                recordView = nil
+            }
             DispatchQueue.main.async {
-                self.recordView?.removeFromSuperview()
-                self.recordView = nil
-                DispatchQueue.main.async {
-                    self.recorder.stop()
-                    self.delegate?.inputBarDidSendVoice?(self, path: self.recorder.recordedFilePath)
-                }
+                self.recorder.stop()
+                _ = self.delegate?.inputBarDidSendVoice(self, path: self.recorder.recordedFilePath)
             }
         }
     }
@@ -368,22 +383,22 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         })
 
         if isFocusOn && textView.textStorage.tui_getPlainString().count > 0 {
-            delegate?.inputTextViewShouldBeginTyping?(textView)
+            delegate?.inputTextViewShouldBeginTyping(textView)
         }
     }
 
     func textViewDidEndEditing(_ textView: UITextView) {
         isFocusOn = false
-        delegate?.inputTextViewShouldEndTyping?(textView)
+        delegate?.inputTextViewShouldEndTyping(textView)
     }
 
     func textViewDidChange(_ textView: UITextView) {
         if allowSendTypingStatusByChangeWord && isFocusOn && textView.textStorage.tui_getPlainString().count > 0 {
-            delegate?.inputTextViewShouldBeginTyping?(textView)
+            delegate?.inputTextViewShouldBeginTyping(textView)
         }
 
         if isFocusOn && textView.textStorage.tui_getPlainString().count == 0 {
-            delegate?.inputTextViewShouldEndTyping?(textView)
+            delegate?.inputTextViewShouldEndTyping(textView)
         }
         if let inputBarTextChanged = inputBarTextChanged {
             inputBarTextChanged(inputTextView)
@@ -420,7 +435,8 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
                 textView.textStorage.deleteCharacters(in: selectedRange)
             }
 
-            let textChange = text.getAdvancedFormatEmojiString(with: normalFont, textColor: normalColor, emojiLocations: nil)
+            var locations: [[NSValue: NSAttributedString]]? = nil
+            let textChange = text.getAdvancedFormatEmojiString(withFont: normalFont, textColor: normalColor, emojiLocations: &locations)
             textView.textStorage.insert(textChange, at: textView.textStorage.length)
             DispatchQueue.main.async {
                 self.inputTextView.selectedRange = NSRange(location: self.inputTextView.textStorage.length + 1, length: 0)
@@ -429,16 +445,14 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         }
 
         if text == "\n" {
-            if let delegate = delegate, delegate.responds(to: #selector(TUIInputBarDelegate.inputBarDidSendText(_:text:))) {
-                let sp = textView.textStorage.tui_getPlainString().trimmingCharacters(in: .whitespaces)
-                if sp.count == 0 {
-                    let ac = UIAlertController(title: TUISwift.timCommonLocalizableString("TUIKitInputBlankMessageTitle"), message: nil, preferredStyle: .alert)
-                    ac.tuitheme_addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Confirm"), style: .default, handler: nil))
-                    mm_viewController.present(ac, animated: true, completion: nil)
-                } else {
-                    delegate.inputBarDidSendText!(self, text: textView.textStorage.tui_getPlainString())
-                    clearInput()
-                }
+            let sp = textView.textStorage.tui_getPlainString().trimmingCharacters(in: .whitespaces)
+            if sp.count == 0 {
+                let ac = UIAlertController(title: TUISwift.timCommonLocalizableString("TUIKitInputBlankMessageTitle"), message: nil, preferredStyle: .alert)
+                ac.tuitheme_addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Confirm"), style: .default, handler: nil))
+                mm_viewController?.present(ac, animated: true, completion: nil)
+            } else {
+                delegate?.inputBarDidSendText(self, text: textView.textStorage.tui_getPlainString())
+                clearInput()
             }
             return false
         } else if text == "" {
@@ -466,7 +480,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
                                     let textFont = normalFont
                                     let spaceString = NSAttributedString(string: "", attributes: [NSAttributedString.Key.font: textFont])
                                     textView.textStorage.replaceCharacters(in: NSRange(location: location, length: length), with: spaceString)
-                                    delegate?.inputBarDidDeleteAt?(self, text: atText)
+                                    delegate?.inputBarDidDeleteAt(self, text: atText)
                                     return false
                                 } else if firstCharAscii == space {
                                     // Avoid "@nickname Hello, nice to meet you (space) "" Press del after a space to over-delete to @
@@ -480,7 +494,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         }
         // Monitor the input of @ character, including full-width/half-width
         else if text == "@" || text == "＠" {
-            delegate?.inputBarDidInputAt?(self)
+            delegate?.inputBarDidInputAt(self)
             return false
         }
         return true
@@ -489,7 +503,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
     // MARK: - TUIResponderTextViewDelegate
 
     func onDeleteBackward(_ textView: TUIResponderTextView) {
-        delegate?.inputBarDidDeleteBackward?(self)
+        delegate?.inputBarDidDeleteBackward(self)
     }
 
     // MARK: - Other
@@ -510,10 +524,10 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
 
         // Set tag and image
         emojiTextAttachment.emojiTag = emoji.name
-        emojiTextAttachment.image = getStickerFromCache(emoji.path)
+        emojiTextAttachment.image = getStickerFromCache(emoji.path ?? "")
 
         // Set emoji size
-        emojiTextAttachment.emojiSize = TUISwift.timDefaultEmojiSize()
+        emojiTextAttachment.emojiSize = kTIMDefaultEmojiSize
         let str = NSAttributedString(attachment: emojiTextAttachment)
 
         let selectedRange = inputTextView.selectedRange
@@ -526,7 +540,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
         inputTextView.selectedRange = NSRange(location: inputTextView.selectedRange.location + 1, length: 0)
         resetTextStyle()
 
-        if inputTextView.contentSize.height > TUISwift.tTextView_TextView_Height_Max() {
+        if inputTextView.contentSize.height > CGFloat(TTextView_TextView_Height_Max) {
             let offset = inputTextView.contentSize.height - inputTextView.frame.size.height
             inputTextView.scrollRectToVisible(CGRect(x: 0, y: offset, width: inputTextView.frame.size.width, height: inputTextView.frame.size.height), animated: true)
         }
@@ -622,7 +636,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
                                        }
                                    }))
         DispatchQueue.main.async {
-            self.mm_viewController.present(ac, animated: true, completion: nil)
+            self.mm_viewController?.present(ac, animated: true, completion: nil)
         }
     }
 
@@ -661,7 +675,7 @@ class TUIInputBar: UIView, UITextViewDelegate, TUIAudioRecorderDelegate, TUIResp
                 self?.recordView = nil
             }
 
-            delegate?.inputBarDidSendVoice?(self, path: path)
+            delegate?.inputBarDidSendVoice(self, path: path)
         }
     }
 }

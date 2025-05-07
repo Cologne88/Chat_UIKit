@@ -20,7 +20,7 @@ public class ConversationController: UIViewController, V2TIMSDKListener, TUIPopV
 
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-        V2TIMManager.sharedInstance().add(self)
+       V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
     }
 
     @available(*, unavailable)
@@ -51,7 +51,7 @@ public class ConversationController: UIViewController, V2TIMSDKListener, TUIPopV
 
     private func setupNavigation() {
         let moreButton = UIButton(type: .custom)
-        moreButton.setImage(TUISwift.tuiCoreDynamicImage("nav_more_img", defaultImage: UIImage(named: TUISwift.tuiCoreImagePath("more"))), for: .normal)
+        moreButton.setImage(TUISwift.tuiCoreDynamicImage("nav_more_img", defaultImage: UIImage.safeImage(TUISwift.tuiCoreImagePath("more"))), for: .normal)
         moreButton.addTarget(self, action: #selector(rightBarButtonClick(_:)), for: .touchUpInside)
         moreButton.imageView?.contentMode = .scaleAspectFit
         moreButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
@@ -66,16 +66,16 @@ public class ConversationController: UIViewController, V2TIMSDKListener, TUIPopV
     }
 
     @objc private func rightBarButtonClick(_ rightBarButton: UIButton) {
-        var menus = NSMutableArray()
+        var menus = [TUIPopCellData]()
         let friend = TUIPopCellData()
-        friend.image = TUISwift.tuiConversationDynamicImage("pop_icon_new_chat_img", defaultImage: UIImage(named: TUISwift.tuiConversationImagePath("new_chat")))
+        friend.image = TUISwift.tuiConversationDynamicImage("pop_icon_new_chat_img", defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath("new_chat")))
         friend.title = TUISwift.timCommonLocalizableString("ChatsNewChatText")
-        menus.add(friend)
+        menus.append(friend)
 
         let group = TUIPopCellData()
-        group.image = TUISwift.tuiConversationDynamicImage("pop_icon_new_group_img", defaultImage: UIImage(named: TUISwift.tuiConversationImagePath("new_groupchat")))
+        group.image = TUISwift.tuiConversationDynamicImage("pop_icon_new_group_img", defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath("new_groupchat")))
         group.title = TUISwift.timCommonLocalizableString("ChatsNewGroupText")
-        menus.add(group)
+        menus.append(group)
 
         let height = TUIPopCell.getHeight() * CGFloat(menus.count) + TUISwift.tuiPopView_Arrow_Size().height
         let orginY = TUISwift.statusBar_Height() + TUISwift.navBar_Height()
@@ -89,16 +89,18 @@ public class ConversationController: UIViewController, V2TIMSDKListener, TUIPopV
         }
         popView.delegate = self
         popView.setData(menus)
-        popView.show(in: view.window!)
+        if let window = view.window {
+            popView.showInWindow(window)
+        }
     }
 
     // MARK: - TUIPopViewDelegate
 
     public func popView(_ popView: TUIPopView, didSelectRowAt index: Int) {
         if index == 0 {
-            conv?.startConversation(V2TIMConversationType.C2C)
+            conv?.startConversation(.C2C)
         } else {
-            conv?.startConversation(V2TIMConversationType.GROUP)
+            conv?.startConversation(.GROUP)
         }
     }
 
@@ -152,7 +154,7 @@ public class ConversationController: UIViewController, V2TIMSDKListener, TUIPopV
         titleView?.stopAnimating()
     }
 
-    public func onConnectFailed(_ code: Int32, err: String) {
+    public func onConnectFailed(_ code: Int32, err: String?) {
         titleViewTitle = TUISwift.timCommonLocalizableString("TIMAppMainDisconnectTitle")
         titleView?.setTitle(titleViewTitle ?? "")
         titleView?.stopAnimating()

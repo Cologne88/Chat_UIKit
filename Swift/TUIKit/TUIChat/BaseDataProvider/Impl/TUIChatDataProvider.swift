@@ -18,17 +18,17 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
         welcomeInputMoreMenu.image = TUISwift.tuiChatBundleThemeImage("chat_more_link_img", defaultImage: "chat_more_link_img")
         welcomeInputMoreMenu.onClicked = { [weak self] _ in
             guard let self = self else { return }
-            let text = TUISwift.timCommonLocalizableString("TUIKitWelcome") ?? ""
+            let text = TUISwift.timCommonLocalizableString("TUIKitWelcome")
             var link = TUITencentCloudHomePageEN
             let language = TUIGlobalization.getPreferredLanguage() ?? ""
             if language.contains("zh-") {
                 link = TUITencentCloudHomePageCN
             }
             do {
-                let param: [String: Any] = [BussinessID: BussinessID_TextLink, "text": text, "link": link]
+                let param: [String: Any] = ["businessID": "text_link", "text": text, "link": link]
                 let data = try JSONSerialization.data(withJSONObject: param, options: [])
                 let message = TUIMessageDataProvider.getCustomMessageWithJsonData(data, desc: text, extensionInfo: text)
-                self.delegate?.dataProvider?(self, sendMessage: message)
+                self.delegate?.dataProvider(self, sendMessage: message)
             } catch {
                 print("[\(self)] Post Json Error")
             }
@@ -76,17 +76,17 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
 
         var extensionParam: [String: Any] = [:]
         if !userID.isEmpty {
-            extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_UserID] = userID
+            extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_UserID"] = userID
         } else if !groupID.isEmpty {
-            extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_GroupID] = groupID
+            extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_GroupID"] = groupID
         }
-        extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_FilterVideoCall] = !isNeedVideoCall
-        extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_FilterAudioCall] = !isNeedAudioCall
-        extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_FilterRoom] = !isNeedRoom
-        extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_FilterPoll] = !isNeedPoll
-        extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_FilterGroupNote] = !isNeedGroupNote
-        extensionParam[TUICore_TUIChatExtension_InputViewMoreItem_ActionVC] = actionController
-        let extensionList = TUICore.getExtensionList(TUICore_TUIChatExtension_InputViewMoreItem_ClassicExtensionID, param: extensionParam)
+        extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_FilterVideoCall"] = !isNeedVideoCall
+        extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_FilterAudioCall"] = !isNeedAudioCall
+        extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_FilterRoom"] = !isNeedRoom
+        extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_FilterPoll"] = !isNeedPoll
+        extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_FilterGroupNote"] = !isNeedGroupNote
+        extensionParam["TUICore_TUIChatExtension_InputViewMoreItem_ActionVC"] = actionController
+        let extensionList = TUICore.getExtensionList("TUICore_TUIChatExtension_InputViewMoreItem_ClassicExtensionID", param: extensionParam)
         for info in extensionList {
             assert(info.icon != nil && info.text != nil && info.onClicked != nil, "extension for input view is invalid, check icon/text/onclick")
             if let icon = info.icon, let text = info.text, let onClicked = info.onClicked {
@@ -119,17 +119,17 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
         var items: [TUICustomActionSheetItem] = []
         var param: [String: Any] = [:]
         if !userID.isEmpty {
-            param[TUICore_TUIChatExtension_InputViewMoreItem_UserID] = userID
+            param["TUICore_TUIChatExtension_InputViewMoreItem_UserID"] = userID
         } else if !groupID.isEmpty {
-            param[TUICore_TUIChatExtension_InputViewMoreItem_GroupID] = groupID
+            param["TUICore_TUIChatExtension_InputViewMoreItem_GroupID"] = groupID
         }
-        param[TUICore_TUIChatExtension_InputViewMoreItem_FilterVideoCall] = !TUIChatConfig.shared.enableVideoCall
-        param[TUICore_TUIChatExtension_InputViewMoreItem_FilterAudioCall] = !TUIChatConfig.shared.enableAudioCall
+        param["TUICore_TUIChatExtension_InputViewMoreItem_FilterVideoCall"] = !TUIChatConfig.shared.enableVideoCall
+        param["TUICore_TUIChatExtension_InputViewMoreItem_FilterAudioCall"] = !TUIChatConfig.shared.enableAudioCall
         if let pushVC = pushVC {
-            param[TUICore_TUIChatExtension_InputViewMoreItem_PushVC] = pushVC
+            param["TUICore_TUIChatExtension_InputViewMoreItem_PushVC"] = pushVC
         }
-        param[TUICore_TUIChatExtension_InputViewMoreItem_ActionVC] = actionController
-        let extensionList = TUICore.getExtensionList(TUICore_TUIChatExtension_InputViewMoreItem_MinimalistExtensionID, param: param)
+        param["TUICore_TUIChatExtension_InputViewMoreItem_ActionVC"] = actionController
+        let extensionList = TUICore.getExtensionList("TUICore_TUIChatExtension_InputViewMoreItem_MinimalistExtensionID", param: param)
         for info in extensionList {
             if let icon = info.icon, let text = info.text, let onClicked = info.onClicked {
                 let item = TUICustomActionSheetItem(title: text, leftMark: icon) { _ in
@@ -175,7 +175,7 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
         albumData.image = TUISwift.tuiChatBundleThemeImage("chat_more_picture_img", defaultImage: "more_picture")
         albumData.onClicked = { [weak self] _ in
             guard let self = self else { return }
-            self.delegate?.onSelectPhotoMoreCellData?()
+            self.delegate?.onSelectPhotoMoreCellData()
         }
 
         let takePictureData = TUIInputMoreCellData()
@@ -184,7 +184,7 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
         takePictureData.image = TUISwift.tuiChatBundleThemeImage("chat_more_camera_img", defaultImage: "more_camera")
         takePictureData.onClicked = { [weak self] _ in
             guard let self = self else { return }
-            self.delegate?.onTakePictureMoreCellData?()
+            self.delegate?.onTakePictureMoreCellData()
         }
 
         let videoData = TUIInputMoreCellData()
@@ -193,7 +193,7 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
         videoData.image = TUISwift.tuiChatBundleThemeImage("chat_more_video_img", defaultImage: "more_video")
         videoData.onClicked = { [weak self] _ in
             guard let self = self else { return }
-            self.delegate?.onTakeVideoMoreCellData?()
+            self.delegate?.onTakeVideoMoreCellData()
         }
 
         let fileData = TUIInputMoreCellData()
@@ -202,7 +202,7 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
         fileData.image = TUISwift.tuiChatBundleThemeImage("chat_more_file_img", defaultImage: "more_file")
         fileData.onClicked = { [weak self] _ in
             guard let self = self else { return }
-            self.delegate?.onSelectFileMoreCellData?()
+            self.delegate?.onSelectFileMoreCellData()
         }
 
         var formatArray: [TUIInputMoreCellData] = []
@@ -233,36 +233,36 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
             let showFile = TUIChatConfig.shared.showFileButton && model.enableFile
 
             if showAlbum {
-                let album = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMorePhoto"), leftMark: UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_more_photo"))!) { [weak self] _ in
+                let album = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMorePhoto"), leftMark: UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_more_photo"))) { [weak self] _ in
                     guard let self = self else { return }
-                    self.delegate?.onSelectPhotoMoreCellData?()
+                    self.delegate?.onSelectPhotoMoreCellData()
                 }
                 album.priority = 1000
                 self.builtInInputMoreActionItemList.append(album)
             }
 
             if showTakePhoto {
-                let takePhoto = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreCamera"), leftMark: UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_more_camera"))!) { [weak self] _ in
+                let takePhoto = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreCamera"), leftMark: UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_more_camera"))) { [weak self] _ in
                     guard let self = self else { return }
-                    self.delegate?.onTakePictureMoreCellData?()
+                    self.delegate?.onTakePictureMoreCellData()
                 }
                 takePhoto.priority = 900
                 self.builtInInputMoreActionItemList.append(takePhoto)
             }
 
             if showRecordVideo {
-                let recordVideo = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreVideo"), leftMark: UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_more_video"))!) { [weak self] _ in
+                let recordVideo = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreVideo"), leftMark: UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_more_video"))) { [weak self] _ in
                     guard let self = self else { return }
-                    self.delegate?.onTakeVideoMoreCellData?()
+                    self.delegate?.onTakeVideoMoreCellData()
                 }
                 recordVideo.priority = 800
                 self.builtInInputMoreActionItemList.append(recordVideo)
             }
 
             if showFile {
-                let file = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreFile"), leftMark: UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_more_document"))!) { [weak self] _ in
+                let file = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreFile"), leftMark: UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_more_document"))) { [weak self] _ in
                     guard let self = self else { return }
-                    self.delegate?.onSelectFileMoreCellData?()
+                    self.delegate?.onSelectFileMoreCellData()
                 }
                 file.priority = 700
                 self.builtInInputMoreActionItemList.append(file)
@@ -277,19 +277,19 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
 
             let showCustom = TUIChatConfig.shared.enableWelcomeCustomMessage && model.enableWelcomeCustomMessage
             if showCustom {
-                let link = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreLink"), leftMark: UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_more_custom"))!) { [weak self] _ in
+                let link = TUICustomActionSheetItem(title: TUISwift.timCommonLocalizableString("TUIKitMoreLink"), leftMark: UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_more_custom"))) { [weak self] _ in
                     guard let self else { return }
-                    let text = TUISwift.timCommonLocalizableString("TUIKitWelcome") ?? ""
+                    let text = TUISwift.timCommonLocalizableString("TUIKitWelcome")
                     var homePageLink = TUITencentCloudHomePageEN
                     let language = TUIGlobalization.getPreferredLanguage() ?? ""
                     if language.contains("zh-") {
                         homePageLink = TUITencentCloudHomePageCN
                     }
                     do {
-                        let param: [String: Any] = [BussinessID: BussinessID_TextLink, "text": text, "link": homePageLink]
+                        let param: [String: Any] = ["businessID": "text_link", "text": text, "link": homePageLink]
                         let data = try JSONSerialization.data(withJSONObject: param, options: [])
                         let message = TUIMessageDataProvider.getCustomMessageWithJsonData(data, desc: text, extensionInfo: text)
-                        self.delegate?.dataProvider?(self, sendMessage: message)
+                        self.delegate?.dataProvider(self, sendMessage: message)
                     } catch {
                         print("[\(self)] Post Json Error")
                     }
@@ -331,7 +331,7 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
         if message.elemType == .ELEM_TYPE_TEXT, let textElem = message.textElem {
             str = textElem.text
         } else {
-            str = TUIMessageDataProvider.getDisplayString(message)
+            str = TUIMessageDataProvider.getDisplayString(message: message)
         }
         return str ?? ""
     }
@@ -365,10 +365,10 @@ class TUIChatDataProvider: TUIChatBaseDataProvider {
     }
 
     static func isFaceStrKey(strkey: String) -> Bool {
-        guard let service = TIMCommonMediator.share().getObject(TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol else {
+        guard let service = TIMCommonMediator.shared.getObject(for: TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol else {
             return false
         }
-        if let groups = service.getFaceGroup() as? [TUIFaceGroup], let firstGroup = groups.first, firstGroup.facesMap[strkey] != nil {
+        if let groups = service.getFaceGroup(), let firstGroup = groups.first, firstGroup.facesMap[strkey] != nil {
             return true
         } else {
             return false

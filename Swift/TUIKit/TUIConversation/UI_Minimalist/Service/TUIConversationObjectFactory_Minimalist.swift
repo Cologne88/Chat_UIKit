@@ -9,17 +9,17 @@ import TUICore
  *
  * You can call the service through the [TUICore createObject:..] method. The different service parameters are as follows:
  * > Create a conversation list:
- * factoryName: TUICore_TUIConversationObjectFactory_Minimalist
- * key: TUICore_TUIConversationObjectFactory_GetConversationControllerMethod
+ * factoryName: "TUICore_TUIConversationObjectFactory_Minimalist"
+ * key: "TUICore_TUIConversationObjectFactory_GetConversationControllerMethod"
  *
  * > Create conversation selector:
- * factoryName: TUICore_TUIConversationObjectFactory_Minimalist
- * key: TUICore_TUIConversationObjectFactory_ConversationSelectVC_Minimalist
+ * factoryName: "TUICore_TUIConversationObjectFactory_Minimalist"
+ * key: "TUICore_TUIConversationObjectFactory_ConversationSelectVC_Minimalist"
  *
  */
 public class TUIConversationObjectFactory_Minimalist: NSObject, TUIObjectProtocol {
     @objc public class func swiftLoad() {
-        TUICore.registerObjectFactory(TUICore_TUIConversationObjectFactory_Minimalist, objectFactory: shared)
+        TUICore.registerObjectFactory("TUICore_TUIConversationObjectFactory_Minimalist", objectFactory: shared)
     }
 
     static let shared: TUIConversationObjectFactory_Minimalist = {
@@ -30,9 +30,9 @@ public class TUIConversationObjectFactory_Minimalist: NSObject, TUIObjectProtoco
     override private init() {}
 
     public func onCreateObject(_ method: String, param: [AnyHashable: Any]?) -> Any? {
-        if method == TUICore_TUIConversationObjectFactory_GetConversationControllerMethod {
+        if method == "TUICore_TUIConversationObjectFactory_GetConversationControllerMethod" {
             return createConversationController()
-        } else if method == TUICore_TUIConversationObjectFactory_ConversationSelectVC_Minimalist {
+        } else if method == "TUICore_TUIConversationObjectFactory_ConversationSelectVC_Minimalist" {
             return createConversationSelectController()
         }
         return nil

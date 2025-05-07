@@ -16,7 +16,7 @@ class TUIConversationListDataProvider_Minimalist: TUIConversationListBaseDataPro
 
         var messageList = [V2TIMMessage]()
         for cellData in allConversationList {
-            if let lastMessage = cellData.lastMessage, let _ = lastMessage.msgID {
+            if let lastMessage = cellData.lastMessage {
                 messageList.append(lastMessage)
             }
         }
@@ -25,8 +25,8 @@ class TUIConversationListDataProvider_Minimalist: TUIConversationListBaseDataPro
             return
         }
 
-        let param: [String: Any] = [TUICore_TUIChatService_AsyncGetDisplayStringMethod_MsgListKey: messageList]
-        TUICore.callService(TUICore_TUIChatService_Minimalist, method: TUICore_TUIChatService_AsyncGetDisplayStringMethod, param: param) { [weak self] errorCode, _, param in
+        let param: [String: Any] = ["TUICore_TUIChatService_AsyncGetDisplayStringMethod_MsgListKey": messageList]
+        TUICore.callService("TUICore_TUIChatService_Minimalist", method: "TUICore_TUIChatService_AsyncGetDisplayStringMethod", param: param) { [weak self] errorCode, _, param in
             guard let self = self else { return }
             guard errorCode == 0 else { return }
 
@@ -42,7 +42,7 @@ class TUIConversationListDataProvider_Minimalist: TUIConversationListBaseDataPro
             // Refresh if needed
             var needRefreshConvList = [TUIConversationCellData]()
             for cellData in allConversationList {
-                if let lastMessage = cellData.lastMessage, let innerConversation = cellData.innerConversation, let msgID = lastMessage.msgID, param.contains(where: { $0.key as? String == msgID }) {
+                if let lastMessage = cellData.lastMessage, let innerConversation = cellData.innerConversation, param.contains(where: { $0.key as? String == lastMessage.msgID }) {
                     cellData.subTitle = self.getLastDisplayString(innerConversation)
                     cellData.foldSubTitle = self.getLastDisplayStringForFoldList(innerConversation)
                     needRefreshConvList.append(cellData)
@@ -59,15 +59,14 @@ class TUIConversationListDataProvider_Minimalist: TUIConversationListBaseDataPro
     }
 
     override func getDisplayStringFromService(_ msg: V2TIMMessage) -> String {
-        guard let msgID = msg.msgID else { return "" }
         // from cache
-        if let displayString = self.lastMessageDisplayMap?[msgID] {
+        if let msgID = msg.msgID, let displayString = self.lastMessageDisplayMap?[msgID] {
             return displayString
         }
 
         // from TUIChat
-        let param: [String: Any] = [TUICore_TUIChatService_GetDisplayStringMethod_MsgKey: msg]
-        if let result = TUICore.callService(TUICore_TUIChatService_Minimalist, method: TUICore_TUIChatService_GetDisplayStringMethod, param: param) as? String {
+        let param: [String: Any] = ["msg": msg]
+        if let result = TUICore.callService("TUICore_TUIChatService_Minimalist", method: "TUICore_TUIChatService_GetDisplayStringMethod", param: param) as? String {
             return result
         }
         return ""
@@ -82,11 +81,14 @@ class TUIConversationListDataProvider_Minimalist: TUIConversationListBaseDataPro
         let attributeDict: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.d_systemRed()]
         attributeString.setAttributes(attributeDict, range: NSRange(location: 0, length: attributeString.length))
 
+        let hasRiskContent = conv.lastMessage?.hasRiskContent ?? false
+        let isRevoked = conv.lastMessage?.status == .MSG_STATUS_LOCAL_REVOKED
+
         /**
          * If there is a draft box, the draft box information will be displayed first
          */
-        if !conv.draftText.isNilOrEmpty {
-            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, green: 81, blue: 81)!])
+        if let draftText = conv.draftText, !draftText.isEmpty {
+            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, g: 81, b: 81)])
             attributeString.append(draft)
 
             let draftContentStr = getDraftContent(conv)
@@ -103,9 +105,7 @@ class TUIConversationListDataProvider_Minimalist: TUIConversationListBaseDataPro
             /**
              * Attempt to get externally customized display information
              */
-            if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.getConversationDisplayString(_:))) {
-                lastMsgStr = delegate.getConversationDisplayString!(conv) ?? ""
-            }
+            lastMsgStr = delegate?.getConversationDisplayString(conv) ?? ""
 
             /**
              * If there is no external customization, get the lastMsg display information through the message module
@@ -120,7 +120,15 @@ class TUIConversationListDataProvider_Minimalist: TUIConversationListBaseDataPro
             if lastMsgStr.isEmpty {
                 return NSMutableAttributedString()
             }
-            attributeString.append(NSAttributedString(string: lastMsgStr))
+
+            if hasRiskContent && !isRevoked {
+                let attributes: [NSAttributedString.Key: Any] = [.foregroundColor: TUISwift.rgb(233, g: 68, b: 68)]
+                let attributedString = NSAttributedString(string: lastMsgStr, attributes: attributes)
+                attributeString.append(attributedString)
+            } else {
+                let attributedString = NSAttributedString(string: lastMsgStr)
+                attributeString.append(attributedString)
+            }
         }
 
         /**

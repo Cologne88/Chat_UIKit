@@ -30,7 +30,7 @@ class TUIGroupPinCellView: UIView {
 
     lazy var removeButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.setImage(UIImage(named: TUISwift.tuiChatImagePath("chat_group_del_icon")), for: .normal)
+        button.setImage(UIImage.safeImage(TUISwift.tuiChatImagePath("chat_group_del_icon")), for: .normal)
         button.addTarget(self, action: #selector(removeCurrentGroupPin), for: .touchUpInside)
         return button
     }()
@@ -98,7 +98,9 @@ class TUIGroupPinCellView: UIView {
     func fill(withData cellData: TUIMessageCellData) {
         self.cellData = cellData
         titleLabel.text = TUIMessageDataProvider.getShowName(cellData.innerMessage)
-        content.text = TUIMessageDataProvider.getDisplayString(cellData.innerMessage)
+        if let msg = cellData.innerMessage {
+            content.text = TUIMessageDataProvider.getDisplayString(message: msg)
+        }
 
         setNeedsUpdateConstraints()
         updateConstraintsIfNeeded()
@@ -186,7 +188,9 @@ class TUIGroupPinCellView: UIView {
 
     @objc private func onTap(_ sender: UITapGestureRecognizer) {
         guard let cellData = cellData else { return }
-        onClickCellView?(cellData.innerMessage)
+        if let msg = cellData.innerMessage {
+            onClickCellView?(msg)
+        }
     }
 
     @objc private func removeCurrentGroupPin() {

@@ -34,8 +34,8 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        pickerView.mm_width()(view.mm_w)!.mm_height()(60 + pickerView.mm_safeAreaBottomGap)!.mm_bottom()(0)
-        tableView.mm_width()(view.mm_w)!.mm_flexToBottom()(pickerView.mm_h)
+        pickerView.mm_width(view.mm_w).mm_height(60 + pickerView.mm_safeAreaBottomGap).mm_bottom(0)
+        tableView.mm_width(view.mm_w).mm_flexToBottom(pickerView.mm_h)
     }
 
     override func viewDidLoad() {
@@ -92,14 +92,17 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
         createContactArray?.forEach { cellData in
             if let avatarUrl = cellData.avatarUrl?.absoluteString {
                 muArray.append(avatarUrl)
+            } else {
+                muArray.append("about:blank")
             }
         }
 
         muArray.append(TUILogin.getFaceUrl() ?? "")
 
         TUIGroupAvatar.createGroupAvatar(muArray) { [weak self] groupAvatar in
-            self?.cacheGroupGridAvatarImage = groupAvatar
-            self?.tableView.reloadData()
+            guard let self else { return }
+            self.cacheGroupGridAvatarImage = groupAvatar
+            self.tableView.reloadData()
         }
     }
 
@@ -121,9 +124,8 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
         ]
 
         let attributedString = NSMutableAttributedString(string: descStr, attributes: attributes)
-        if let inviteTipstring = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Desc_Highlight"),
-           let range = descStr.range(of: inviteTipstring)
-        {
+        let inviteTipstring = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Desc_Highlight")
+        if let range = descStr.range(of: inviteTipstring) {
             attributedString.addAttribute(.link, value: "https://cloud.tencent.com/product/im", range: NSRange(range, in: descStr))
         }
         self.describeTextView.attributedText = attributedString
@@ -274,7 +276,7 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
     @objc func didTapToChooseAvatar() {
         let vc = TUISelectAvatarController()
         vc.selectAvatarType = .groupAvatar
-        vc.createGroupType = createGroupInfo?.groupType ?? GroupType_Public
+        vc.createGroupType = createGroupInfo?.groupType ?? "Public"
         vc.cacheGroupGridAvatarImage = cacheGroupGridAvatarImage ?? UIImage()
         vc.profilFaceURL = createGroupInfo?.faceURL ?? ""
         navigationController?.pushViewController(vc, animated: true)
@@ -323,7 +325,7 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
 
         let showName = TUILogin.getNickName() ?? TUILogin.getUserID()
 
-        V2TIMManager.sharedInstance().createGroup(info, memberList: members, succ: { [weak self] groupID in
+        V2TIMManager.sharedInstance().createGroup(info: info, memberList: members, succ: { [weak self] groupID in
             guard let self = self else { return }
             var content = TUISwift.timCommonLocalizableString("TUIGroupCreateTipsMessage")
             if info.groupType == "Community" {
@@ -331,17 +333,18 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
             }
             let dic: [String: Any] = [
                 "version": GroupCreate_Version,
-                BussinessID: BussinessID_GroupCreate,
+                "businessID": "group_create",
                 "opUser": showName ?? "",
-                "content": content ?? "",
+                "content": content,
                 "cmd": info.groupType == "Community" ? 1 : 0
             ]
             if let data = try? JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted) {
-                let msg = V2TIMManager.sharedInstance().createCustomMessage(data)
-                V2TIMManager.sharedInstance().send(msg, receiver: nil, groupID: groupID, priority: .PRIORITY_DEFAULT, onlineUserOnly: false, offlinePushInfo: nil, progress: nil, succ: nil, fail: nil)
-                self.createGroupInfo?.groupID = groupID
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    self.submitCallback?(true, self.createGroupInfo)
+                if let msg = V2TIMManager.sharedInstance().createCustomMessage(data: data) {
+                    V2TIMManager.sharedInstance().sendMessage(message: msg, receiver: nil, groupID: groupID, priority: .PRIORITY_DEFAULT, onlineUserOnly: false, offlinePushInfo: nil, progress: nil, succ: nil, fail: nil)
+                    self.createGroupInfo?.groupID = groupID
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        self.submitCallback?(true, self.createGroupInfo)
+                    }
                 }
             }
         }, fail: { [weak self] code, msg in
@@ -349,8 +352,8 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
             if code == ERR_SDK_INTERFACE_NOT_SUPPORT.rawValue {
                 TUITool.postUnsupportNotification(ofService: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunity"), serviceDesc: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunityDesc"), debugOnly: true)
             } else {
-                var toastMsg = TUITool.convertIMError(Int(code), msg: msg)
-                if toastMsg?.count == 0 {
+                var toastMsg = TUITool.convertIMError(Int(code), msg: msg) ?? ""
+                if toastMsg.count == 0 {
                     toastMsg = "\(code)"
                 }
                 TUITool.hideToastActivity()
@@ -370,16 +373,16 @@ class TUIGroupCreateController: UIViewController, UITableViewDelegate, UITableVi
         var desc = ""
         switch groupType {
         case "Work":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work"), desc)
         case "Public":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public"), desc)
         case "Meeting":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting"), desc)
         case "Community":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community"), desc)
         default:
             completion(groupType, groupType)

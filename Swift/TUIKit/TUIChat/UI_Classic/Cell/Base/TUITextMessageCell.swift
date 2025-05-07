@@ -107,12 +107,12 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
         }
     }
     
-    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData) {
-        let param: [String: Any] = [TUICore_TUIChatExtension_BottomContainer_CellData: textData as Any]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID, parentView: bottomContainer, param: param)
+    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData?) {
+        let param: [String: Any] = ["TUICore_TUIChatExtension_BottomContainer_CellData": textData as Any]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID", parentView: bottomContainer, param: param)
     }
     
-    override public func fill(with data: TUIBubbleMessageCellData) {
+    override open func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         if let data = data as? TUITextMessageCellData {
             textData = data
@@ -120,8 +120,8 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
             voiceReadPoint.isHidden = !data.showUnreadPoint
             bottomContainer.isHidden = CGSizeEqualToSize(data.bottomContainerSize, .zero)
             
-            let textColor: UIColor = data.direction == .MsgDirectionIncoming ? TUITextMessageCell.incommingTextColor! : TUITextMessageCell.outgoingTextColor!
-            let textFont: UIFont = data.direction == .MsgDirectionIncoming ? TUITextMessageCell.incommingTextFont! : TUITextMessageCell.outgoingTextFont!
+            let textColor: UIColor = data.direction == .incoming ? TUITextMessageCell.incommingTextColor! : TUITextMessageCell.outgoingTextColor!
+            let textFont: UIFont = data.direction == .incoming ? TUITextMessageCell.incommingTextFont! : TUITextMessageCell.outgoingTextFont!
 
             textView.attributedText = data.getContentAttributedString(textFont: textFont)
             textView.textColor = textColor
@@ -152,12 +152,12 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
                 make.size.equalTo(CGSize(width: 5, height: 5))
             }
         }
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             securityStrikeView.snp.remakeConstraints { make in
                 make.top.equalTo(textView.snp.bottom)
                 make.width.equalTo(bubbleView)
-                make.bottom.equalTo(container).offset(-messageData.messageContainerAppendSize.height)
+                make.bottom.equalTo(container).offset(-(messageData?.messageContainerAppendSize.height ?? 0))
             }
         }
         layoutBottomContainer()
@@ -168,7 +168,7 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
         if !isBottomContainerSizeZero {
             if let size = textData?.bottomContainerSize {
                 bottomContainer.snp.remakeConstraints { make in
-                    if textData?.direction == .MsgDirectionIncoming {
+                    if textData?.direction == .incoming {
                         make.leading.equalTo(container)
                     } else {
                         make.trailing.equalTo(container)
@@ -178,10 +178,10 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
                 }
             }
         }
-        let topView = !isBottomContainerSizeZero ? bottomContainer! : container!
+        let topView = !isBottomContainerSizeZero ? bottomContainer : container
         if !messageModifyRepliesButton.isHidden {
             messageModifyRepliesButton.snp.remakeConstraints { make in
-                if textData?.direction == .MsgDirectionIncoming {
+                if textData?.direction == .incoming {
                     make.leading.equalTo(container)
                 } else {
                     make.trailing.equalTo(container)
@@ -227,7 +227,7 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
     private static var hasSetupNotification = false
     private static func setupNotification() {
         guard !hasSetupNotification else { return }
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: Notification.Name(TUIDidApplyingThemeChangedNotfication), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: Notification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
         hasSetupNotification = true
     }
     
@@ -239,9 +239,7 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
     // MARK: - TUITextViewDelegate
 
     public func onLongPressTextViewMessage(_ textView: UITextView) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIMessageCellDelegate.onLongPressMessage(_:))) {
-            delegate.onLongPressMessage(self)
-        }
+        delegate?.onLongPressMessage(self)
     }
     
     // MARK: - TUIMessageCelllProtocol
@@ -274,7 +272,7 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
             return .zero
         }
 
-        let font = (textCellData.direction == .MsgDirectionIncoming ? incommingTextFont : outgoingTextFont) ?? UIFont()
+        let font = (textCellData.direction == .incoming ? incommingTextFont : outgoingTextFont) ?? UIFont()
         let attributeString = textCellData.getContentAttributedString(textFont: font)
 
         if gMaxTextSize == .zero {
@@ -283,26 +281,26 @@ public class TUITextMessageCell: TUIBubbleMessageCell, UITextViewDelegate, TUITe
         let contentSize = textCellData.getContentAttributedStringSize(attributeString: attributeString, maxTextSize: gMaxTextSize)
         textCellData.textSize = contentSize
 
-        let textOrigin = CGPoint(x: textCellData.cellLayout.bubbleInsets.left,
-                                 y: textCellData.cellLayout.bubbleInsets.top)
+        let textOrigin = CGPoint(x: textCellData.cellLayout?.bubbleInsets.left ?? 0,
+                                 y: textCellData.cellLayout?.bubbleInsets.top ?? 0)
         textCellData.textOrigin = textOrigin
 
         var height = contentSize.height
         var width = contentSize.width
 
-        height += textCellData.cellLayout.bubbleInsets.top
-        height += textCellData.cellLayout.bubbleInsets.bottom
+        height += textCellData.cellLayout?.bubbleInsets.top ?? 0
+        height += textCellData.cellLayout?.bubbleInsets.bottom ?? 0
 
-        width += textCellData.cellLayout.bubbleInsets.left
-        width += textCellData.cellLayout.bubbleInsets.right
+        width += textCellData.cellLayout?.bubbleInsets.left ?? 0
+        width += textCellData.cellLayout?.bubbleInsets.right ?? 0
 
-        if textCellData.direction == .MsgDirectionIncoming {
-            height = max(height, TUIBubbleMessageCell.incommingBubble.size.height)
+        if textCellData.direction == .incoming {
+            height = max(height, TUIBubbleMessageCell.incommingBubble?.size.height ?? 0)
         } else {
-            height = max(height, TUIBubbleMessageCell.outgoingBubble.size.height)
+            height = max(height, TUIBubbleMessageCell.outgoingBubble?.size.height ?? 0)
         }
 
-        let hasRiskContent = textCellData.innerMessage.hasRiskContent
+        let hasRiskContent = textCellData.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             width = max(width, 200) // width must be more than TIMCommonLocalizableString(TUIKitMessageTypeSecurityStrike)
             height += kTUISecurityStrikeViewTopLineMargin

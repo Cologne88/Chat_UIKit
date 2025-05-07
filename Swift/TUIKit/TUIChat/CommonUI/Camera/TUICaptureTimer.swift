@@ -15,21 +15,21 @@ class TUICaptureTimer {
 
     func startTimer() {
         gcdTimer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
-        
+
         let delayTime: TimeInterval = 0.0
         let timeInterval: TimeInterval = 0.1
         gcdTimer?.schedule(deadline: .now() + delayTime, repeating: timeInterval)
-        
+
         gcdTimer?.setEventHandler { [weak self] in
             guard let self = self else { return }
             self.captureDuration += CGFloat(timeInterval)
-            
+
             DispatchQueue.main.async {
                 if let progressBlock = self.progressBlock {
                     progressBlock(self.captureDuration / self.maxCaptureTime, self.captureDuration)
                 }
             }
-            
+
             if self.captureDuration >= self.maxCaptureTime {
                 let ratio = self.captureDuration / self.maxCaptureTime
                 let recordTime = self.captureDuration
@@ -41,7 +41,7 @@ class TUICaptureTimer {
                 }
             }
         }
-        
+
         gcdTimer?.resume()
     }
 

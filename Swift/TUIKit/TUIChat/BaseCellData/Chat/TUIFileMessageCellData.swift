@@ -1,13 +1,14 @@
 import Foundation
 import TIMCommon
 
-class TUIFileMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileUploadProtocol, TUIMessageCellDataFileDownloadProtocol {
+public class TUIFileMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileUploadProtocol, TUIMessageCellDataFileDownloadProtocol {
+    public var downloadProgress: UInt = 0
     var path: String?
     var fileName: String?
     var uuid: String?
-    var uploadProgress: UInt = 100
-    @objc dynamic var downladProgress: UInt = 100
-    var isDownloading: Bool = false
+    public var uploadProgress: UInt = 100
+    @objc public dynamic var downladProgress: UInt = 100
+    public var isDownloading: Bool = false
 
     private var progressBlocks: [() -> Void] = []
     private var responseBlocks: [() -> Void] = []
@@ -26,27 +27,27 @@ class TUIFileMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileUp
         }
     }
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
-        guard let elem = message.fileElem else { return TUIFileMessageCellData(direction: .MsgDirectionIncoming) }
-        let fileData = TUIFileMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
-        fileData.path = elem.path.safeValue
-        fileData.fileName = elem.filename.safeValue
+    public override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
+        guard let elem = message.fileElem else { return TUIFileMessageCellData(direction: .incoming) }
+        let fileData = TUIFileMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
+        fileData.path = elem.path
+        fileData.fileName = elem.filename
         fileData.length = Int(elem.fileSize)
-        fileData.uuid = elem.uuid.safeValue
-        fileData.reuseId = TUISwift.tFileMessageCell_ReuseId()
+        fileData.uuid = elem.uuid
+        fileData.reuseId = "TFileMessageCell"
 
         return fileData
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String {
+    public override class func getDisplayString(message: V2TIMMessage) -> String {
         return TUISwift.timCommonLocalizableString("TUIkitMessageTypeFile")
     }
 
-    override func getReplyQuoteViewDataClass() -> AnyClass? {
+    public override func getReplyQuoteViewDataClass() -> AnyClass? {
         return NSClassFromString("TUIChat.TUIFileReplyQuoteViewData")
     }
 
-    override func getReplyQuoteViewClass() -> AnyClass? {
+    public override func getReplyQuoteViewClass() -> AnyClass? {
         return NSClassFromString("TUIChat.TUIFileReplyQuoteView")
     }
 
@@ -55,33 +56,36 @@ class TUIFileMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileUp
         let path = getFilePath(&isExist)
         if isExist { return }
 
+        guard let msgID = msgID else { return }
+
         let progress = TUIMessageProgressManager.shared.downloadProgress(forMessage: msgID)
         if progress != 0 { return }
 
         if isDownloading { return }
         isDownloading = true
 
-        if innerMessage.elemType == .ELEM_TYPE_FILE {
-            let msgID = self.msgID
-            innerMessage.fileElem?.downloadFile(path, progress: { [weak self] curSize, totalSize in
-                guard let self = self else { return }
-                let progress = curSize * 100 / totalSize
-                self.updateDownloadProgress(min(UInt(progress), 99))
-                TUIMessageProgressManager.shared.appendDownloadProgress(msgID, progress: min(progress, 99))
-            }, succ: { [weak self] in
-                guard let self = self else { return }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.isDownloading = false
-                    self.updateDownloadProgress(100)
-                    TUIMessageProgressManager.shared.appendDownloadProgress(msgID, progress: 100)
-                    DispatchQueue.main.async {
-                        self.path = path
+        if innerMessage?.elemType == .ELEM_TYPE_FILE {
+            if let path = path {
+                innerMessage?.fileElem?.downloadFile(path: path, progress: { [weak self] curSize, totalSize in
+                    guard let self = self else { return }
+                    let progress = curSize * 100 / totalSize
+                    self.updateDownloadProgress(min(UInt(progress), 99))
+                    TUIMessageProgressManager.shared.appendDownloadProgress(msgID, progress: min(progress, 99))
+                }, succ: { [weak self] in
+                    guard let self = self else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.isDownloading = false
+                        self.updateDownloadProgress(100)
+                        TUIMessageProgressManager.shared.appendDownloadProgress(msgID, progress: 100)
+                        DispatchQueue.main.async {
+                            self.path = path
+                        }
                     }
-                }
-            }, fail: { [weak self] _, _ in
-                guard let self else { return }
-                self.isDownloading = false
-            })
+                }, fail: { [weak self] _, _ in
+                    guard let self else { return }
+                    self.isDownloading = false
+                })
+            }
         }
     }
 
@@ -102,17 +106,17 @@ class TUIFileMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileUp
         var isDir = ObjCBool(false)
         isExist = false
 
-        if direction == .MsgDirectionOutgoing {
+        if direction == .outgoing {
             guard let path = path else { return nil }
             let lastComp = URL(string: path)?.lastPathComponent
-            filePath = "\(TUISwift.tuiKit_File_Path() ?? "")\(lastComp ?? "")"
+            filePath = "\(TUISwift.tuiKit_File_Path())\(lastComp ?? "")"
             if FileManager.default.fileExists(atPath: filePath, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }
         }
 
         if !isExist {
-            filePath = "\(TUISwift.tuiKit_File_Path() ?? "")\(uuid ?? "")\(fileName ?? "")"
+            filePath = "\(TUISwift.tuiKit_File_Path())\(uuid ?? "")\(fileName ?? "")"
             if FileManager.default.fileExists(atPath: filePath, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }

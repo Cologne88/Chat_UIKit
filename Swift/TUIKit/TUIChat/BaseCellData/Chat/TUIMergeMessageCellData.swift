@@ -11,27 +11,27 @@ class TUIMergeMessageCellData: TUIMessageCellData {
     var abstractRow3Size: CGSize = .zero
     var abstractSendDetailList: [[String: NSAttributedString]] = []
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
-        guard let elem = message.mergerElem else { return TUITextMessageCellData(direction: .MsgDirectionIncoming) }
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
+        guard let elem = message.mergerElem else { return TUITextMessageCellData(direction: .incoming) }
         if elem.layersOverLimit {
-            let limitCell = TUITextMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+            let limitCell = TUITextMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
             limitCell.content = TUISwift.timCommonLocalizableString("TUIKitRelayLayerLimitTips")
             return limitCell
         }
 
-        let mergeData = TUIMergeMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+        let mergeData = TUIMergeMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
         mergeData.title = elem.title
         if let abstractList = elem.abstractList {
             mergeData.abstractList = abstractList
             mergeData.abstractSendDetailList = formatAbstractSendDetailList(originAbstractList: abstractList)
         }
         mergeData.mergerElem = elem
-        mergeData.reuseId = TMergeMessageCell_ReuserId
+        mergeData.reuseId = "TMergeMessageCell"
         return mergeData
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String {
-        return "[\(TUISwift.timCommonLocalizableString("TUIKitRelayChatHistory") ?? "")]"
+    override class func getDisplayString(message: V2TIMMessage) -> String {
+        return "[\(TUISwift.timCommonLocalizableString("TUIKitRelayChatHistory"))]"
     }
 
     override func getReplyQuoteViewDataClass() -> AnyClass? {

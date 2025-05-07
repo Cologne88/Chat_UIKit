@@ -13,8 +13,8 @@ public class TUIContactService: NSObject, TUIServiceProtocol {
     static let sharedInstance = TUIContactService()
     
     @objc public class func swiftLoad() {
-        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIContactTheme", key: TUIContactBundle_Key_Class), themeModule: TUIThemeModule.contact)
-        TUICore.registerService(TUICore_TUIContactService, object: sharedInstance)
+        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIContactTheme", key: "TUIContactService"), themeModule: TUIThemeModule.contact)
+        TUICore.registerService("TUICore_TUIContactService", object: sharedInstance)
     }
     
     func createGroup(groupType: String, createOption: V2TIMGroupAddOpt, contacts: [TUICommonContactSelectCellData], completion: ((Bool, String?, String?) -> Void)?) {
@@ -48,28 +48,28 @@ public class TUIContactService: NSObject, TUIServiceProtocol {
             let info = V2TIMGroupInfo()
             info.groupName = groupName
             info.groupType = groupType
-            if info.groupType != GroupType_Work {
+            if info.groupType != "Work" {
                 info.groupAddOpt = createOption
             }
             
-            V2TIMManager.sharedInstance().createGroup(info, memberList: members) { groupID in
+            V2TIMManager.sharedInstance().createGroup(info: info, memberList: members) { groupID in
                 var content = TUISwift.timCommonLocalizableString("TUIGroupCreateTipsMessage")
-                if info.groupType == GroupType_Community {
+                if info.groupType == "Community" {
                     content = TUISwift.timCommonLocalizableString("TUICommunityCreateTipsMessage")
                 }
                 
                 let dic: [String: Any] = [
                     "version": GroupCreate_Version,
-                    BussinessID: BussinessID_GroupCreate,
+                    "businessID": "group_create",
                     "opUser": showName,
                     "content": content,
-                    "cmd": info.groupType == GroupType_Community ? 1 : 0
+                    "cmd": info.groupType == "Community" ? 1 : 0
                 ]
-                
-                if let data = try? JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted) {
-                    let msg = V2TIMManager.sharedInstance().createCustomMessage(data)
-                    V2TIMManager.sharedInstance().send(msg, receiver: nil, groupID: groupID, priority: V2TIMMessagePriority.PRIORITY_DEFAULT, onlineUserOnly: false, offlinePushInfo: nil, progress: nil, succ: nil, fail: nil)
                     
+                if let data = try? JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted) {
+                    if let msg = V2TIMManager.sharedInstance().createCustomMessage(data: data) {
+                        V2TIMManager.sharedInstance().sendMessage(message: msg, receiver: nil, groupID: groupID, priority: .PRIORITY_DEFAULT, onlineUserOnly: false, offlinePushInfo: nil, progress: nil, succ: nil, fail: nil)
+                    }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         completion?(true, groupID, groupName)
                     }
@@ -88,14 +88,14 @@ public class TUIContactService: NSObject, TUIServiceProtocol {
     // MARK: - TUIServiceProtocol
 
     func onCall(method: String, param: [String: Any]) -> Any? {
-        var returnObject: Any? = nil
-        if method == TUICore_TUIContactService_CreateGroupMethod {
-            if let groupType = param[TUICore_TUIContactService_CreateGroupMethod_GroupTypeKey] as? String,
-               let option = param[TUICore_TUIContactService_CreateGroupMethod_OptionKey] as? NSNumber,
-               let contacts = param[TUICore_TUIContactService_CreateGroupMethod_ContactsKey] as? [TUICommonContactSelectCellData],
-               let completion = param[TUICore_TUIContactService_CreateGroupMethod_CompletionKey] as? ((Bool, String?, String?) -> Void)
+        let returnObject: Any? = nil
+        if method == "TUICore_TUIContactService_CreateGroupMethod" {
+            if let groupType = param["TUICore_TUIContactService_CreateGroupMethod_GroupTypeKey"] as? String,
+               let option = param["TUICore_TUIContactService_CreateGroupMethod_OptionKey"] as? NSNumber,
+               let contacts = param["TUICore_TUIContactService_CreateGroupMethod_ContactsKey"] as? [TUICommonContactSelectCellData],
+               let completion = param["TUICore_TUIContactService_CreateGroupMethod_CompletionKey"] as? ((Bool, String?, String?) -> Void)
             {
-                createGroup(groupType: groupType, createOption: V2TIMGroupAddOpt(rawValue: option.intValue) ?? V2TIMGroupAddOpt.GROUP_ADD_ANY, contacts: contacts, completion: completion)
+                createGroup(groupType: groupType, createOption: V2TIMGroupAddOpt(rawValue: option.intValue) ?? .GROUP_ADD_ANY, contacts: contacts, completion: completion)
             }
         }
         return returnObject

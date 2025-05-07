@@ -1,6 +1,5 @@
 import Foundation
-import ImSDK_Plus
-import TUICore
+import TIMCommon
 
 // 定义宏
 let kGetUserStatusPageCount = 500
@@ -16,14 +15,14 @@ public class TUIContactViewDataProvider: NSObject, V2TIMFriendshipListener, V2TI
     @objc private(set) dynamic var isLoadFinished: Bool = false
     
     // 待处理的好友请求数量
-    @objc public dynamic var pendencyCnt: UInt = 0
+    @objc public dynamic var pendencyCnt: UInt64 = 0
     
-    private var contactMap: [String: TUICommonContactCellData] = [:]
+    public var contactMap: [String: TUICommonContactCellData] = [:]
     
     override public init() {
         super.init()
         V2TIMManager.sharedInstance().addFriendListener(listener: self)
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
     }
     
     deinit {
@@ -91,10 +90,9 @@ public class TUIContactViewDataProvider: NSObject, V2TIMFriendshipListener, V2TI
     }
     
     public func loadFriendApplication() {
-        weak var weakSelf = self
-        V2TIMManager.sharedInstance().getFriendApplicationList { result in
-            guard let self = weakSelf else { return }
-            self.pendencyCnt = UInt(result?.unreadCount ?? 0)
+        V2TIMManager.sharedInstance().getFriendApplicationList { [weak self] result in
+            guard let self = self, let result = result else { return }
+            self.pendencyCnt = result.unreadCount
         } fail: { _, _ in }
     }
     
@@ -112,11 +110,9 @@ public class TUIContactViewDataProvider: NSObject, V2TIMFriendshipListener, V2TI
         }
         
         let getUserStatus: ([String]) -> Void = { [weak self] userIDList in
-            guard let self else { return }
-            V2TIMManager.sharedInstance().getUserStatus(userIDList) { result in
-                if let result = result {
-                    self.handleOnlineStatus(result)
-                }
+            V2TIMManager.sharedInstance().getUserStatus(userIDList: userIDList) { [weak self] result in
+                guard let self, let result = result else { return }
+                self.handleOnlineStatus(result)
             } fail: { code, desc in
                 #if DEBUG
                 if code == ERR_SDK_INTERFACE_NOT_SUPPORT.rawValue, TUIConfig.default().displayOnlineStatusIcon {
@@ -195,11 +191,11 @@ public class TUIContactViewDataProvider: NSObject, V2TIMFriendshipListener, V2TI
     
     // MARK: - V2TIMSDKListener
 
-    public func onUserStatusChanged(_ userStatusList: [V2TIMUserStatus]) {
+    public func onUserStatusChanged(userStatusList: [V2TIMUserStatus]) {
         handleOnlineStatus(userStatusList)
     }
     
-    public func onConnectFailed(_ code: Int32, err: String!) {
+    public func onConnectFailed(_ code: Int32, err: String?) {
         print(#function)
     }
 
@@ -210,11 +206,11 @@ public class TUIContactViewDataProvider: NSObject, V2TIMFriendshipListener, V2TI
     
     // MARK: - V2TIMFriendshipListener
 
-    public func onFriendApplicationListAdded(_ applicationList: [V2TIMFriendApplication]) {
+    public func onFriendApplicationListAdded(applicationList: [V2TIMFriendApplication]) {
         loadFriendApplication()
     }
     
-    public func onFriendApplicationListDeleted(_ userIDList: [Any]!) {
+    public func onFriendApplicationListDeleted(userIDList: [Any]) {
         loadFriendApplication()
     }
     
@@ -222,15 +218,15 @@ public class TUIContactViewDataProvider: NSObject, V2TIMFriendshipListener, V2TI
         loadFriendApplication()
     }
     
-    public func onFriendListAdded(_ infoList: [V2TIMFriendInfo]) {
+    public func onFriendListAdded(infoList: [V2TIMFriendInfo]) {
         loadContacts()
     }
     
-    public func onFriendListDeleted(_ userIDList: [Any]!) {
+    public func onFriendListDeleted(userIDList: [Any]) {
         loadContacts()
     }
     
-    public func onFriendProfileChanged(_ infoList: [V2TIMFriendInfo]) {
+    public func onFriendProfileChanged(infoList: [V2TIMFriendInfo]) {
         loadContacts()
     }
 }

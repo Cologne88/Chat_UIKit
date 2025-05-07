@@ -16,16 +16,7 @@ class TUIMemberCellData: TUICommonCellData {
         self.userID = userID
         self.avatarUrl = URL(string: avatarUrl)
         self.detail = detail
-
-        if let nameCard = nameCard, !nameCard.isEmpty {
-            self.title = nameCard
-        } else if let friendRemark = friendRemark, !friendRemark.isEmpty {
-            self.title = friendRemark
-        } else if let nickName = nickName, !nickName.isEmpty {
-            self.title = nickName
-        } else {
-            self.title = userID
-        }
+        self.title = [nameCard, friendRemark, nickName, userID].compactMap { $0?.isEmpty == false ? $0 : nil }.first ?? userID
 
         super.init()
     }

@@ -35,8 +35,8 @@ class TUIGroupManageDataProvider_Minimalist {
             self.groupInfo = groupInfo
             self.setupGroupInfo(groupInfo)
             self.muteAll = groupInfo.allMuted
-            self.currentGroupTypeSupportSettingAdmin = self.canSupportSettingAdminAtThisGroupType(groupInfo.groupType.safeValue)
-            self.currentGroupTypeSupportAddMemberOfBlocked = self.canSupportAddMemberOfBlockedAtThisGroupType(groupInfo.groupType.safeValue)
+            self.currentGroupTypeSupportSettingAdmin = self.canSupportSettingAdminAtThisGroupType(groupInfo.groupType ?? "")
+            self.currentGroupTypeSupportAddMemberOfBlocked = self.canSupportAddMemberOfBlockedAtThisGroupType(groupInfo.groupType ?? "")
         } fail: { [weak self] _, _ in
             guard let self = self else { return }
             self.setupGroupInfo(nil)
@@ -49,14 +49,14 @@ class TUIGroupManageDataProvider_Minimalist {
         let groupInfo = V2TIMGroupInfo()
         groupInfo.groupID = groupID
         groupInfo.allMuted = mute
-        V2TIMManager.sharedInstance().setGroupInfo(groupInfo) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupInfo(info: groupInfo) { [weak self] in
             guard let self = self else { return }
             self.muteAll = mute
             completion?(0, nil)
         } fail: { [weak self] code, desc in
             guard let self = self else { return }
             self.muteAll = !mute
-            completion?(Int(code), desc)
+            completion?(Int(code), desc ?? "")
         }
     }
 
@@ -100,7 +100,8 @@ class TUIGroupManageDataProvider_Minimalist {
             }
         }
 
-        V2TIMManager.sharedInstance().muteGroupMember(groupID, member: user.userId, muteTime: mute ? 365 * 24 * 3600 : 0) {
+        guard let groupID = groupID else { return }
+        V2TIMManager.sharedInstance().muteGroupMember(groupID: groupID, memberUserID: user.userId, muteTimeSeconds: mute ? 365 * 24 * 3600 : 0) {
             callback(0, nil, mute)
         } fail: { code, desc in
             callback(Int(code), desc, mute)
@@ -133,14 +134,14 @@ class TUIGroupManageDataProvider_Minimalist {
         setupGroupMembers(0, first: true)
     }
 
-    private func setupGroupMembers(_ seq: UInt64, first: Bool) {
+    private func setupGroupMembers(_ seq: UInt, first: Bool) {
         if seq == 0, !first {
             return
         }
 
+        guard let groupID = groupID else { return }
         V2TIMManager.sharedInstance().getGroupMemberList(groupID, filter: UInt32(V2TIMGroupMemberFilter.GROUP_MEMBER_FILTER_ALL.rawValue), nextSeq: 0) { [weak self] nextSeq, memberList in
-            guard let self = self else { return }
-            guard let memberList = memberList else { return }
+            guard let self = self, let memberList = memberList else { return }
             var indexPaths: [IndexPath] = []
             for info in memberList {
                 let muteUntil = info.muteUntil
@@ -165,7 +166,7 @@ class TUIGroupManageDataProvider_Minimalist {
                 self.delegate?.insertRowsAtIndexPaths(indexPaths, withRowAnimation: .fade)
             }
 
-            self.setupGroupMembers(nextSeq, first: false)
+            self.setupGroupMembers(UInt(nextSeq), first: false)
         } fail: { _, _ in
             // Handle failure
         }

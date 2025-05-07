@@ -49,7 +49,7 @@ class TUIGroupTypeCell_Minimalist: UITableViewCell {
     
     lazy var selectedView: UIImageView = {
         let selectedView = UIImageView(frame: .zero)
-        selectedView.image = UIImage(named: TUISwift.timCommonImagePath("icon_avatar_selected"))
+        selectedView.image = UIImage.safeImage(TUISwift.timCommonImagePath("icon_avatar_selected"))
         return selectedView
     }()
     
@@ -165,6 +165,8 @@ class TUIGroupTypeCell_Minimalist: UITableViewCell {
 }
 
 class TUIGroupTypeListController_Minimalist: UIViewController, UITableViewDataSource, UITableViewDelegate, TUIFloatSubViewControllerProtocol {
+    var floatDataSourceChanged: (([Any]) -> Void)?
+    
     var cacheGroupType: String?
     var selectCallBack: ((String) -> Void)?
     
@@ -184,49 +186,49 @@ class TUIGroupTypeListController_Minimalist: UIViewController, UITableViewDataSo
         
         // Work
         let dataWork = TUIGroupTypeData_Minimalist()
-        dataWork.groupType = GroupType_Work
-        dataWork.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Work)
+        dataWork.groupType = "Work"
+        dataWork.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Work")
         dataWork.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work")
-        dataWork.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+        dataWork.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work_Desc"))\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
         dataWork.caculateCellHeight()
         data.append(dataWork)
-        if cacheGroupType == GroupType_Work {
+        if cacheGroupType == "Work" {
             dataWork.isSelect = true
         }
         
         // Public
         let dataPublic = TUIGroupTypeData_Minimalist()
-        dataPublic.groupType = GroupType_Public
-        dataPublic.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Public)
+        dataPublic.groupType = "Public"
+        dataPublic.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Public")
         dataPublic.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public")
-        dataPublic.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+        dataPublic.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public_Desc"))\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
         dataPublic.caculateCellHeight()
         data.append(dataPublic)
-        if cacheGroupType == GroupType_Public {
+        if cacheGroupType == "Public" {
             dataPublic.isSelect = true
         }
         
         // Meeting
         let dataMeeting = TUIGroupTypeData_Minimalist()
-        dataMeeting.groupType = GroupType_Meeting
-        dataMeeting.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Meeting)
+        dataMeeting.groupType = "Meeting"
+        dataMeeting.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Meeting")
         dataMeeting.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting")
-        dataMeeting.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+        dataMeeting.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting_Desc"))\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
         dataMeeting.caculateCellHeight()
         data.append(dataMeeting)
-        if cacheGroupType == GroupType_Meeting {
+        if cacheGroupType == "Meeting" {
             dataMeeting.isSelect = true
         }
         
         // Community
         let dataCommunity = TUIGroupTypeData_Minimalist()
-        dataCommunity.groupType = GroupType_Community
-        dataCommunity.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Community)
+        dataCommunity.groupType = "Community"
+        dataCommunity.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Community")
         dataCommunity.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community")
-        dataCommunity.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+        dataCommunity.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community_Desc"))\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
         dataCommunity.caculateCellHeight()
         data.append(dataCommunity)
-        if cacheGroupType == GroupType_Community {
+        if cacheGroupType == "Community" {
             dataCommunity.isSelect = true
         }
     }
@@ -307,7 +309,7 @@ class TUIGroupTypeListController_Minimalist: UIViewController, UITableViewDataSo
         selectedData.isSelect = true
         tableView.reloadData()
         
-        selectCallBack?(selectedData.groupType ?? GroupType_Public)
+        selectCallBack?(selectedData.groupType ?? "Public")
     }
     
     @objc private func bottomButtonClick() {

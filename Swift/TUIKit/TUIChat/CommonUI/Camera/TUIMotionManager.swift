@@ -6,7 +6,6 @@ import CoreMotion
 import UIKit
 
 class TUIMotionManager {
-
     var motionManager: CMMotionManager?
     var deviceOrientation: UIDeviceOrientation = .unknown
     var videoOrientation: AVCaptureVideoOrientation = .portrait
@@ -18,7 +17,7 @@ class TUIMotionManager {
             motionManager = nil
             return
         }
-        motionManager?.startDeviceMotionUpdates(to: .current!, withHandler: { [weak self] motion, error in
+        motionManager?.startDeviceMotionUpdates(to: .current!, withHandler: { [weak self] motion, _ in
             guard let self = self, let motion = motion else { return }
             self.handleDeviceMotion(motion)
         })

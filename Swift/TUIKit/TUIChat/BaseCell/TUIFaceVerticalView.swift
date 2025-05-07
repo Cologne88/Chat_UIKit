@@ -1,23 +1,23 @@
 import TIMCommon
 import UIKit
 
-@objc protocol TUIFaceVerticalViewDelegate: NSObjectProtocol {
+@objc public protocol TUIFaceVerticalViewDelegate: NSObjectProtocol {
     @objc optional func faceVerticalView(_ faceView: TUIFaceVerticalView, scrollToFaceGroupIndex index: Int)
     @objc optional func faceVerticalView(_ faceView: TUIFaceVerticalView, didSelectItemAtIndexPath indexPath: IndexPath)
     @objc optional func faceVerticalViewDidBackDelete(_ faceView: TUIFaceVerticalView)
     @objc optional func faceVerticalViewClickSendMessageBtn()
 }
 
-class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UIPopoverPresentationControllerDelegate {
-    var lineView: UIView!
-    var faceCollectionView: UICollectionView!
-    var faceFlowLayout: UICollectionViewFlowLayout!
-    private(set) var faceGroups: [TUIFaceGroup] = []
-    private var sectionIndexInGroup: [Int] = []
-    private var groupIndexInSection: [Int] = []
-    private var itemIndexs: [IndexPath: Int] = [:]
-    private var floatCtrlView: UIView!
-    weak var delegate: TUIFaceVerticalViewDelegate?
+open class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UIPopoverPresentationControllerDelegate {
+    public var lineView: UIView!
+    public var faceCollectionView: UICollectionView!
+    public var faceFlowLayout: UICollectionViewFlowLayout!
+    public var faceGroups: [TUIFaceGroup] = []
+    public var sectionIndexInGroup: [Int] = []
+    public var groupIndexInSection: [Int] = []
+    public var itemIndexs: [IndexPath: Int] = [:]
+    public var floatCtrlView: UIView!
+    public weak var delegate: TUIFaceVerticalViewDelegate?
 
     private var sendButton: UIButton!
     private var deleteButton: UIButton!
@@ -40,18 +40,18 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
 
     // MARK: - Init
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
         defaultLayout()
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func layoutSubviews() {
+    override open func layoutSubviews() {
         super.layoutSubviews()
         defaultLayout()
     }
@@ -61,12 +61,12 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
 
         faceFlowLayout = TUICollectionRTLFitFlowLayout()
         faceFlowLayout.scrollDirection = .vertical
-        faceFlowLayout.minimumLineSpacing = TUISwift.tFaceView_Margin()
-        faceFlowLayout.minimumInteritemSpacing = TUISwift.tFaceView_Margin()
-        faceFlowLayout.sectionInset = UIEdgeInsets(top: 0, left: TUISwift.tFaceView_Page_Padding(), bottom: 0, right: TUISwift.tFaceView_Page_Padding())
+        faceFlowLayout.minimumLineSpacing = CGFloat(TFaceView_Margin)
+        faceFlowLayout.minimumInteritemSpacing = CGFloat(TFaceView_Margin)
+        faceFlowLayout.sectionInset = UIEdgeInsets(top: 0, left: CGFloat(TFaceView_Page_Padding), bottom: 0, right: CGFloat(TFaceView_Page_Padding))
 
         faceCollectionView = UICollectionView(frame: .zero, collectionViewLayout: faceFlowLayout)
-        faceCollectionView.register(TUIFaceCell.self, forCellWithReuseIdentifier: TUISwift.tFaceCell_ReuseId())
+        faceCollectionView.register(TUIFaceCell.self, forCellWithReuseIdentifier: "TFaceCell")
         faceCollectionView.register(UICollectionReusableView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "headerView")
         faceCollectionView.isPagingEnabled = false
         faceCollectionView.delegate = self
@@ -133,7 +133,7 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
         }
     }
 
-    func setData(_ data: [TUIFaceGroup]) {
+    open func setData(_ data: [TUIFaceGroup]) {
         faceGroups = data
         defaultLayout()
 
@@ -144,12 +144,13 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
         var sectionIndex = 0
         for (groupIndex, group) in faceGroups.enumerated() {
             sectionIndexInGroup.append(sectionIndex)
-            let itemCount = group.faces.count
-            let sectionCount = Int(ceil(Double(itemCount) / Double(itemCount)))
-            for _ in 0..<sectionCount {
-                groupIndexInSection.append(groupIndex)
+            if let itemCount = group.faces?.count {
+                let sectionCount = Int(ceil(Double(itemCount) / Double(itemCount)))
+                for _ in 0..<sectionCount {
+                    groupIndexInSection.append(groupIndex)
+                }
+                sectionIndex += sectionCount
             }
-            sectionIndex += sectionCount
         }
         sectionCount = sectionIndex
 
@@ -157,10 +158,11 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
             let groupIndex = groupIndexInSection[curSection]
             let groupSectionIndex = sectionIndexInGroup[groupIndex]
             let face = faceGroups[groupIndex]
-            let itemCount = face.faces.count
-            for itemIndex in 0..<itemCount {
-                let reIndex = itemIndex
-                itemIndexs[IndexPath(row: itemIndex, section: curSection)] = reIndex
+            if let itemCount = face.faces?.count {
+                for itemIndex in 0..<itemCount {
+                    let reIndex = itemIndex
+                    itemIndexs[IndexPath(row: itemIndex, section: curSection)] = reIndex
+                }
             }
         }
 
@@ -180,18 +182,18 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
 
     // MARK: - UICollectionViewDataSource
 
-    func numberOfSections(in collectionView: UICollectionView) -> Int {
+    public func numberOfSections(in collectionView: UICollectionView) -> Int {
         return sectionCount
     }
 
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let groupIndex = groupIndexInSection[section]
         let group = faceGroups[groupIndex]
-        return group.faces.count
+        return group.faces?.count ?? 0
     }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TFaceCell_ReuseId, for: indexPath) as? TUIFaceCell else {
+    open func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TFaceCell", for: indexPath) as? TUIFaceCell else {
             assertionFailure("Unable to dequeue TUIFaceCell")
             return UICollectionViewCell()
         }
@@ -208,10 +210,9 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
 
         let groupIndex = groupIndexInSection[indexPath.section]
         let group = faceGroups[groupIndex]
-        _ = group.faces.count
 
-        if let index = itemIndexs[indexPath], index < group.faces.count {
-            if let data = group.faces[index] as? TUIFaceCellData {
+        if let count = group.faces?.count, let index = itemIndexs[indexPath], index < count {
+            if let data = group.faces?[index] as? TUIFaceCellData {
                 cell.setData(data)
             }
         } else {
@@ -221,40 +222,42 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
         return cell
     }
 
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let groupIndex = groupIndexInSection[indexPath.section]
         let faces = faceGroups[groupIndex]
-        if let index = itemIndexs[indexPath], index < faces.faces.count {
+        if let count = faces.faces?.count, let index = itemIndexs[indexPath], index < count {
             delegate?.faceVerticalView?(self, didSelectItemAtIndexPath: IndexPath(row: index, section: groupIndex))
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+    open func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let groupIndex = groupIndexInSection[indexPath.section]
         let group = faceGroups[groupIndex]
-        let width = (frame.size.width - TUISwift.tFaceView_Page_Padding() * 2 - TUISwift.tFaceView_Margin() * CGFloat(group.itemCountPerRow - 1)) / CGFloat(group.itemCountPerRow)
-        let height = width + TUISwift.tFaceView_Margin()
+        let padding = CGFloat(TFaceView_Page_Padding) * 2
+        let margin = CGFloat(TFaceView_Margin) * CGFloat(group.itemCountPerRow - 1)
+        let width = (frame.size.width - padding - margin) / CGFloat(group.itemCountPerRow)
+        let height = width + CGFloat(TFaceView_Margin)
         return CGSize(width: width, height: height)
     }
 
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
+    open func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
         let group = faceGroups[section]
-        if group.groupName.count > 0 {
+        if (group.groupName?.count ?? 0) > 0 {
             return CGSize(width: frame.size.width, height: 20)
         } else {
             return CGSize(width: frame.size.width, height: 0)
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+    public func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         let headerView = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "headerView", for: indexPath)
         headerView.subviews.forEach { $0.removeFromSuperview() }
-        let label = UILabel(frame: CGRect(x: TUISwift.tFaceView_Page_Padding(), y: 0, width: frame.size.width, height: 17))
+        let label = UILabel(frame: CGRect(x: CGFloat(TFaceView_Page_Padding), y: 0, width: frame.size.width, height: 17))
         label.font = UIFont.systemFont(ofSize: 12)
         label.textColor = TUISwift.timCommonDynamicColor("", defaultColor: "#444444")
         headerView.addSubview(label)
         let group = faceGroups[indexPath.section]
-        if group.groupName.count > 0 {
+        if (group.groupName?.count ?? 0) > 0 {
             label.text = group.groupName
         }
         return headerView
@@ -262,7 +265,7 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
 
     // MARK: - UIScrollViewDelegate
 
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let curSection = Int(round(scrollView.contentOffset.x / scrollView.frame.size.width))
         if curSection >= groupIndexInSection.count {
             return
@@ -364,11 +367,11 @@ class TUIFaceVerticalView: UIView, UICollectionViewDelegate, UICollectionViewDat
 
     // MARK: - UIPopoverPresentationControllerDelegate
 
-    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+    public func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
         hasPreViewShow = false
     }
 
-    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
+    public func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
         return .none
     }
 }

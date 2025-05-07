@@ -16,13 +16,12 @@ class TUIFindContactViewDataProvider_Minimalist {
         }
 
         V2TIMManager.sharedInstance().getUsersInfo([userID], succ: { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+            guard let self = self, let infoList = infoList else { return }
             if let userInfo = infoList.first {
                 let cellModel = TUIFindContactCellModel_Minimalist()
-                cellModel.avatarUrl = URL(string: userInfo.faceURL.safeValue)
+                cellModel.avatarUrl = URL(string: userInfo.faceURL ?? "")
                 cellModel.mainTitle = userInfo.nickName ?? userInfo.userID
-                cellModel.subTitle = userInfo.userID ?? userInfo.userID
+                cellModel.subTitle = userInfo.userID
                 cellModel.desc = ""
                 cellModel.type = .C2C_Minimalist
                 cellModel.contactID = userInfo.userID
@@ -46,13 +45,12 @@ class TUIFindContactViewDataProvider_Minimalist {
 
         V2TIMManager.sharedInstance().getGroupsInfo([groupID], succ: { [weak self] groupResultList in
             guard let self = self else { return }
-            guard let groupResultList = groupResultList else { return }
-            if let result = groupResultList.first, let info = result.info, result.resultCode == 0 {
+            if let result = groupResultList?.first, let info = result.info, result.resultCode == 0 {
                 let cellModel = TUIFindContactCellModel_Minimalist()
-                cellModel.avatarUrl = URL(string: info.faceURL.safeValue)
+                cellModel.avatarUrl = URL(string: info.faceURL ?? "")
                 cellModel.mainTitle = info.groupName
                 cellModel.subTitle = info.groupID
-                cellModel.desc = TUISwift.timCommonLocalizableString("TUIKitGroupProfileType") + info.groupType.safeValue
+                cellModel.desc = TUISwift.timCommonLocalizableString("TUIKitGroupProfileType") + (info.groupType ?? "")
                 cellModel.type = .Group_Minimalist
                 cellModel.contactID = info.groupID
                 cellModel.groupInfo = info

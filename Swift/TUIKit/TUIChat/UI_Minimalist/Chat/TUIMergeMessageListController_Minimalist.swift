@@ -26,8 +26,8 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
 
     override init(style: UITableView.Style = .plain) {
         super.init(style: style)
-        TUICore.registerEvent(TUICore_TUIPluginNotify,
-                              subKey: TUICore_TUIPluginNotify_DidChangePluginViewSubKey,
+        TUICore.registerEvent("TUICore_TUIPluginNotify",
+                              subKey: "TUICore_TUIPluginNotify_DidChangePluginViewSubKey",
                               object: self)
     }
     
@@ -78,40 +78,40 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
     private func transUIMsgFromIMMsg(_ msgs: [V2TIMMessage]) -> [TUIMessageCellData] {
         var uiMsgs: [TUIMessageCellData] = []
         for msg in msgs {
-            if let data = delegate?.onNewMessage?(nil, message: msg) {
-                var layout = TUIMessageCellLayout.incommingMessage()
+            if let data = delegate?.onNewMessage(nil, message: msg) {
+                var layout = TUIMessageCellLayout.incomingMessageLayout
                 if data.isKind(of: TUITextMessageCellData.self) || data.isKind(of: TUIReferenceMessageCellData.self) {
-                    layout = TUIMessageCellLayout.incommingTextMessage()
+                    layout = TUIMessageCellLayout.incomingTextMessageLayout
                 } else if data.isKind(of: TUIVoiceMessageCellData.self) {
-                    layout = TUIMessageCellLayout.incommingVoiceMessage()
+                    layout = TUIMessageCellLayout.incomingVoiceMessageLayout
                 }
                 data.cellLayout = layout
-                data.direction = .MsgDirectionIncoming
+                data.direction = .incoming
                 data.innerMessage = msg
                 uiMsgs.append(data)
                 continue
             }
             
             if let data = TUIMessageDataProvider.convertToCellData(from: msg) {
-                var layout = TUIMessageCellLayout.incommingMessage()
+                var layout = TUIMessageCellLayout.incomingMessageLayout
                 if data.isKind(of: TUITextMessageCellData.self) {
-                    layout = TUIMessageCellLayout.incommingTextMessage()
+                    layout = TUIMessageCellLayout.incomingTextMessageLayout
                 } else if data.isKind(of: TUIReplyMessageCellData.self) || data.isKind(of: TUIReferenceMessageCellData.self) {
-                    layout = TUIMessageCellLayout.incommingTextMessage()
+                    layout = TUIMessageCellLayout.incomingTextMessageLayout
                     if let textData = data as? TUIReferenceMessageCellData {
                         textData.textColor = TUISwift.tuiChatDynamicColor("chat_text_message_receive_text_color", defaultColor: "#000000")
                         textData.showRevokedOriginMessage = true
                     }
                 } else if data.isKind(of: TUIVoiceMessageCellData.self) {
                     if let voiceData = data as? TUIVoiceMessageCellData {
-                        voiceData.cellLayout = TUIMessageCellLayout.incommingVoiceMessage()
+                        voiceData.cellLayout = TUIMessageCellLayout.incomingVoiceMessageLayout
                         voiceData.voiceTop = 10
                         msg.localCustomInt = 1
                     }
-                    layout = TUIMessageCellLayout.incommingVoiceMessage()
+                    layout = TUIMessageCellLayout.incomingVoiceMessageLayout
                 }
                 data.cellLayout = layout
-                data.direction = .MsgDirectionIncoming
+                data.direction = .incoming
                 data.innerMessage = msg
                 data.showName = false
                 uiMsgs.append(data)
@@ -132,9 +132,9 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
         tableView.contentInset = UIEdgeInsets(top: 5, left: 0, bottom: 0, right: 0)
         messageCellConfig.bindTableView(tableView)
         
-        var image = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("nav_back")) ?? UIImage())
-        image = image!.withRenderingMode(.alwaysOriginal)
-        image = image!.rtl_imageFlippedForRightToLeftLayoutDirection()
+        var image = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("nav_back")))
+        image = image.withRenderingMode(.alwaysOriginal)
+        image = image.rtlImageFlippedForRightToLeftLayoutDirection()
         let backButton = UIButton(type: .custom)
         backButton.setImage(image, for: .normal)
         backButton.addTarget(self, action: #selector(goBack), for: .touchUpInside)
@@ -175,7 +175,7 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
         guard let uiMsgs = uiMsgs, indexPath.row < uiMsgs.count else { return UITableViewCell() }
         let data = uiMsgs[indexPath.row]
         data.showCheckBox = false
-        if let cell = delegate?.onShowMessageData?(nil, data: data) {
+        if let cell = delegate?.onShowMessageData(nil, data: data) {
             cell.delegate = self
             return cell
         }
@@ -188,7 +188,7 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
     // MARK: - TUIMessageCellDelegate
 
     func onSelectMessage(_ cell: TUIMessageCell) {
-        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageClicked?(cell, messageCellData: cell.messageData), result == true {
+        if let data = cell.messageData, let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageClicked(cell, messageCellData: data), result == true {
             return
         }
         
@@ -205,6 +205,7 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
             let mergeVc = TUIMergeMessageListController_Minimalist()
             mergeVc.mergerElem = mergeCell.mergeData?.mergerElem
             mergeVc.delegate = delegate
+            mergeVc.conversationData = conversationData
             navigationController?.pushViewController(mergeVc, animated: true)
         case let linkCell as TUILinkCell_Minimalist:
             showLinkMessage(linkCell)
@@ -215,10 +216,10 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
         default:
             break
         }
-        delegate?.onSelectMessageContent?(nil, cell: cell)
+        delegate?.onSelectMessageContent(nil, cell: cell)
     }
     
-    func onJump(toRepliesDetailPage data: TUIMessageCellData) {
+    func onJumpToRepliesDetailPage(_ data: TUIMessageCellData) {
         guard let conversationData = conversationData else { return }
         let repliesDetailVC = TUIRepliesDetailViewController_Minimalist(cellData: data, conversationData: conversationData)
         repliesDetailVC.delegate = delegate
@@ -232,19 +233,12 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
         }
     }
     
-    func onLongPressMessage(_ cell: TUIMessageCell) {}
-    func onRetryMessage(_ cell: TUIMessageCell) {}
-    func onSelectMessageAvatar(_ cell: TUIMessageCell) {}
-    func onLongSelectMessageAvatar(_ cell: TUIMessageCell) {}
-    func onSelectReadReceipt(_ data: TUIMessageCellData) {}
-    func onJump(toMessageInfoPage data: TUIMessageCellData, select cell: TUIMessageCell) {}
-    
     func scrollToLocateMessage(_ locateMessage: V2TIMMessage, matchKeyword msgAbstract: String) {
         guard let uiMsgs = uiMsgs else { return }
         var offsetY: CGFloat = 0
         var index = 0
         for uiMsg in uiMsgs {
-            if uiMsg.innerMessage.msgID == locateMessage.msgID {
+            if uiMsg.innerMessage?.msgID == locateMessage.msgID {
                 break
             }
             offsetY += uiMsg.height(ofWidth: TUISwift.screen_Width())
@@ -310,8 +304,8 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
             msgAbstract = cellData.msgAbstract ?? ""
         }
         
-        if let originMemoryMessageData = uiMsgs?.first(where: { $0.innerMessage.msgID == originMsgID }), cell.isKind(of: TUIReplyMessageCell_Minimalist.self) {
-            onJump(toRepliesDetailPage: originMemoryMessageData)
+        if let originMemoryMessageData = uiMsgs?.first(where: { $0.innerMessage?.msgID == originMsgID }), cell.isKind(of: TUIReplyMessageCell_Minimalist.self) {
+            onJumpToRepliesDetailPage(originMemoryMessageData)
         } else {
             msgDataProvider.findMessages(msgIDs: [originMsgID], callback: { [weak self] success, _, msgs in
                 guard let self else { return }
@@ -346,7 +340,7 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
     private func checkIfMessageExistsInLocal(_ locateMessage: V2TIMMessage) -> Bool {
         guard let uiMsgs = uiMsgs else { return false }
         for uiMsg in uiMsgs {
-            if uiMsg.innerMessage.msgID == locateMessage.msgID {
+            if uiMsg.innerMessage?.msgID == locateMessage.msgID {
                 return true
             }
         }
@@ -357,18 +351,19 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
         let uiMsgs = transUIMsgFromIMMsg([message])
         msgDataProvider.preProcessMessage(uiMsgs) { [weak self] in
             guard let self else { return }
-            if let cellData = uiMsgs.first(where: { $0.innerMessage.msgID == message.msgID }) {
-                self.onJump(toRepliesDetailPage: cellData)
+            if let cellData = uiMsgs.first(where: { $0.innerMessage?.msgID == message.msgID }) {
+                self.onJumpToRepliesDetailPage(cellData)
             }
         }
     }
     
     private func showImageMessage(_ cell: TUIImageMessageCell_Minimalist) {
+        guard let msg = cell.messageData?.innerMessage else { return }
         let frame = cell.thumb.convert(cell.thumb.bounds, to: TUITool.applicationKeywindow())
         let mediaView = TUIMediaView_Minimalist(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: TUISwift.screen_Height()))
         mediaView.setThumb(cell.thumb, frame: frame)
-        mediaView.setCurMessage(cell.messageData.innerMessage, allMessages: imMsgs ?? [])
-        TUITool.applicationKeywindow().addSubview(mediaView)
+        mediaView.setCurMessage(msg, allMessages: imMsgs ?? [])
+        TUITool.applicationKeywindow()?.addSubview(mediaView)
     }
     
     private func playVoiceMessage(_ cell: TUIVoiceMessageCell_Minimalist) {
@@ -389,11 +384,12 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
     }
     
     private func showVideoMessage(_ cell: TUIVideoMessageCell_Minimalist) {
+        guard let msg = cell.messageData?.innerMessage else { return }
         let frame = cell.thumb.convert(cell.thumb.bounds, to: TUITool.applicationKeywindow())
         let mediaView = TUIMediaView_Minimalist(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: TUISwift.screen_Height()))
         mediaView.setThumb(cell.thumb, frame: frame)
-        mediaView.setCurMessage(cell.messageData.innerMessage, allMessages: imMsgs ?? [])
-        TUITool.applicationKeywindow().addSubview(mediaView)
+        mediaView.setCurMessage(msg, allMessages: imMsgs ?? [])
+        TUITool.applicationKeywindow()?.addSubview(mediaView)
     }
     
     private func showFileMessage(_ cell: TUIFileMessageCell_Minimalist) {
@@ -442,9 +438,9 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
     // MARK: - TUINotificationProtocol
 
     func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
-        if key == TUICore_TUIPluginNotify && subKey == TUICore_TUIPluginNotify_DidChangePluginViewSubKey {
-            if let data = param?[TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data] as? TUIMessageCellData,
-               let msgID = data.innerMessage.msgID
+        if key == "TUICore_TUIPluginNotify" && subKey == "TUICore_TUIPluginNotify_DidChangePluginViewSubKey" {
+            if let data = param?["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data"] as? TUIMessageCellData,
+               let msgID = data.innerMessage?.msgID
             {
                 messageCellConfig.removeHeightCacheOfMessageCellData(data)
                 reloadAndScrollToBottomOfMessage(msgID, section: 0)
@@ -455,9 +451,9 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
     private func reloadAndScrollToBottomOfMessage(_ messageID: String, section: Int) {
         DispatchQueue.main.async {
             self.reloadCellOfMessage(messageID, section: section)
-            DispatchQueue.main.async {
-                self.scrollCellToBottomOfMessage(messageID, section: section)
-            }
+//            DispatchQueue.main.async {
+//                self.scrollCellToBottomOfMessage(messageID, section: section)
+//            }
         }
     }
     
@@ -484,7 +480,7 @@ class TUIMergeMessageListController_Minimalist: UITableViewController, TUIMessag
         guard let uiMsgs = uiMsgs else { return nil }
         for i in 0..<uiMsgs.count {
             let data = uiMsgs[i]
-            if data.innerMessage.msgID == messageID {
+            if data.innerMessage?.msgID == messageID {
                 return IndexPath(row: i, section: section)
             }
         }

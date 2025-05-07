@@ -2,26 +2,26 @@ import Foundation
 import TIMCommon
 import UIKit
 
-@objc public class TUILinkCellData: TUIBubbleMessageCellData {
+public class TUILinkCellData: TUIBubbleMessageCellData {
     var text: String = ""
     var link: String = ""
 
-    override public class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override public class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let data = message.customElem?.data,
               let param = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
         else {
-            return TUILinkCellData(direction: .MsgDirectionIncoming)
+            return TUILinkCellData(direction: .incoming)
         }
 
-        let cellData = TUILinkCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
-        cellData.msgID = message.msgID.safeValue
+        let cellData = TUILinkCellData(direction: message.isSelf ? .outgoing : .incoming)
+        cellData.msgID = message.msgID
         cellData.text = param["text"] as? String ?? ""
         cellData.link = param["link"] as? String ?? ""
-        cellData.avatarUrl = URL(string: message.faceURL.safeValue)
+        cellData.avatarUrl = URL(string: message.faceURL ?? "")
         return cellData
     }
 
-    static func getDisplayString(message: V2TIMMessage) -> String {
+    override public class func getDisplayString(message: V2TIMMessage) -> String {
         guard let data = message.customElem?.data,
               let param = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
         else {

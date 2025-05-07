@@ -18,7 +18,7 @@ class TUIVoiceToTextView: UIView {
         self.init(frame: CGRect.zero)
         self.cellData = data
         
-        let shouldShow = TUIVoiceToTextDataProvider.shouldShowConvertedText(data.innerMessage)
+        let shouldShow = TUIVoiceToTextDataProvider.shouldShowConvertedText(data.innerMessage ?? V2TIMMessage())
         if shouldShow {
             setupViews()
             setupGesture()
@@ -45,8 +45,8 @@ class TUIVoiceToTextView: UIView {
     }
     
     private func refreshWithData(_ cellData: TUIMessageCellData) {
-        text = TUIVoiceToTextDataProvider.getConvertedText(cellData.innerMessage)
-        let status = TUIVoiceToTextDataProvider.getConvertedTextStatus(cellData.innerMessage)
+        text = TUIVoiceToTextDataProvider.getConvertedText(cellData.innerMessage ?? V2TIMMessage())
+        let status = TUIVoiceToTextDataProvider.getConvertedTextStatus(cellData.innerMessage ?? V2TIMMessage())
         
         let size = calcSizeOfStatus(status)
         if !cellData.bottomContainerSize.equalTo(size) {
@@ -134,7 +134,7 @@ class TUIVoiceToTextView: UIView {
         textView.isHidden = true
         textView.isUserInteractionEnabled = false
         
-        retryView.image = UIImage(named: TUISwift.tuiChatImagePath("msg_error"))
+        retryView.image = UIImage.safeImage(TUISwift.tuiChatImagePath("msg_error"))
         retryView.isHidden = true
         addSubview(retryView)
     }
@@ -151,15 +151,9 @@ class TUIVoiceToTextView: UIView {
     override func updateConstraints() {
         super.updateConstraints()
         
-        if text.isNilOrEmpty {
-            loadingView.snp.remakeConstraints { make in
-                make.height.width.equalTo(15)
-                make.leading.equalTo(10)
-                make.centerY.equalToSuperview()
-            }
-        } else {
+        if let text = text, !text.isEmpty {
             retryView.snp.remakeConstraints { make in
-                if cellData.direction == .MsgDirectionOutgoing {
+                if cellData.direction == .outgoing {
                     make.leading.equalToSuperview().offset(-27)
                 } else {
                     make.trailing.equalToSuperview().offset(27)
@@ -173,6 +167,12 @@ class TUIVoiceToTextView: UIView {
                 make.trailing.equalTo(-10)
                 make.top.bottom.equalTo(10)
             }
+        } else {
+            loadingView.snp.remakeConstraints { make in
+                make.height.width.equalTo(15)
+                make.leading.equalTo(10)
+                make.centerY.equalToSuperview()
+            }
         }
     }
     
@@ -182,7 +182,7 @@ class TUIVoiceToTextView: UIView {
         var textColor = TUISwift.tuiVoice(toTextDynamicColor: "convert_voice_text_view_text_color", defaultColor: "#000000")
         var bgColor = TUISwift.tuiVoice(toTextDynamicColor: "convert_voice_text_view_bg_color", defaultColor: "#F2F7FF")
         if status == .securityStrike {
-            bgColor = UIColor.tui_color(withHex: "#FA5151", alpha: 0.16)
+            bgColor = UIColor.tui_color(withHex: "#FA5151", alpha: 0.16) ?? UIColor()
             textColor = TUISwift.tuiVoice(toTextDynamicColor: "", defaultColor: "#DA2222")
         }
         self.bgColor = bgColor
@@ -223,7 +223,7 @@ class TUIVoiceToTextView: UIView {
         
         let popMenu = TUIChatPopMenu()
         
-        let status = TUIVoiceToTextDataProvider.getConvertedTextStatus(cellData.innerMessage)
+        let status = TUIVoiceToTextDataProvider.getConvertedTextStatus(cellData.innerMessage ?? V2TIMMessage())
         let hasRiskContent = (status == .securityStrike)
         
         let copyAction = TUIChatPopMenuAction(title: TUISwift.timCommonLocalizableString("Copy"), image: TUISwift.tuiVoice(toTextBundleThemeImage: "convert_voice_text_view_pop_menu_copy_img", defaultImage: "icon_copy"), weight: 1) { [weak self] in
@@ -268,7 +268,7 @@ class TUIVoiceToTextView: UIView {
     
     private func onHide() {
         cellData.bottomContainerSize = .zero
-        TUIVoiceToTextDataProvider.saveConvertedResult(cellData.innerMessage, text: "", status: TUIVoiceToTextViewStatus.hidden)
+        TUIVoiceToTextDataProvider.saveConvertedResult(cellData.innerMessage ?? V2TIMMessage(), text: "", status: TUIVoiceToTextViewStatus.hidden)
         removeFromSuperview()
         notifyConversionViewHidden()
     }
@@ -284,14 +284,14 @@ class TUIVoiceToTextView: UIView {
     }
     
     private func notifyConversionForward(_ text: String) {
-        let param = [TUICore_TUIPluginNotify_WillForwardTextSubKey_Text: text]
-        TUICore.notifyEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_WillForwardTextSubKey, object: nil, param: param)
+        let param = ["TUICore_TUIPluginNotify_WillForwardTextSubKey_Text": text]
+        TUICore.notifyEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_WillForwardTextSubKey", object: nil, param: param)
     }
     
     private func notifyConversionChanged() {
-        let param = [TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data: cellData,
-                     TUICore_TUIPluginNotify_DidChangePluginViewSubKey_VC: self]
-        TUICore.notifyEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_DidChangePluginViewSubKey, object: nil, param: param as [AnyHashable: Any])
+        let param = ["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data": cellData,
+                     "TUICore_TUIPluginNotify_DidChangePluginViewSubKey_VC": self]
+        TUICore.notifyEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_DidChangePluginViewSubKey", object: nil, param: param as [AnyHashable: Any])
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.setNeedsUpdateConstraints()

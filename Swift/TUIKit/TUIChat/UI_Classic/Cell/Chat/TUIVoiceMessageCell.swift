@@ -54,13 +54,13 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
         isPlayingObservation = nil
     }
 
-    override func notifyBottomContainerReady(of cellData: TUIMessageCellData) {
+    override func notifyBottomContainerReady(of cellData: TUIMessageCellData?) {
         guard let voiceData = voiceData else { return }
-        let param = [TUICore_TUIChatExtension_BottomContainer_CellData: voiceData]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID, parentView: bottomContainer, param: param)
+        let param = ["TUICore_TUIChatExtension_BottomContainer_CellData": voiceData]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID", parentView: bottomContainer, param: param)
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIVoiceMessageCellData else { return }
         voiceData = data
@@ -75,13 +75,13 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
 
         voice.image = data.voiceImage
         voice.animationImages = data.voiceAnimationImages
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
 
         if hasRiskContent {
             securityStrikeView.textLabel.text = TUISwift.timCommonLocalizableString("TUIKitMessageTypeSecurityStrikeVoice")
         }
 
-        if voiceData?.innerMessage.localCustomInt == 0 && voiceData?.direction == .MsgDirectionIncoming {
+        if voiceData?.innerMessage?.localCustomInt == 0 && voiceData?.direction == .incoming {
             voiceReadPoint.isHidden = false
         }
 
@@ -102,7 +102,7 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
     }
 
     func applyStyleFromDirection(_ direction: TMsgDirection) {
-        if direction == .MsgDirectionIncoming {
+        if direction == .incoming {
             duration.rtlAlignment = .leading
             duration.textColor = TUISwift.tuiChatDynamicColor("chat_voice_message_recv_duration_time_color", defaultColor: "#000000")
         } else {
@@ -122,10 +122,10 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
         voice.snp.remakeConstraints { make in
             make.top.equalTo(voiceData?.voiceTop ?? 0)
             make.width.height.equalTo(voiceData?.voiceHeight ?? 0)
-            if voiceData?.direction == .MsgDirectionOutgoing {
-                make.trailing.equalTo(-(voiceData?.cellLayout.bubbleInsets.right ?? 0))
+            if voiceData?.direction == .outgoing {
+                make.trailing.equalTo(-(voiceData?.cellLayout?.bubbleInsets.right ?? 0))
             } else {
-                make.leading.equalTo(voiceData?.cellLayout.bubbleInsets.left ?? 0)
+                make.leading.equalTo(voiceData?.cellLayout?.bubbleInsets.left ?? 0)
             }
         }
 
@@ -133,14 +133,14 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
             make.width.greaterThanOrEqualTo(10)
             make.height.greaterThanOrEqualTo(33)
             make.centerY.equalTo(voice)
-            if voiceData?.direction == .MsgDirectionOutgoing {
+            if voiceData?.direction == .outgoing {
                 make.trailing.equalTo(voice.snp.leading).offset(-5)
             } else {
                 make.leading.equalTo(voice.snp.trailing).offset(5)
             }
         }
 
-        if voiceData?.direction == .MsgDirectionOutgoing {
+        if voiceData?.direction == .outgoing {
             voiceReadPoint.isHidden = true
         } else {
             voiceReadPoint.snp.remakeConstraints { make in
@@ -150,12 +150,12 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
             }
         }
 
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             securityStrikeView.snp.remakeConstraints { make in
                 make.top.equalTo(voice.snp.bottom)
                 make.width.equalTo(bubbleView)
-                make.bottom.equalTo(container).offset(-messageData.messageContainerAppendSize.height)
+                make.bottom.equalTo(container).offset(-(messageData?.messageContainerAppendSize.height ?? 0))
             }
         }
 
@@ -167,7 +167,7 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
         if !isBottomContainerSizeZero {
             if let size = voiceData?.bottomContainerSize {
                 bottomContainer.snp.remakeConstraints { make in
-                    if voiceData?.direction == .MsgDirectionIncoming {
+                    if voiceData?.direction == .incoming {
                         make.leading.equalTo(container)
                     } else {
                         make.trailing.equalTo(container)
@@ -177,10 +177,10 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
                 }
             }
         }
-        let topView = !isBottomContainerSizeZero ? bottomContainer! : container!
+        let topView = !isBottomContainerSizeZero ? bottomContainer : container
         if !messageModifyRepliesButton.isHidden {
             messageModifyRepliesButton.snp.remakeConstraints { make in
-                if voiceData?.direction == .MsgDirectionIncoming {
+                if voiceData?.direction == .incoming {
                     make.leading.equalTo(container)
                 } else {
                     make.trailing.equalTo(container)
@@ -204,24 +204,24 @@ class TUIVoiceMessageCell: TUIBubbleMessageCell {
     override class func getContentSize(_ data: TUIMessageCellData) -> CGSize {
         guard let voiceCellData = data as? TUIVoiceMessageCellData else { return .zero }
 
-        var bubbleWidth = TUISwift.tVoiceMessageCell_Back_Width_Min() + CGFloat(voiceCellData.duration) / TUISwift.tVoiceMessageCell_Max_Duration() * TUISwift.screen_Width()
+        var bubbleWidth = CGFloat(TVoiceMessageCell_Back_Width_Min) + CGFloat(voiceCellData.duration) / TVoiceMessageCell_Max_Duration * TUISwift.screen_Width()
         if bubbleWidth > TUISwift.tVoiceMessageCell_Back_Width_Max() {
             bubbleWidth = TUISwift.tVoiceMessageCell_Back_Width_Max()
         }
 
         var bubbleHeight = TUISwift.tVoiceMessageCell_Duration_Size().height
-        if voiceCellData.direction == .MsgDirectionIncoming {
-            bubbleWidth = max(bubbleWidth, TUIBubbleMessageCell.incommingBubble.size.width)
+        if voiceCellData.direction == .incoming {
+            bubbleWidth = max(bubbleWidth, (TUIBubbleMessageCell.incommingBubble?.size.width ?? 0))
             bubbleHeight = (voiceCellData.voiceImage?.size.height ?? 0) + 2 * voiceCellData.voiceTop
         } else {
-            bubbleWidth = max(bubbleWidth, TUIBubbleMessageCell.outgoingBubble.size.width)
+            bubbleWidth = max(bubbleWidth, (TUIBubbleMessageCell.outgoingBubble?.size.width ?? 0))
             bubbleHeight = (voiceCellData.voiceImage?.size.height ?? 0) + 2 * voiceCellData.voiceTop
         }
 
         var width = bubbleWidth + TUISwift.tVoiceMessageCell_Duration_Size().width
         var height = bubbleHeight
 
-        let hasRiskContent = voiceCellData.innerMessage.hasRiskContent
+        let hasRiskContent = voiceCellData.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             width = max(width, 200)
             height += kTUISecurityStrikeViewTopLineMargin

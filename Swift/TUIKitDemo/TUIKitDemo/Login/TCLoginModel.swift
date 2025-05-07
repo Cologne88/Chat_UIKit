@@ -1,5 +1,13 @@
+//
 //  TCLoginModel.swift
 //  TUIKitDemo
+//
+//  Created by 冯立军 on 2024/11/25.
+//  Copyright © 2024 Tencent. All rights reserved.
+//
+
+
+// TCLoginModel.swift
 
 import Foundation
 import TUICore

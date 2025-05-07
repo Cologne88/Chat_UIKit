@@ -72,7 +72,7 @@ class TUICircleLoadingView: UIView {
         layer.path = path.cgPath
     }
 
-    // TODO: 应该不需要这段了，先注释掉
+    // TODO: TO BE DELETED
 //    override func layoutSubviews() {
 //        super.layoutSubviews()
 //        if labProgress == nil {

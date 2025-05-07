@@ -7,14 +7,14 @@ class TUIEvaluationCellData: TUIBubbleMessageCellData {
     var desc: String = ""
     var comment: String = ""
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let data = message.customElem?.data,
               let param = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
         else {
-            return TUIEvaluationCellData(direction: .MsgDirectionIncoming)
+            return TUIEvaluationCellData(direction: .incoming)
         }
 
-        let cellData = TUIEvaluationCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+        let cellData = TUIEvaluationCellData(direction: message.isSelf ? .outgoing : .incoming)
         cellData.innerMessage = message
         cellData.desc = message.customElem?.desc ?? ""
         cellData.score = param["score"] as? Int ?? 0
@@ -22,7 +22,7 @@ class TUIEvaluationCellData: TUIBubbleMessageCellData {
         return cellData
     }
 
-    static func getDisplayString(message: V2TIMMessage) -> String {
+    override class func getDisplayString(message: V2TIMMessage) -> String {
         return message.customElem?.desc ?? ""
     }
 

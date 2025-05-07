@@ -5,8 +5,12 @@ import TUICore
 
 let MaxReEditMessageDelay: Double = 2 * 60
 
-@objc protocol TUIMessageDataProviderDataSource: TUIMessageBaseDataProviderDataSource {
-    @objc optional static func onGetCustomMessageCellDataClass(businessID: String) -> AnyClass?
+protocol TUIMessageDataProviderDataSource: TUIMessageBaseDataProviderDataSource {
+    static func onGetCustomMessageCellDataClass(businessID: String) -> TUIMessageCellDataDelegate.Type?
+}
+
+extension TUIMessageDataProviderDataSource {
+    static func onGetCustomMessageCellDataClass(businessID: String) -> TUIMessageCellDataDelegate.Type? { return nil }
 }
 
 class TUIMessageDataProvider: TUIMessageBaseDataProvider {
@@ -49,9 +53,9 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
     static func parseMessageCellDataFromMessageCustomData(_ message: V2TIMMessage) -> TUIMessageCellData? {
         var data: TUIMessageCellData? = nil
         if message.isContainsCloudCustom(of: .messageReply) {
-            data = TUIReplyMessageCellData.getCellData(message)
+            data = TUIReplyMessageCellData.getCellData(message: message)
         } else if message.isContainsCloudCustom(of: .messageReference) {
-            data = TUIReferenceMessageCellData.getCellData(message)
+            data = TUIReferenceMessageCellData.getCellData(message: message)
         }
         return data
     }
@@ -60,21 +64,21 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         var data: TUIMessageCellData? = nil
         switch message.elemType {
         case .ELEM_TYPE_TEXT:
-            data = TUITextMessageCellData.getCellData(message)
+            data = TUITextMessageCellData.getCellData(message: message)
         case .ELEM_TYPE_IMAGE:
-            data = TUIImageMessageCellData.getCellData(message)
+            data = TUIImageMessageCellData.getCellData(message: message)
         case .ELEM_TYPE_SOUND:
-            data = TUIVoiceMessageCellData.getCellData(message)
+            data = TUIVoiceMessageCellData.getCellData(message: message)
         case .ELEM_TYPE_VIDEO:
-            data = TUIVideoMessageCellData.getCellData(message)
+            data = TUIVideoMessageCellData.getCellData(message: message)
         case .ELEM_TYPE_FILE:
-            data = TUIFileMessageCellData.getCellData(message)
+            data = TUIFileMessageCellData.getCellData(message: message)
         case .ELEM_TYPE_FACE:
-            data = TUIFaceMessageCellData.getCellData(message)
+            data = TUIFaceMessageCellData.getCellData(message: message)
         case .ELEM_TYPE_GROUP_TIPS:
             data = getSystemCellData(message)
         case .ELEM_TYPE_MERGER:
-            data = TUIMergeMessageCellData.getCellData(message)
+            data = TUIMergeMessageCellData.getCellData(message: message)
         case .ELEM_TYPE_CUSTOM:
             data = getCustomMessageCellData(message)
         default:
@@ -85,29 +89,28 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
 
     static func fillPropertyToCellData(_ data: TUIMessageCellData, ofMessage message: V2TIMMessage) {
         data.innerMessage = message
-        if !message.groupID.isNilOrEmpty && !message.isSelf && !(data is TUISystemMessageCellData) {
+        if let groupID = message.groupID, !message.isSelf && !(data is TUISystemMessageCellData) {
             data.showName = true
         }
         switch message.status {
         case .MSG_STATUS_SEND_SUCC:
-            data.status = .Msg_Status_Succ
+            data.status = .success
         case .MSG_STATUS_SEND_FAIL:
-            data.status = .Msg_Status_Fail
+            data.status = .fail
         case .MSG_STATUS_SENDING:
-            data.status = .Msg_Status_Sending
+            data.status = .sending
         default:
             break
         }
 
-        if !message.msgID.isNilOrEmpty {
-            guard let msgID = message.msgID else { return }
+        if let msgID = message.msgID, !msgID.isEmpty {
             let uploadProgress = TUIMessageProgressManager.shared.uploadProgress(forMessage: msgID)
             let downloadProgress = TUIMessageProgressManager.shared.downloadProgress(forMessage: msgID)
-            if let data = data as? TUIMessageCellDataFileUploadProtocol {
+            if var data = data as? TUIMessageCellDataFileUploadProtocol {
                 data.uploadProgress = UInt(uploadProgress)
             }
-            if let data = data as? TUIMessageCellDataFileDownloadProtocol {
-                data.downladProgress = UInt(downloadProgress)
+            if var data = data as? TUIMessageCellDataFileDownloadProtocol {
+                data.downloadProgress = UInt(downloadProgress)
                 data.isDownloading = (downloadProgress != 0) && (downloadProgress != 100)
             }
         }
@@ -123,7 +126,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
                     if let dic = obj as? [String: Any] {
                         let typeStr = TUICloudCustomDataTypeCenter.convertType2String(.messageReplies) ?? ""
                         if let messageReplies = dic[typeStr] as? [String: Any],
-                           let repliesArr = messageReplies["replies"] as? [Any]
+                           let repliesArr = messageReplies["replies"] as? [[String: Any]]
                         {
                             data.messageModifyReplies = repliesArr
                         }
@@ -155,7 +158,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         var businessID: String? = nil
         var excludeFromHistory = false
 
-        if let signalingInfo = V2TIMManager.sharedInstance().getSignallingInfo(message) {
+        if let signalingInfo = V2TIMManager.sharedInstance().getSignallingInfo(msg: message) {
             excludeFromHistory = message.isExcludedFromLastMessage && message.isExcludedFromUnreadCount
             businessID = getSignalingBusinessID(signalingInfo)
         } else {
@@ -169,9 +172,9 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
 
         if let businessID = businessID, !businessID.isEmpty {
             if let gDataSourceClass = gDataSourceClass,
-               let cellDataClass = gDataSourceClass.onGetCustomMessageCellDataClass?(businessID: businessID)
+               let cellDataClass = gDataSourceClass.onGetCustomMessageCellDataClass(businessID: businessID)
             {
-                let data = cellDataClass.getCellData(message)
+                let data = cellDataClass.getCellData(message: message)
                 if data.shouldHide() {
                     return nil
                 } else {
@@ -179,7 +182,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
                     return data
                 }
             }
-            if businessID.contains(BussinessID_CustomerService) {
+            if businessID.contains("customerServicePlugin") {
                 return nil
             }
             return getUnsupportedCellData(message)
@@ -189,9 +192,9 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
     }
 
     static func getUnsupportedCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
-        let cellData = TUITextMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+        let cellData = TUITextMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
         cellData.content = TUISwift.timCommonLocalizableString("TUIKitNotSupportThisMessage")
-        cellData.reuseId = TTextMessageCell_ReuseId
+        cellData.reuseId = "TTextMessageCell"
         return cellData
     }
 
@@ -217,19 +220,19 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
             tip.type == .GROUP_TIPS_TYPE_PINNED_MESSAGE_ADDED ||
             tip.type == .GROUP_TIPS_TYPE_PINNED_MESSAGE_DELETED
         {
-            let joinGroupData = TUIJoinGroupMessageCellData(direction: .MsgDirectionIncoming)
-            joinGroupData.content = getDisplayString(message) ?? ""
+            let joinGroupData = TUIJoinGroupMessageCellData(direction: .incoming)
+            joinGroupData.content = getDisplayString(message: message) ?? ""
             joinGroupData.opUserName = opUserName
             joinGroupData.opUserID = opUserID
             joinGroupData.userNameList = userNameList
             joinGroupData.userIDList = userIDList
-            joinGroupData.reuseId = TJoinGroupMessageCell_ReuseId
+            joinGroupData.reuseId = "TJoinGroupMessageCell"
             return joinGroupData
         } else {
-            let sysdata = TUISystemMessageCellData(direction: .MsgDirectionIncoming)
-            sysdata.content = getDisplayString(message) ?? ""
-            sysdata.reuseId = TSystemMessageCell_ReuseId
-            if !sysdata.content.isEmpty {
+            let sysdata = TUISystemMessageCellData(direction: .incoming)
+            sysdata.content = getDisplayString(message: message) ?? ""
+            sysdata.reuseId = "TSystemMessageCell"
+            if !(sysdata.content?.isEmpty ?? true) {
                 return sysdata
             }
         }
@@ -237,36 +240,36 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
     }
 
     override class func getRevokeCellData(_ message: V2TIMMessage) -> TUISystemMessageCellData? {
-        let revoke = TUISystemMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
-        revoke.reuseId = TSystemMessageCell_ReuseId
+        let revoke = TUISystemMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
+        revoke.reuseId = "TSystemMessageCell"
         revoke.content = getRevokeDispayString(message)
         revoke.innerMessage = message
         let revokerInfo = message.revokerInfo
         if message.isSelf {
-            if message.elemType == .ELEM_TYPE_TEXT && abs(Date().timeIntervalSince(message.timestamp)) < MaxReEditMessageDelay {
+            if message.elemType == .ELEM_TYPE_TEXT && abs(Date().timeIntervalSince(message.timestamp ?? Date())) < MaxReEditMessageDelay {
                 if let revokerInfo = revokerInfo, revokerInfo.userID != message.sender {
                     revoke.supportReEdit = false
                 } else {
                     revoke.supportReEdit = true
                 }
             }
-        } else if !message.groupID.isNilOrEmpty {
+        } else if let groupID = message.groupID, !groupID.isEmpty {
             let userName = TUIMessageDataProvider.getShowName(message)
-            let joinGroupData = TUIJoinGroupMessageCellData(direction: .MsgDirectionIncoming)
+            let joinGroupData = TUIJoinGroupMessageCellData(direction: .incoming)
             joinGroupData.content = getRevokeDispayString(message)
             joinGroupData.opUserID = message.sender
             joinGroupData.opUserName = userName
-            joinGroupData.reuseId = TJoinGroupMessageCell_ReuseId
+            joinGroupData.reuseId = "TJoinGroupMessageCell"
             return joinGroupData
         }
         return revoke
     }
 
     override class func getSystemMsgFromDate(_ date: Date) -> TUIMessageCellData? {
-        let system = TUISystemMessageCellData(direction: .MsgDirectionOutgoing)
+        let system = TUISystemMessageCellData(direction: .outgoing)
         system.content = TUITool.convertDate(toStr: date)
-        system.reuseId = TSystemMessageCell_ReuseId
-        system.type = .date
+        system.reuseId = "TSystemMessageCell"
+        system.type = TUISystemMessageType.date
         return system
     }
 
@@ -280,7 +283,8 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
                 cellDataList.append(cellData)
             }
 
-            if let displayString = getDisplayString(message), let msgID = message.msgID {
+            let displayString = getDisplayString(message: message)
+            if let msgID = message.msgID {
                 originDisplayMap[msgID] = displayString
             }
         }
@@ -302,18 +306,22 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
             for cellData in cellDataList {
                 for (key, obj) in cellData.additionalUserInfoResult {
                     let str = "{\(key)}"
-                    var showName = obj.userID
-                    if !obj.nameCard.isEmpty {
-                        showName = obj.nameCard
-                    } else if !obj.friendRemark.isEmpty {
-                        showName = obj.friendRemark
-                    } else if !obj.nickName.isEmpty {
-                        showName = obj.nickName
+                    var showName = ""
+                    if let nameCard = obj.nameCard, !nameCard.isEmpty {
+                        showName = nameCard
+                    } else if let friendMark = obj.friendRemark, !friendMark.isEmpty {
+                        showName = friendMark
+                    } else if let nickName = obj.nickName, !nickName.isEmpty {
+                        showName = nickName
+                    } else if !obj.userID.isEmpty {
+                        showName = obj.userID
                     }
 
-                    if var displayString = originDisplayMap[cellData.msgID], displayString.contains(str) {
+                    if let msgID = cellData.msgID,
+                       var displayString = originDisplayMap[msgID], displayString.contains(str)
+                    {
                         displayString = displayString.replacingOccurrences(of: str, with: showName)
-                        result[cellData.msgID] = displayString
+                        result[msgID] = displayString
                     }
 
                     callback(result)
@@ -322,7 +330,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         }
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String? {
+    override public class func getDisplayString(message: V2TIMMessage) -> String? {
         let hasRiskContent = message.hasRiskContent
         let isRevoked = (message.status == .MSG_STATUS_LOCAL_REVOKED)
         if hasRiskContent && !isRevoked {
@@ -351,19 +359,19 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         var str: String? = nil
         switch message.elemType {
         case .ELEM_TYPE_TEXT:
-            str = TUITextMessageCellData.getDisplayString(message)
+            str = TUITextMessageCellData.getDisplayString(message: message)
         case .ELEM_TYPE_IMAGE:
-            str = TUIImageMessageCellData.getDisplayString(message)
+            str = TUIImageMessageCellData.getDisplayString(message: message)
         case .ELEM_TYPE_SOUND:
-            str = TUIVoiceMessageCellData.getDisplayString(message)
+            str = TUIVoiceMessageCellData.getDisplayString(message: message)
         case .ELEM_TYPE_VIDEO:
-            str = TUIVideoMessageCellData.getDisplayString(message)
+            str = TUIVideoMessageCellData.getDisplayString(message: message)
         case .ELEM_TYPE_FILE:
-            str = TUIFileMessageCellData.getDisplayString(message)
+            str = TUIFileMessageCellData.getDisplayString(message: message)
         case .ELEM_TYPE_FACE:
-            str = TUIFaceMessageCellData.getDisplayString(message)
+            str = TUIFaceMessageCellData.getDisplayString(message: message)
         case .ELEM_TYPE_MERGER:
-            str = TUIMergeMessageCellData.getDisplayString(message)
+            str = TUIMergeMessageCellData.getDisplayString(message: message)
         case .ELEM_TYPE_GROUP_TIPS:
             str = getGroupTipsDisplayString(message)
         case .ELEM_TYPE_CUSTOM:
@@ -394,7 +402,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         var businessID: String? = nil
         var excludeFromHistory = false
 
-        if let signalingInfo = V2TIMManager.sharedInstance().getSignallingInfo(message) {
+        if let signalingInfo = V2TIMManager.sharedInstance().getSignallingInfo(msg: message) {
             excludeFromHistory = message.isExcludedFromLastMessage && message.isExcludedFromUnreadCount
             businessID = getSignalingBusinessID(signalingInfo)
         } else {
@@ -408,12 +416,12 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
 
         if let businessID = businessID, !businessID.isEmpty {
             if let gDataSourceClass = gDataSourceClass,
-               let cellDataClass = gDataSourceClass.onGetCustomMessageCellDataClass?(businessID: businessID),
-               let data = cellDataClass.getDisplayString(message)
+               let cellDataClass = gDataSourceClass.onGetCustomMessageCellDataClass(businessID: businessID)
             {
+                let data = cellDataClass.getDisplayString(message: message)
                 return data
             }
-            if businessID.contains(BussinessID_CustomerService) {
+            if businessID.contains("customerServicePlugin") {
                 return nil
             }
             return TUISwift.timCommonLocalizableString("TUIKitMessageTipsUnsupportCustomMessage")
@@ -473,7 +481,9 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         for uiMsg in uiMsgArray {
             if uiMsgs.contains(uiMsg) {
                 uiMsgList.append(uiMsg)
-                imMsgList.append(uiMsg.innerMessage)
+                if let msg = uiMsg.innerMessage {
+                    imMsgList.append(msg)
+                }
 
                 var index = uiMsgs.firstIndex(of: uiMsg)!
                 index -= 1
@@ -484,7 +494,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         }
 
         if imMsgList.count == 0 {
-            fail?(ERR_INVALID_PARAMETERS.rawValue, "not found uiMsgs")
+            fail?(Int32(ERR_INVALID_PARAMETERS.rawValue), "not found uiMsgs")
             return
         }
 
@@ -512,10 +522,10 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
         guard let data = customElem.data else { return nil }
         do {
             if let param = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any] {
-                if let businessID = param[BussinessID] as? String, !businessID.isEmpty {
+                if let businessID = param["businessID"] as? String, !businessID.isEmpty {
                     return businessID
-                } else if param.keys.contains(BussinessID_CustomerService), let src = param[BussinessID_Src_CustomerService] as? String, !src.isEmpty {
-                    return "\(BussinessID_CustomerService)\(src)"
+                } else if param.keys.contains("customerServicePlugin"), let src = param["src"] as? String, !src.isEmpty {
+                    return "\("customerServicePlugin")\(src)"
                 }
             }
         } catch {
@@ -527,7 +537,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
     static func getSignalingBusinessID(_ signalInfo: V2TIMSignalingInfo) -> String? {
         guard let data = signalInfo.data else { return nil }
         do {
-            if let param = try JSONSerialization.jsonObject(with: data.data(using: .utf8)!, options: .allowFragments) as? [String: Any], let businessID = param[BussinessID] as? String {
+            if let param = try JSONSerialization.jsonObject(with: data.data(using: .utf8)!, options: .allowFragments) as? [String: Any], let businessID = param["businessID"] as? String {
                 return businessID
             }
         } catch {
@@ -545,7 +555,7 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
     }
 
     static func getCallingCellData(_ callingInfo: TUIChatCallingInfoProtocol) -> TUIMessageCellData? {
-        let direction: TMsgDirection = callingInfo.direction == TUICallMessageDirection.incoming ? .MsgDirectionIncoming : .MsgDirectionOutgoing
+        let direction: TMsgDirection = callingInfo.direction == TUICallMessageDirection.incoming ? .incoming : .outgoing
 
         if callingInfo.participantType == .c2c {
             let cellData = TUITextMessageCellData(direction: direction)
@@ -555,13 +565,13 @@ class TUIMessageDataProvider: TUIMessageBaseDataProvider {
             cellData.isCaller = callingInfo.participantRole == .caller
             cellData.showUnreadPoint = callingInfo.showUnreadPoint
             cellData.isUseMsgReceiverAvatar = callingInfo.isUseReceiverAvatar
-            cellData.reuseId = TTextMessageCell_ReuseId
+            cellData.reuseId = "TTextMessageCell"
             return cellData
         } else if callingInfo.participantType == .group {
             let cellData = TUISystemMessageCellData(direction: direction)
             cellData.content = callingInfo.content
             cellData.replacedUserIDList = callingInfo.participantIDList
-            cellData.reuseId = TSystemMessageCell_ReuseId
+            cellData.reuseId = "TSystemMessageCell"
             return cellData
         } else {
             return nil

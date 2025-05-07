@@ -107,7 +107,7 @@ class TUISelectGroupMemberViewController: UIViewController, UICollectionViewDele
         
         view.addSubview(userPanel)
         view.addSubview(selectTable)
-        selectTable.mm_width()(view.mm_w)!.mm_top()(topStartPosition + 10)!.mm_flexToBottom()(0)
+        selectTable.mm_width(view.mm_w).mm_top(topStartPosition + 10).mm_flexToBottom(0)
         
         // Layout userPanel and selectTable
         userPanel.translatesAutoresizingMaskIntoConstraints = false
@@ -147,7 +147,7 @@ class TUISelectGroupMemberViewController: UIViewController, UICollectionViewDele
         cancel()
         
         if navigateValueCallback != nil {
-            navigateValueCallback!([TUICore_TUIContactObjectFactory_SelectGroupMemberVC_ResultUserList: users])
+            navigateValueCallback!(["TUICore_TUIContactObjectFactory_SelectGroupMemberVC_ResultUserList": users])
         }
     }
     
@@ -185,10 +185,9 @@ class TUISelectGroupMemberViewController: UIViewController, UICollectionViewDele
             completion(true, "there is no more data", [])
             return
         }
-        
+        guard let groupId = groupId else { return }
         V2TIMManager.sharedInstance().getGroupMemberList(groupId, filter: UInt32(V2TIMGroupMemberFilter.GROUP_MEMBER_FILTER_ALL.rawValue), nextSeq: UInt64(pageIndex)) { [weak self] nextSeq, memberList in
-            guard let self = self else { return }
-            guard let memberList = memberList else { return }
+            guard let self = self, let memberList = memberList else { return }
             self.pageIndex = Int(nextSeq)
             self.isNoData = (nextSeq == 0)
             var arrayM: [TUIUserModel] = []
@@ -204,14 +203,17 @@ class TUISelectGroupMemberViewController: UIViewController, UICollectionViewDele
                     }
                 }
                 
-                if let selectedUserIDList = self.selectedUserIDList, selectedUserIDList.contains(info.userID.safeValue) {
+                if let selectedUserIDList = self.selectedUserIDList,
+                   let userID = info.userID,
+                   selectedUserIDList.contains(userID)
+                {
                     continue
                 }
                 
                 let model = TUIUserModel()
-                model.userId = info.userID.safeValue
-                model.name = info.nameCard ?? info.friendRemark ?? info.nickName ?? info.userID.safeValue
-                model.avatar = info.faceURL.safeValue
+                model.userId = info.userID ?? ""
+                model.name = info.nameCard ?? info.friendRemark ?? info.nickName ?? info.userID ?? ""
+                model.avatar = info.faceURL ?? ""
                 arrayM.append(model)
             }
             completion(true, nil, arrayM)
@@ -366,8 +368,8 @@ class TUISelectGroupMemberViewController: UIViewController, UICollectionViewDele
     // MARK: - Helper Methods
     
     private func updateUserPanel() {
-        userPanel.mm_height()(userPanelHeight)!.mm_left()(CGFloat(kUserPanelLeftSpacing))!.mm_flexToRight()(0)!.mm_top()(topStartPosition)
-        selectTable.mm_width()(view.mm_w)!.mm_top()(userPanel.mm_maxY)!.mm_flexToBottom()(0)
+        userPanel.mm_height(userPanelHeight).mm_left(CGFloat(kUserPanelLeftSpacing)).mm_flexToRight(0).mm_top(topStartPosition)
+        selectTable.mm_width(view.mm_w).mm_top(userPanel.mm_maxY).mm_flexToBottom(0)
         
         userPanel.performBatchUpdates({
             self.userPanel.reloadSections(IndexSet(integer: 0))

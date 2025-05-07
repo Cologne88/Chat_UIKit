@@ -5,6 +5,8 @@ import TIMCommon
 import UIKit
 
 class TUIFriendRequestViewController_Minimalist: UIViewController, UITableViewDataSource, UITableViewDelegate, TUIContactProfileCardDelegate, TUIFloatSubViewControllerProtocol {
+    var floatDataSourceChanged: (([Any]) -> Void)?
+    
     var profile: V2TIMUserFullInfo?
     var tableView: UITableView!
     var addWordTextView: UITextView!
@@ -42,14 +44,14 @@ class TUIFriendRequestViewController_Minimalist: UIViewController, UITableViewDa
             .paragraphStyle: paragraphStyle
         ]
         if let selfUserID: String = V2TIMManager.sharedInstance().getLoginUser() {
-            V2TIMManager.sharedInstance().getUsersInfo([selfUserID]) { (infoList: [V2TIMUserFullInfo]?) in
-                if let userInfo = infoList?.first {
-                    let text = String(format: TUISwift.timCommonLocalizableString("FriendRequestFormat"), userInfo.nickName ?? userInfo.userID)
-                    self.addWordTextView.attributedText = NSAttributedString(string: text, attributes: attributes)
-                }
-            } fail: { _, _ in
-                // Handle failure
-            }
+//           V2TIMManager.sharedInstance().getUsersInfo([selfUserID]) { (infoList: [V2TIMUserFullInfo]?) in
+//                if let userInfo = infoList?.first {
+//                    let text = String(format: TUISwift.timCommonLocalizableString("FriendRequestFormat"), userInfo.nickName ?? userInfo.userID)
+//                    self.addWordTextView.attributedText = NSAttributedString(string: text, attributes: attributes)
+//                }
+//            } fail: { _, _ in
+//                // Handle failure
+//            }
         }
 
         nickTextField = UITextField(frame: .zero)
@@ -168,7 +170,7 @@ class TUIFriendRequestViewController_Minimalist: UIViewController, UITableViewDa
         } else if indexPath.section == 3 {
             let cell = TUIContactButtonCell_Minimalist(style: .default, reuseIdentifier: "send")
             let data = TUIContactButtonCellData_Minimalist()
-            data.style = .ButtonBule
+            data.style = .blue
             data.title = TUISwift.timCommonLocalizableString("Send")
             data.cselector = #selector(onSend)
             data.textColor = TUISwift.timCommonDynamicColor("primary_theme_color", defaultColor: "147AFF")
@@ -191,11 +193,11 @@ class TUIFriendRequestViewController_Minimalist: UIViewController, UITableViewDa
         let application = V2TIMFriendAddApplication()
         application.addWording = addWordTextView.text
         application.friendRemark = nickTextField.text
-        application.userID = profile?.userID
+        application.userID = profile?.userID ?? ""
         application.addSource = "iOS"
         application.addType = (singleSwitchData?.isOn == true ? .FRIEND_TYPE_SINGLE : .FRIEND_TYPE_BOTH)
 
-        V2TIMManager.sharedInstance().addFriend(application) { result in
+        V2TIMManager.sharedInstance().addFriend(application: application) { result in
             guard let result = result else { return }
             var msg: String?
             var isSuccessFlag = false
@@ -235,7 +237,7 @@ class TUIFriendRequestViewController_Minimalist: UIViewController, UITableViewDa
 
         let icon = UIImageView()
         msgView.addSubview(icon)
-        icon.image = isSuccess ? UIImage(named: TUISwift.tuiContactImagePath_Minimalist("contact_add_success")) : UIImage(named: TUISwift.tuiContactImagePath_Minimalist("contact_add_failed"))
+        icon.image = isSuccess ? UIImage.safeImage(TUISwift.tuiContactImagePath_Minimalist("contact_add_success")) : UIImage.safeImage(TUISwift.tuiContactImagePath_Minimalist("contact_add_failed"))
 
         let descLabel = UILabel()
         msgView.addSubview(descLabel)

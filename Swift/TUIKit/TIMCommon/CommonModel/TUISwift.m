@@ -7,7 +7,7 @@
 //
 
 #import "TUISwift.h"
-#import <ReactiveObjC/ReactiveObjC.h>
+#import <ImSDK_Plus/V2TIMManager.h>
 
 @implementation TUISwift
 + (UIColor *)tuiDemoDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor {
@@ -16,6 +16,10 @@
 
 + (UIColor *)tuiConversationDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor {
     return TUIConversationDynamicColor(colorKey, defaultColor);
+}
+
++ (UIColor *)tuiConversationGroupDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor {
+    return TUIConversationGroupDynamicColor(colorKey, defaultColor);
 }
 
 + (UIImage *)tuiDemoDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage {
@@ -38,20 +42,20 @@
     return TIMCommonDynamicColor(colorKey, defaultColor);
 }
 
-+ (UIColor *)tuiDynamicColor:(NSString *)colorKey module:(TUIThemeModule)module defaultColor:(NSString *)defaultColor {
-    return TUIDynamicColor(colorKey, module, defaultColor);
++ (UIColor *)tuiDynamicColor:(NSString *)colorKey themeModule:(TUIThemeModule)themeModule defaultColor:(NSString *)defaultColor {
+    return TUIDynamicColor(colorKey, themeModule, defaultColor);
 }
 
-+ (UIImage *)defaultGroupAvatarImageByGroupType:(NSString *)groupType {
++ (UIImage *)defaultGroupAvatarImageByGroupType:(NSString * _Nullable)groupType {
     return DefaultGroupAvatarImageByGroupType(groupType);
 }
 
 + (NSString *)tuiDemoImagePath:(NSString *)path {
-    return TUIDemoImagePath(path);
+    return [getTUIGetBundlePath(@"TUIDemo", @"TIMAppKit.TUIKit") stringByAppendingPathComponent:path];
 }
 
 + (NSString *)tuiDemoImagePath_Minimalist:(NSString *)path{
-    return TUIDemoImagePath_Minimalist(path);
+    return [getTUIGetBundlePath(@"TUIDemo_Minimalist", @"TIMAppKit.TUIKit") stringByAppendingPathComponent:path];
 }
 
 + (NSString *)tuiCoreImagePath:(NSString *)path {
@@ -62,28 +66,37 @@
     return TIMCommonImagePath(path);
 }
 
-+(NSString *)tuiConversationImagePath:(NSString *)imageName {
++ (NSString *)tuiConversationImagePath:(NSString *)imageName {
     return TUIConversationImagePath(imageName);
 }
 
-+(UIImage *)tuiConversationDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage {
++ (UIImage *)tuiConversationDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage {
     return TUIConversationDynamicImage(imageKey, defaultImage);
 }
 
++ (UIImage *)tuiConversationGroupDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage {
+    return TUIConversationGroupDynamicImage(imageKey, defaultImage);
+}
+
++ (UIImage *)tuiConversationMarkDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage {
+    return TUIConversationGroupDynamicImage(imageKey, defaultImage);
+}
+
 +(NSString *)timCommonLocalizableString:(NSString *)str {
-    return [TUIGlobalization getLocalizedStringForKey:str bundle:TIMCommonLocalizableBundle];
+    NSString *localizedStr = [TUIGlobalization getLocalizedStringForKey:str bundle:@"TIMCommonLocalizable"];
+    return localizedStr ? : @"";
 }
 
 + (NSString *)tuiChatLocalizableString:(NSString *)str {
-    return [TUIGlobalization getLocalizedStringForKey:str bundle:TUIChatLocalizableBundle];
+    return [TUIGlobalization getLocalizedStringForKey:str bundle:@"TUIChatLocalizable"];
 }
 
 + (UIImage *)defaultAvatarImage {
     return DefaultAvatarImage;
 }
 
-+ (UIImage *)tuiCoreBundleThemeImage:(NSString *)imageKey defaultImageName:(NSString *)defaultImageName {
-    return TUICoreBundleThemeImage(imageKey, defaultImageName);
++ (UIImage *)tuiCoreBundleThemeImage:(NSString *)imageKey defaultImage:(NSString *)defaultImage {
+    return TUICoreBundleThemeImage(imageKey, defaultImage);
 }
 
 + (UIImage *)timCommonBundleImage:(NSString *)key {
@@ -102,11 +115,11 @@
     return TUIContactDynamicColor(colorKey, defaultColor);
 }
 
-+ (UIColor *)RGB:(CGFloat)r green:(CGFloat)g blue:(CGFloat)b {
++ (UIColor *)rgb:(CGFloat)r g:(CGFloat)g b:(CGFloat)b {
     return RGB(r, g, b);
 }
 
-+ (UIColor *)RGB:(CGFloat)r green:(CGFloat)g blue:(CGFloat)b alpha:(CGFloat)a {
++ (UIColor *)rgba:(CGFloat)r g:(CGFloat)g b:(CGFloat)b a:(CGFloat)a {
     return RGBA(r, g, b, a);
 }
 
@@ -118,7 +131,7 @@
     return kScale390(x);
 }
 
-+ (UIImage *)tuiDynamicImage:(NSString *)imageKey themeModule:(TUIThemeModule)themeModule defaultImg:(UIImage *)defaultImage {
++ (UIImage *)tuiDynamicImage:(NSString *)imageKey themeModule:(TUIThemeModule)themeModule defaultImage:(UIImage *)defaultImage {
     return TUIDynamicImage(imageKey, themeModule, defaultImage);
 }
 
@@ -139,7 +152,7 @@
 }
 
 + (NSString *)tuiChatImagePath_Minimalist:(NSString *)name {
-    return TUIChatImagePath_Minimalist(name);
+    return [getTUIGetBundlePath(@"TUIChat_Minimalist", @"TUIChat.TUIChatService") stringByAppendingPathComponent:name];
 }
 
 + (NSString *)tuiChatImagePath:(NSString *)name {
@@ -174,8 +187,8 @@
     return TUIChatCommonBundleImage(imageName);
 }
 
-+ (UIImage *)tuiConversationBundleThemeImage:(NSString *)imageKey defaultImageName:(NSString *)defaultImageName {
-    return TUIConversationBundleThemeImage(imageKey, defaultImageName);
++ (UIImage *)tuiConversationBundleThemeImage:(NSString *)imageKey defaultImage:(NSString *)defaultImage {
+    return TUIConversationBundleThemeImage(imageKey, defaultImage);
 }
 
 + (NSString *)tuiKit_Image_Path {
@@ -227,7 +240,7 @@
 }
 
 + (NSString *)tuiKitLocalizableString:(NSString *)key {
-    return [TUIGlobalization getLocalizedStringForKey:key bundle:TUIKitLocalizableBundle];
+    return [TUIGlobalization getLocalizedStringForKey:key bundle:@"TUIKitLocalizable"];
 }
 
 + (CGFloat)tTextView_Height {
@@ -274,20 +287,16 @@
     return TUIChatFaceImagePath(imageName);
 }
 
-+ (UIColor *)tControllerBackgroundColor {
++ (NSString *)tuiConversationGroupImagePath:(NSString *)imageName {
+    return TUIConversationGroupImagePath(imageName);
+}
+
++ (UIColor *)tController_Background_Color {
     return TController_Background_Color;
 }
 
-+ (UIColor *)tControllerBackgroundColorDark{
++ (UIColor *)tController_Background_Color_Dark{
     return TController_Background_Color_Dark;
-}
-
-+ (void)racObserveTUIConfig_displayOnlineStatusIcon:(UITableViewCell *)cell subscribeNext:(void(^)(id))subscribeNext {
-    [[RACObserve(TUIConfig.defaultConfig, displayOnlineStatusIcon) takeUntil:cell.rac_prepareForReuseSignal] subscribeNext:^(id _Nullable x) {
-        if (subscribeNext) {
-            subscribeNext(x);
-        }
-    }];
 }
 
 + (BOOL)is_IPhoneX {
@@ -303,7 +312,7 @@
 }
 
 + (NSString *)tFaceCell_ReuseId {
-    return TFaceCell_ReuseId;
+    return @"TFaceCell";
 }
 
 + (CGFloat)tLine_Height {
@@ -315,11 +324,11 @@
 }
 
 + (NSString *)tFileMessageCell_ReuseId {
-    return TFileMessageCell_ReuseId;
+    return @"TFileMessageCell";
 }
 
 + (NSString *)tImageMessageCell_ReuseId {
-    return TImageMessageCell_ReuseId;
+    return @"TImageMessageCell";
 }
 
 + (UIImage *)tuiChatDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage {
@@ -402,6 +411,14 @@
     return TUIChatThemePath;
 }
 
++ (NSString *)tuiConversationGroupThemePath {
+    return TUIConversationGroupTheme;
+}
+
++ (NSString *)tuiConversationMarkImagePath:(NSString *)imageName {
+    return TUIConversationMarkImagePath(imageName);
+}
+
 + (UIImage *)tuiContactCommonBundleImage:(NSString *)imageName {
     return TUIContactCommonBundleImage(imageName);
 }
@@ -416,5 +433,51 @@
 
 + (CGSize)tGroupMemberCell_Head_Size {
     return TGroupMemberCell_Head_Size;
+}
+
++ (CGSize)kTIMDefaultEmoji_Size {
+    return CGSizeMake(23, 23);
+}
+
++ (NSString *)tuiSearchThemePath {
+    return TUISearchThemePath;
+}
+
++ (NSString *)tuiSearchImagePath:(NSString *)imageName {
+    return TUISearchImagePath(imageName);
+}
+
++ (UIImage *)tuiSearchBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage {
+    return TUISearchBundleThemeImage(imageName, defaultImage);
+}
+
++ (NSString *)tuiGroupNoteThemePath {
+//    return TUIBundlePath(@"TUIGroupNoteTheme", @"TUIGroupNotePlugin.TUIGroupNoteService");
+    return TUIGroupNoteThemePath;
+}
+
++ (UIColor *)tuiGroupNoteDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor {
+    return TUIGroupNoteDynamicColor(colorKey, defaultColor);
+}
+
++ (UIImage *)tuiGroupNoteBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage {
+    return TUIGroupNoteBundleThemeImage(imageName, defaultImage);
+}
+
++ (NSString *)tuiPollThemePath {
+//    return TUIBundlePath(@"TUIPollTheme", @"TUIPollPlugin.TUIPollService");
+    return TUIPollThemePath;
+}
+
++ (UIColor *)tuiPollDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor {
+    return TUIPollDynamicColor(colorKey, defaultColor);
+}
+
++ (UIImage *)tuiPollBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage {
+    return TUIPollBundleThemeImage(imageName, defaultImage);
+}
+
++ (NSString *)timCommonThemePath {
+    return TIMCommonThemePath;
 }
 @end

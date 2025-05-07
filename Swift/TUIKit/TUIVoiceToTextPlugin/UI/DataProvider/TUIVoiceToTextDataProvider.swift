@@ -21,7 +21,7 @@ class TUIVoiceToTextDataProvider: NSObject, TUINotificationProtocol, V2TIMAdvanc
     // MARK: - Public
 
     static func convertMessage(_ data: TUIMessageCellData, completion: TUIVoiceToTextCompletion?) {
-        let msg = data.innerMessage
+        guard let msg = data.innerMessage else { return }
         guard msg.elemType == .ELEM_TYPE_SOUND else {
             completion?(-1, "element is not sound type", data, TUIVoiceToTextViewStatus.hidden.rawValue, "")
             return
@@ -48,9 +48,9 @@ class TUIVoiceToTextDataProvider: NSObject, TUINotificationProtocol, V2TIMAdvanc
         saveConvertedResult(msg, text: "", status: .loading)
         completion?(0, "", data, TUIVoiceToTextViewStatus.loading.rawValue, "")
         
-        soundElem.convertVoice(toText: "") { code, desc, result in
+        soundElem.convertVoiceToText(language: "") { code, desc, result in
             let status: TUIVoiceToTextViewStatus
-            if let result = result, result.count > 0 && code == 0 {
+            if (result?.count ?? 0) > 0 && code == 0 {
                 status = TUIVoiceToTextViewStatus.shown
             } else {
                 status = TUIVoiceToTextViewStatus.hidden

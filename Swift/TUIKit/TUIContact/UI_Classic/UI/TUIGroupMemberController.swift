@@ -45,21 +45,21 @@ class TUIGroupMemberController: UIViewController, UITableViewDelegate, UITableVi
         view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
 
         // left
-        var image = TUISwift.tuiContactDynamicImage("group_nav_back_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("back")))
-        image = image?.rtl_imageFlippedForRightToLeftLayoutDirection()
+        var image = TUISwift.tuiContactDynamicImage("group_nav_back_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("back")))
+        image = image.rtlImageFlippedForRightToLeftLayoutDirection()
         let leftButton = UIButton(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
         leftButton.addTarget(self, action: #selector(leftBarButtonClick), for: .touchUpInside)
         leftButton.setImage(image, for: .normal)
         let leftItem = UIBarButtonItem(customView: leftButton)
         let spaceItem = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
         spaceItem.width = -10.0
-        if let deviceVersion = TUITool.deviceVersion() {
-            let version = (deviceVersion as NSString).floatValue
-            if version >= 11.0 {
-                leftButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: -15, bottom: 0, right: 0)
-                leftButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -15, bottom: 0, right: 0)
-            }
+        let deviceVersion = TUITool.deviceVersion() ?? ""
+        let version = (deviceVersion as NSString).floatValue
+        if version >= 11.0 {
+            leftButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: -15, bottom: 0, right: 0)
+            leftButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -15, bottom: 0, right: 0)
         }
+
         navigationItem.leftBarButtonItems = [spaceItem, leftItem]
         parent?.navigationItem.leftBarButtonItems = [spaceItem, leftItem]
 
@@ -133,11 +133,11 @@ class TUIGroupMemberController: UIViewController, UITableViewDelegate, UITableVi
                 // add
                 self.tag = 1
                 var param = [String: Any]()
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey] = TUISwift.timCommonLocalizableString("GroupAddFirend")
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey] = ids
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey] = displayNames
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey] = selectContactCompletion
-                if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController {
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey"] = TUISwift.timCommonLocalizableString("GroupAddFirend")
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey"] = ids
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey"] = displayNames
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey"] = selectContactCompletion
+                if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController {
                     self.showContactSelectVC = vc
                     self.navigationController?.pushViewController(self.showContactSelectVC!, animated: true)
                 }
@@ -148,11 +148,11 @@ class TUIGroupMemberController: UIViewController, UITableViewDelegate, UITableVi
                 // delete
                 self.tag = 2
                 var param = [String: Any]()
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey] = TUISwift.timCommonLocalizableString("GroupDeleteFriend")
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_SourceIdsKey] = ids
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey] = displayNames
-                param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey] = selectContactCompletion
-                if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController {
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey"] = TUISwift.timCommonLocalizableString("GroupDeleteFriend")
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_SourceIdsKey"] = ids
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey"] = displayNames
+                param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey"] = selectContactCompletion
+                if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController {
                     self.showContactSelectVC = vc
                     self.navigationController?.pushViewController(self.showContactSelectVC!, animated: true)
                 }
@@ -164,8 +164,9 @@ class TUIGroupMemberController: UIViewController, UITableViewDelegate, UITableVi
     }
 
     func addGroupId(_ groupId: String?, members: [String]) {
+        guard let groupId = groupId else { return }
         weak var weakSelf = self
-        V2TIMManager.sharedInstance().inviteUser(toGroup: groupId, userList: members, succ: { _ in
+        V2TIMManager.sharedInstance().inviteUserToGroup(groupID: groupId, userList: members, succ: { _ in
             guard let strongSelf = weakSelf else { return }
             strongSelf.refreshData()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("add_success"))
@@ -175,6 +176,7 @@ class TUIGroupMemberController: UIViewController, UITableViewDelegate, UITableVi
     }
 
     func deleteGroupId(_ groupId: String?, members: [String]) {
+        guard let groupId = groupId else { return }
         weak var weakSelf = self
         V2TIMManager.sharedInstance().kickGroupMember(groupId, memberList: members, reason: "", succ: { _ in
             guard let strongSelf = weakSelf else { return }
@@ -261,12 +263,12 @@ class TUIGroupMemberController: UIViewController, UITableViewDelegate, UITableVi
         }
     }
 
-    func getUserOrFriendProfileVCWithUserID(_ userID: String?, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int, String) -> Void) {
+    func getUserOrFriendProfileVCWithUserID(_ userID: String?, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int32, String?) -> Void) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID ?? "",
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succBlock,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: failBlock
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID ?? "",
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succBlock,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": failBlock
         ]
-        TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
 }

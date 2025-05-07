@@ -1,9 +1,9 @@
 //  TUISettingController_Minimalist.swift
 //  TUIContact
 
-import UIKit
 import TIMCommon
 import TUICore
+import UIKit
 
 public protocol TUISettingControllerDelegate_Minimalist: AnyObject {
     func onSwitchMsgReadStatus(_ isOn: Bool)
@@ -16,21 +16,20 @@ public protocol TUISettingControllerDelegate_Minimalist: AnyObject {
 }
 
 class TUILogOutButtonCell: TUIButtonCell {
-
     override func layoutSubviews() {
         super.layoutSubviews()
         button.frame = CGRect(x: TUISwift.kScale390(16),
                               y: 0,
                               width: UIScreen.main.bounds.width - 2 * TUISwift.kScale390(16),
-                              height: self.bounds.height - CGFloat(TButtonCell_Margin))
+                              height: bounds.height - CGFloat(TButtonCell_Margin))
         button.layer.cornerRadius = TUISwift.kScale390(10)
         button.layer.masksToBounds = true
         button.backgroundColor = UIColor.tui_color(withHex: "f9f9f9")
     }
 }
 
-public class TUISettingController_Minimalist: UITableViewController, UIActionSheetDelegate, V2TIMSDKListener, TUIProfileCardDelegate, TUIStyleSelectControllerDelegate, TUIThemeSelectControllerDelegate {
-
+public class TUISettingController_Minimalist: UITableViewController, UIActionSheetDelegate, V2TIMSDKListener, TUIContactProfileCardCellDelegate_Minimalist, TUIStyleSelectControllerDelegate, TUIThemeSelectControllerDelegate {
+    
     public var lastLoginUser: String?
     public weak var delegate: TUISettingControllerDelegate_Minimalist?
 
@@ -56,7 +55,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
     private var themeName: String?
     private var sortedDataList: [Any] = []
 
-    public override init(style: UITableView.Style) {
+    override public init(style: UITableView.Style) {
         super.init(style: style)
         self.showPersonalCell = true
         self.showMessageReadStatusCell = true
@@ -67,32 +66,34 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         self.showLoginOutCell = true
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public override func viewDidLoad() {
+    override public func viewDidLoad() {
         super.viewDidLoad()
         setupViews()
 
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
         var loginUser = V2TIMManager.sharedInstance().getLoginUser()
         if loginUser == nil {
             loginUser = lastLoginUser
         }
         if let loginUser = loginUser, !loginUser.isEmpty {
             V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { [weak self] infoList in
-                guard let self = self else { return }
-                guard let infoList = infoList else { return }
+                guard let self = self, let infoList = infoList else { return }
                 self.profile = infoList.first
                 self.setupData()
-            }, fail: nil)
+            }) { _, _ in
+                // to do
+            }
         }
 
         TUITool.addUnsupportNotification(inVC: self, debugOnly: false)
     }
 
-    public override func viewWillAppear(_ animated: Bool) {
+    override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.navigationBar.isHidden = false
     }
@@ -113,16 +114,16 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         }
     }
 
-    public func onSelfInfoUpdated(_ info: V2TIMUserFullInfo) {
+    public func onSelfInfoUpdated(info: V2TIMUserFullInfo) {
         profile = info
         setupData()
     }
 
-    public override func numberOfSections(in tableView: UITableView) -> Int {
+    override public func numberOfSections(in tableView: UITableView) -> Int {
         return sortedDataList.count
     }
 
-    public override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+    override public func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let view = UIView()
         view.backgroundColor = .clear
         if section != 1 {
@@ -134,7 +135,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         return view
     }
 
-    public override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+    override public func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         if section == 0 {
             return 0
         } else if section == dataList.count - 1 {
@@ -144,7 +145,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         }
     }
 
-    public override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let dict = sortedDataList[section] as? [String: Any]
         if let views = dict?[kKeyViews] as? [UIView] {
             return views.count
@@ -155,7 +156,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         return 0
     }
 
-    public override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+    override public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         let dict = sortedDataList[indexPath.section] as? [String: Any]
         if let views = dict?[kKeyViews] as? [UIView] {
             return views[indexPath.row].bounds.size.height
@@ -167,7 +168,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         return 0
     }
 
-    public override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let dict = sortedDataList[indexPath.section] as? [String: Any]
         if let views = dict?[kKeyViews] as? [UIView] {
             let view = views[indexPath.row]
@@ -187,9 +188,9 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
                 cell.fill(with: data)
                 return cell
             } else if let data = data as? TUIButtonCellData {
-                var cell = tableView.dequeueReusableCell(withIdentifier: TButtonCell_ReuseId) as? TUILogOutButtonCell
+                var cell = tableView.dequeueReusableCell(withIdentifier: "TButtonCell") as? TUILogOutButtonCell
                 if cell == nil {
-                    cell = TUILogOutButtonCell(style: .default, reuseIdentifier: TButtonCell_ReuseId)
+                    cell = TUILogOutButtonCell(style: .default, reuseIdentifier: "TButtonCell")
                 }
                 cell?.fill(with: data)
                 return cell!
@@ -216,7 +217,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
             personal.avatarUrl = URL(string: profile?.faceURL ?? "")!
             personal.name = profile?.showName() ?? ""
             personal.genderString = profile?.showGender() ?? ""
-            personal.signature = self.profile?.selfSignature.isNilOrEmpty != nil ? String(format: TUISwift.timCommonLocalizableString("SignatureFormat"), self.profile?.selfSignature ?? "") : TUISwift.timCommonLocalizableString("no_personal_signature")
+            personal.signature = profile?.selfSignature != nil ? String(format: TUISwift.timCommonLocalizableString("SignatureFormat"), profile?.selfSignature ?? "") : TUISwift.timCommonLocalizableString("no_personal_signature")
             personal.cselector = #selector(didSelectCommon)
             personal.showAccessory = false
             personal.showSignature = true
@@ -242,7 +243,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         if showMessageReadStatusCell {
             let msgReadStatus = TUICommonSwitchCellData()
             msgReadStatus.title = TUISwift.timCommonLocalizableString("MeMessageReadStatus")
-            msgReadStatus.desc = self.msgNeedReadReceipt ? TUISwift.timCommonLocalizableString("MeMessageReadStatusOpenDesc") : TUISwift.timCommonLocalizableString("MeMessageReadStatusCloseDesc")
+            msgReadStatus.desc = msgNeedReadReceipt ? TUISwift.timCommonLocalizableString("MeMessageReadStatusOpenDesc") : TUISwift.timCommonLocalizableString("MeMessageReadStatusCloseDesc")
             msgReadStatus.cswitchSelector = #selector(onSwitchMsgReadStatus(_:))
             msgReadStatus.isOn = msgNeedReadReceipt
             dataList.append([kKeyWeight: 800, kKeyItems: [msgReadStatus]])
@@ -295,7 +296,7 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         if showLoginOutCell {
             let button = TUIButtonCellData()
             button.title = TUISwift.timCommonLocalizableString("logout")
-            button.style = .ButtonRedText
+            button.style = .redText
             button.cbuttonSelector = #selector(onClickLogout(_:))
             button.hideSeparatorLine = true
             dataList.append([kKeyWeight: 200, kKeyItems: [button]])
@@ -309,21 +310,21 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
 
     private func setupExtensionsData() {
         var param: [String: Any] = [:]
-        param[TUICore_TUIContactExtension_MeSettingMenu_Nav] = navigationController
-        let extensionList = TUICore.getExtensionList(TUICore_TUIContactExtension_MeSettingMenu_MinimalistExtensionID, param: param)
+        param["TUICore_TUIContactExtension_MeSettingMenu_Nav"] = navigationController
+        let extensionList = TUICore.getExtensionList("TUICore_TUIContactExtension_MeSettingMenu_MinimalistExtensionID", param: param)
         for info in extensionList {
             guard let data = info.data else {
                 assertionFailure("extension for setting is invalid, check data")
                 continue
             }
-            if let view = data[TUICore_TUIContactExtension_MeSettingMenu_View] as? UIView, let weight = data[TUICore_TUIContactExtension_MeSettingMenu_Weight] as? Int {
+            if let view = data["TUICore_TUIContactExtension_MeSettingMenu_View"] as? UIView, let weight = data["TUICore_TUIContactExtension_MeSettingMenu_Weight"] as? Int {
                 dataList.append([kKeyWeight: weight, kKeyViews: [view]])
             }
         }
     }
 
     private func sortDataList() {
-        sortedDataList = dataList.sorted { (obj1, obj2) -> Bool in
+        sortedDataList = dataList.sorted { obj1, obj2 -> Bool in
             let weight1 = (obj1 as? [String: Any])?[kKeyWeight] as? Int ?? 0
             let weight2 = (obj2 as? [String: Any])?[kKeyWeight] as? Int ?? 0
             return weight1 > weight2
@@ -355,11 +356,11 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
             setupData()
             let info = V2TIMUserFullInfo()
             info.allowType = V2TIMFriendAllowType(rawValue: buttonIndex) ?? .FRIEND_ALLOW_ANY
-            V2TIMManager.sharedInstance().setSelfInfo(info, succ: nil, fail: nil)
+            V2TIMManager.sharedInstance().setSelfInfo(info: info, succ: nil, fail: nil)
         }
     }
 
-    public func didTap(onAvatar cell: TUIProfileCardCell) {
+    func didTapOnAvatar(_ cell: TUIContactProfileCardCell_Minimalist) {
         let image = TUIAvatarViewController()
         image.avatarData = cell.cardData
         navigationController?.pushViewController(image, animated: true)
@@ -369,16 +370,17 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         let on = cell.switcher.isOn
         delegate?.onSwitchMsgReadStatus(on)
 
-        let switchData = cell.switchData
-        switchData.isOn = on
-        if on {
-            switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusOpenDesc")
-            TUITool.hideToast()
-            TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
-        } else {
-            switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusCloseDesc")
+        if let switchData = cell.switchData {
+            switchData.isOn = on
+            if on {
+                switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusOpenDesc")
+                TUITool.hideToast()
+                TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
+            } else {
+                switchData.desc = TUISwift.timCommonLocalizableString("MeMessageReadStatusCloseDesc")
+            }
+            cell.fill(with: switchData)
         }
-        cell.fill(with: switchData)
     }
 
     @objc private func onSwitchOnlineStatus(_ cell: TUICommonSwitchCell) {
@@ -386,20 +388,21 @@ public class TUISettingController_Minimalist: UITableViewController, UIActionShe
         delegate?.onSwitchOnlineStatus(on)
         TUIConfig.default().displayOnlineStatusIcon = on
 
-        let switchData = cell.switchData
-        switchData.isOn = on
-        if on {
-            switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusOpenDesc")
-        } else {
-            switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusCloseDesc")
-        }
+        if let switchData = cell.switchData {
+            switchData.isOn = on
+            if on {
+                switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusOpenDesc")
+            } else {
+                switchData.desc = TUISwift.timCommonLocalizableString("ShowOnlineStatusCloseDesc")
+            }
 
-        if on {
-            TUITool.hideToast()
-            TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
-        }
+            if on {
+                TUITool.hideToast()
+                TUITool.makeToast(TUISwift.timCommonLocalizableString("ShowPackageToast"))
+            }
 
-        cell.fill(with: switchData)
+            cell.fill(with: switchData)
+        }
     }
 
     @objc private func onSwitchCallsRecord(_ cell: TUICommonSwitchCell) {

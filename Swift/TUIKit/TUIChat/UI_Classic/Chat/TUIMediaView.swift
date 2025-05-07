@@ -57,8 +57,8 @@ class TUIMediaView: UIView {
 
         menuCollectionView = UICollectionView(frame: mediaView!.bounds, collectionViewLayout: menuFlowLayout)
         menuCollectionView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        menuCollectionView?.register(TUIImageCollectionCell.self, forCellWithReuseIdentifier: TImageMessageCell_ReuseId)
-        menuCollectionView?.register(TUIVideoCollectionCell.self, forCellWithReuseIdentifier: TVideoMessageCell_ReuseId)
+        menuCollectionView?.register(TUIImageCollectionCell.self, forCellWithReuseIdentifier: "TImageMessageCell")
+        menuCollectionView?.register(TUIVideoCollectionCell.self, forCellWithReuseIdentifier: "TVideoMessageCell")
         menuCollectionView?.isPagingEnabled = true
         menuCollectionView?.delegate = self
         menuCollectionView?.dataSource = self
@@ -152,7 +152,7 @@ class TUIMediaView: UIView {
             self.menuCollectionView?.reloadData()
             for i in 0 ..< dataProvider.mediaCellData.count {
                 let data = dataProvider.mediaCellData[i]
-                if data.innerMessage.msgID == self.currentMessage?.msgID {
+                if data.innerMessage?.msgID == self.currentMessage?.msgID {
                     self.currentVisibleIndexPath = IndexPath(row: i, section: 0)
                     self.menuCollectionView?.scrollToItem(at: IndexPath(row: i, section: 0), at: .left, animated: false)
                     return
@@ -178,7 +178,7 @@ class TUIMediaView: UIView {
         if let dataProvider = dataProvider {
             for i in 0 ..< dataProvider.mediaCellData.count {
                 let data = dataProvider.mediaCellData[i]
-                if (data as AnyObject).innerMessage.msgID == currentMessage?.msgID {
+                if data.innerMessage?.msgID == currentMessage?.msgID {
                     menuCollectionView?.scrollToItem(at: IndexPath(row: i, section: 0), at: .left, animated: false)
                     return
                 }
@@ -196,7 +196,7 @@ extension TUIMediaView: UICollectionViewDelegate, UICollectionViewDataSource, UI
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let data = dataProvider?.mediaCellData[indexPath.row] as? TUIMessageCellData else {
-            return UICollectionViewCell() // Return a default cell if data is not available
+            return UICollectionViewCell()
         }
 
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: data.reuseId, for: indexPath) as! TUIMediaCollectionCell

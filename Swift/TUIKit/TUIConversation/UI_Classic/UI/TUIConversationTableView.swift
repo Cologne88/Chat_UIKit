@@ -2,19 +2,19 @@ import TIMCommon
 import TUICore
 import UIKit
 
-let gConversationCell_ReuseId: String = "TConversationCell"
+public let gConversationCell_ReuseId: String = "TConversationCell"
 
-@objc protocol TUIConversationTableViewDelegate: NSObjectProtocol {
-    @objc optional func tableViewDidScroll(_ offsetY: CGFloat)
-    @objc optional func tableViewDidSelectCell(_ data: TUIConversationCellData)
-    @objc optional func tableViewDidShowAlert(_ ac: UIAlertController)
+protocol TUIConversationTableViewDelegate: NSObjectProtocol {
+    func tableViewDidScroll(_ offsetY: CGFloat)
+    func tableViewDidSelectCell(_ data: TUIConversationCellData)
+    func tableViewDidShowAlert(_ ac: UIAlertController)
 }
 
-class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDataSource, TUIConversationListDataProviderDelegate {
+open class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDataSource, TUIConversationListDataProviderDelegate {
     weak var convDelegate: TUIConversationTableViewDelegate?
     var _dataProvider: TUIConversationListBaseDataProvider?
-    var unreadCountChanged: ((Int, Int) -> Void)?
-    var tipsMsgWhenNoConversation: String?
+    public var unreadCountChanged: ((Int, Int) -> Void)?
+    public var tipsMsgWhenNoConversation: String?
     var disableMoreActionExtension = false
     
     private var hideMarkReadAction = false
@@ -24,7 +24,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
     
     lazy var tipsView: UIImageView = {
         let tipsView = UIImageView()
-        tipsView.image = TUISwift.tuiConversationDynamicImage("no_conversation_img", defaultImage: UIImage(named: TUISwift.tuiConversationImagePath("no_conversation")))
+        tipsView.image = TUISwift.tuiConversationDynamicImage("no_conversation_img", defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath("no_conversation")))
         tipsView.isHidden = true
         return tipsView
     }()
@@ -38,12 +38,12 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         return tipsLabel
     }()
     
-    override init(frame: CGRect, style: UITableView.Style) {
+    override public init(frame: CGRect, style: UITableView.Style) {
         super.init(frame: frame, style: style)
         setupTableView()
     }
     
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupTableView()
     }
@@ -54,10 +54,10 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         tableFooterView = UIView()
         contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 8, right: 0)
         register(TUIConversationCell.self, forCellReuseIdentifier: gConversationCell_ReuseId)
-        estimatedRowHeight = TConversationCell_Height
-        rowHeight = TConversationCell_Height
+        estimatedRowHeight = CGFloat(TConversationCell_Height)
+        rowHeight = CGFloat(TConversationCell_Height)
         delaysContentTouches = false
-        separatorColor = TUISwift.tuiConversationDynamicColor("separator_color", defaultColor: "#DBDBDB")
+        separatorColor = TUISwift.timCommonDynamicColor("separator_color", defaultColor: "#DBDBDB")
         delegate = self
         dataSource = self
         addSubview(tipsView)
@@ -70,18 +70,20 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
     @objc private func onFriendInfoChanged(_ notice: Notification) {
         guard let friendInfo = notice.object as? V2TIMFriendInfo else { return }
         for cellData in dataProvider.conversationList {
-            if cellData.userID == friendInfo.userID, let userFullInfo = friendInfo.userFullInfo {
-                cellData.title.value = friendInfo.friendRemark ?? userFullInfo.nickName ?? friendInfo.userID ?? ""
-                reloadData()
-                break
+            if cellData.userID == friendInfo.userID {
+                if let userFullInfo = friendInfo.userFullInfo {
+                    cellData.title = friendInfo.friendRemark ?? userFullInfo.nickName ?? friendInfo.userID
+                    reloadData()
+                    break
+                }
             }
         }
     }
     
-    override func layoutSubviews() {
+    override open func layoutSubviews() {
         super.layoutSubviews()
-        tipsView.mm_width()(128)!.mm_height()(109)!.mm__centerX()(mm_centerX)!.mm__centerY()(mm_centerY - 60)
-        tipsLabel.mm_width()(300)!.mm_height()(20)!.mm__centerX()(mm_centerX)!.mm_top()(tipsView.mm_maxY + 18)
+        tipsView.mm_width(128).mm_height(109).mm__centerX(mm_centerX).mm__centerY(mm_centerY - 60)
+        tipsLabel.mm_width(300).mm_height(20).mm__centerX(mm_centerX).mm_top(tipsView.mm_maxY + 18)
     }
     
     private func updateTipsViewStatus() {
@@ -97,7 +99,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         }
     }
     
-    var dataProvider: TUIConversationListBaseDataProvider {
+    public var dataProvider: TUIConversationListBaseDataProvider {
         get {
             return _dataProvider ?? TUIConversationListBaseDataProvider()
         }
@@ -114,7 +116,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
     
     // MARK: TUIConversationListDataProviderDelegate
 
-    func insertConversations(at indexPaths: [IndexPath]) {
+    public func insertConversations(at indexPaths: [IndexPath]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.insertConversations(at: indexPaths)
@@ -126,7 +128,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         }
     }
     
-    func reloadConversations(at indexPaths: [IndexPath]) {
+    public func reloadConversations(at indexPaths: [IndexPath]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.reloadConversations(at: indexPaths)
@@ -141,7 +143,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         }
     }
     
-    func deleteConversation(at indexPaths: [IndexPath]) {
+    public func deleteConversation(at indexPaths: [IndexPath]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.deleteConversation(at: indexPaths)
@@ -151,7 +153,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         deleteRows(at: indexPaths, with: .none)
     }
     
-    func reloadAllConversations() {
+    public func reloadAllConversations() {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.reloadAllConversations()
@@ -161,7 +163,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         reloadData()
     }
     
-    func updateMarkUnreadCount(_ markUnreadCount: Int, markHideUnreadCount: Int) {
+    public func updateMarkUnreadCount(_ markUnreadCount: Int, markHideUnreadCount: Int) {
         if let unreadCountChanged = unreadCountChanged {
             unreadCountChanged(markUnreadCount, markHideUnreadCount)
         }
@@ -169,42 +171,37 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
     
     func parseActionHiddenTagAndCustomizedItems(_ cellData: TUIConversationCellData) {
         guard let dataSource = TUIConversationConfig.sharedConfig.moreMenuDataSource else { return }
-        if (dataSource.responds(to: Selector(("conversationShouldHideItemsInMoreMenu")))) != nil {
-            let flag = dataSource.conversationShouldHideItemsInMoreMenu(cellData)
-            hideDeleteAction = ((flag.rawValue & TUIConversationItemInMoreMenu.Delete.rawValue) != 0)
-            hideMarkReadAction = ((flag.rawValue & TUIConversationItemInMoreMenu.MarkRead.rawValue) != 0)
-            hideHideAction = ((flag.rawValue & TUIConversationItemInMoreMenu.Hide.rawValue) != 0)
-        }
-        if (dataSource.responds(to: Selector(("conversationShouldAddNewItemsToMoreMenu")))) != nil {
-            if let items = dataSource.conversationShouldAddNewItemsToMoreMenu(cellData) as? [UIAlertAction], items.count > 0 {
-                customizedItems = items
-            }
+        let flag = dataSource.conversationShouldHideItemsInMoreMenu(cellData)
+        hideDeleteAction = ((flag.rawValue & TUIConversationItemInMoreMenu.Delete.rawValue) != 0)
+        hideMarkReadAction = ((flag.rawValue & TUIConversationItemInMoreMenu.MarkRead.rawValue) != 0)
+        hideHideAction = ((flag.rawValue & TUIConversationItemInMoreMenu.Hide.rawValue) != 0)
+        
+        if let items = dataSource.conversationShouldAddNewItemsToMoreMenu(cellData) as? [UIAlertAction], items.count > 0 {
+            customizedItems = items
         }
     }
     
     // MARK: - Table view data source
 
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+    public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         dataProvider.loadNexPageConversations()
     }
     
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let offsetY = scrollView.contentOffset.y
-        if let convDelegate = convDelegate, convDelegate.responds(to: #selector(TUIConversationTableViewDelegate.tableViewDidScroll(_:))) {
-            convDelegate.tableViewDidScroll!(offsetY)
-        }
+        convDelegate?.tableViewDidScroll(offsetY)
     }
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         updateTipsViewStatus()
         return dataProvider.conversationList.count
     }
     
-    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+    public func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         return true
     }
     
-    func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
+    open func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
         let cellData = dataProvider.conversationList[indexPath.row]
         var rowActions: [UITableViewRowAction] = []
         parseActionHiddenTagAndCustomizedItems(cellData)
@@ -216,7 +213,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                     TUIConversationListDataProvider.cacheConversationFoldListSettings_HideFoldItem(true)
                 }
             }
-            markHideAction.backgroundColor = TUISwift.rgb(242, green: 147, blue: 64)
+            markHideAction.backgroundColor = TUISwift.rgb(242, g: 147, b: 64)
             if !hideHideAction {
                 rowActions.append(markHideAction)
             }
@@ -225,21 +222,21 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         
         let deleteAction = UITableViewRowAction(style: .destructive, title: TUISwift.timCommonLocalizableString("Delete")) { _, _ in
             let cancelBtnInfo = TUISecondConfirmBtnInfo()
-            cancelBtnInfo.tile = TUISwift.timCommonLocalizableString("Cancel")
+            cancelBtnInfo.title = TUISwift.timCommonLocalizableString("Cancel")
             cancelBtnInfo.click = { [weak self] in
                 guard let self = self else { return }
                 self.isEditing = false
             }
             let confirmBtnInfo = TUISecondConfirmBtnInfo()
-            confirmBtnInfo.tile = TUISwift.timCommonLocalizableString("Delete")
+            confirmBtnInfo.title = TUISwift.timCommonLocalizableString("Delete")
             confirmBtnInfo.click = { [weak self] in
                 guard let self = self else { return }
                 self.dataProvider.removeConversation(cellData)
                 self.isEditing = false
             }
-            TUISecondConfirm.show(TUISwift.timCommonLocalizableString("TUIKitConversationTipsDelete"), cancel: cancelBtnInfo, confirmBtnInfo: confirmBtnInfo)
+            TUISecondConfirm.show(title: TUISwift.timCommonLocalizableString("TUIKitConversationTipsDelete"), cancelBtnInfo: cancelBtnInfo, confirmBtnInfo: confirmBtnInfo)
         }
-        deleteAction.backgroundColor = TUISwift.rgb(242, green: 77, blue: 76)
+        deleteAction.backgroundColor = TUISwift.rgb(242, g: 77, b: 76)
         if !hideDeleteAction {
             rowActions.append(deleteAction)
         }
@@ -257,15 +254,15 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                 }
             }
         }
-        markAsReadAction.backgroundColor = TUISwift.rgb(20, green: 122, blue: 255)
+        markAsReadAction.backgroundColor = TUISwift.rgb(20, g: 122, b: 255)
         if !hideMarkReadAction {
             rowActions.append(markAsReadAction)
         }
         
-        let moreExtensionList = TUICore.getExtensionList(TUICore_TUIConversationExtension_ConversationCellMoreAction_ClassicExtensionID, param: [
-            TUICore_TUIConversationExtension_ConversationCellAction_ConversationIDKey: cellData.conversationID ?? "",
-            TUICore_TUIConversationExtension_ConversationCellAction_MarkListKey: cellData.conversationMarkList ?? [],
-            TUICore_TUIConversationExtension_ConversationCellAction_GroupListKey: cellData.conversationGroupList ?? []
+        let moreExtensionList = TUICore.getExtensionList("TUICore_TUIConversationExtension_ConversationCellMoreAction_ClassicExtensionID", param: [
+            "TUICore_TUIConversationExtension_ConversationCellAction_ConversationIDKey": cellData.conversationID ?? "",
+            "TUICore_TUIConversationExtension_ConversationCellAction_MarkListKey": cellData.conversationMarkList ?? [],
+            "TUICore_TUIConversationExtension_ConversationCellAction_GroupListKey": cellData.conversationGroupList ?? []
         ])
         if disableMoreActionExtension || moreExtensionList.count == 0 {
             let markAsHideAction = UITableViewRowAction(style: .destructive, title: TUISwift.timCommonLocalizableString("MarkHide")) { _, _ in
@@ -274,7 +271,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                     TUIConversationListDataProvider.cacheConversationFoldListSettings_HideFoldItem(true)
                 }
             }
-            markAsHideAction.backgroundColor = TUISwift.rgb(242, green: 147, blue: 64)
+            markAsHideAction.backgroundColor = TUISwift.rgb(242, g: 147, b: 64)
             if !hideHideAction {
                 rowActions.append(markAsHideAction)
             }
@@ -284,14 +281,14 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                 self.isEditing = false
                 showMoreAction(cellData, extensionList: moreExtensionList)
             }
-            moreAction.backgroundColor = TUISwift.rgb(242, green: 147, blue: 64)
+            moreAction.backgroundColor = TUISwift.rgb(242, g: 147, b: 64)
             rowActions.append(moreAction)
         }
         return rowActions
     }
     
     @available(iOS 11.0, *)
-    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+    open func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let cellData = dataProvider.conversationList[indexPath.row]
         
         parseActionHiddenTagAndCustomizedItems(cellData)
@@ -307,7 +304,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                 }
                 completionHandler(true)
             }
-            markHideAction.backgroundColor = TUISwift.rgb(242, green: 147, blue: 64)
+            markHideAction.backgroundColor = TUISwift.rgb(242, g: 147, b: 64)
             let configuration = UISwipeActionsConfiguration(actions: [markHideAction])
             configuration.performsFirstActionWithFullSwipe = false
             return configuration
@@ -316,22 +313,22 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         if !hideDeleteAction {
             let deleteAction = UIContextualAction(style: .normal, title: TUISwift.timCommonLocalizableString("Delete")) { _, _, completionHandler in
                 let cancelBtnInfo = TUISecondConfirmBtnInfo()
-                cancelBtnInfo.tile = TUISwift.timCommonLocalizableString("Cancel")
+                cancelBtnInfo.title = TUISwift.timCommonLocalizableString("Cancel")
                 cancelBtnInfo.click = { [weak self] in
                     guard let self = self else { return }
                     self.isEditing = false
                 }
                 let confirmBtnInfo = TUISecondConfirmBtnInfo()
-                confirmBtnInfo.tile = TUISwift.timCommonLocalizableString("Delete")
+                confirmBtnInfo.title = TUISwift.timCommonLocalizableString("Delete")
                 confirmBtnInfo.click = { [weak self] in
                     guard let self = self else { return }
                     self.dataProvider.removeConversation(cellData)
                     self.isEditing = false
                 }
-                TUISecondConfirm.show(TUISwift.timCommonLocalizableString("TUIKitConversationTipsDelete"), cancel: cancelBtnInfo, confirmBtnInfo: confirmBtnInfo)
+                TUISecondConfirm.show(title: TUISwift.timCommonLocalizableString("TUIKitConversationTipsDelete"), cancelBtnInfo: cancelBtnInfo, confirmBtnInfo: confirmBtnInfo)
                 completionHandler(true)
             }
-            deleteAction.backgroundColor = TUISwift.rgb(242, green: 77, blue: 76)
+            deleteAction.backgroundColor = TUISwift.rgb(242, g: 77, b: 76)
             arrayM.append(deleteAction)
         }
         
@@ -351,16 +348,16 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                 }
                 completionHandler(true)
             }
-            markAsReadAction.backgroundColor = TUISwift.rgb(20, green: 122, blue: 255)
+            markAsReadAction.backgroundColor = TUISwift.rgb(20, g: 122, b: 255)
             arrayM.append(markAsReadAction)
         }
         
         let moreExtensionList: [Any] = TUICore.getExtensionList(
-            TUICore_TUIConversationExtension_ConversationCellMoreAction_ClassicExtensionID,
+            "TUICore_TUIConversationExtension_ConversationCellMoreAction_ClassicExtensionID",
             param: [
-                TUICore_TUIConversationExtension_ConversationCellAction_ConversationIDKey: cellData.conversationID ?? "",
-                TUICore_TUIConversationExtension_ConversationCellAction_MarkListKey: cellData.conversationMarkList ?? [],
-                TUICore_TUIConversationExtension_ConversationCellAction_GroupListKey: cellData.conversationGroupList ?? []
+                "TUICore_TUIConversationExtension_ConversationCellAction_ConversationIDKey": cellData.conversationID ?? "",
+                "TUICore_TUIConversationExtension_ConversationCellAction_MarkListKey": cellData.conversationMarkList ?? [],
+                "TUICore_TUIConversationExtension_ConversationCellAction_GroupListKey": cellData.conversationGroupList ?? []
             ]
         )
         if disableMoreActionExtension || moreExtensionList.count == 0 {
@@ -371,7 +368,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                     TUIConversationListDataProvider.cacheConversationFoldListSettings_HideFoldItem(true)
                 }
             }
-            markAsHideAction.backgroundColor = TUISwift.rgb(242, green: 147, blue: 64)
+            markAsHideAction.backgroundColor = TUISwift.rgb(242, g: 147, b: 64)
             if !hideHideAction {
                 arrayM.append(markAsHideAction)
             }
@@ -382,7 +379,7 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
                 showMoreAction(cellData, extensionList: moreExtensionList)
                 completionHandler(true)
             }
-            moreAction.backgroundColor = TUISwift.rgb(242, green: 147, blue: 64)
+            moreAction.backgroundColor = TUISwift.rgb(242, g: 147, b: 64)
             arrayM.append(moreAction)
         }
         
@@ -409,16 +406,14 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         }
         addCustomAction(ac, cellData: cellData)
         ac.addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Cancel"), style: .cancel, handler: nil))
-        if let convDelegate = convDelegate, convDelegate.responds(to: #selector(TUIConversationTableViewDelegate.tableViewDidShowAlert(_:))) {
-            convDelegate.tableViewDidShowAlert!(ac)
-        }
+        convDelegate?.tableViewDidShowAlert(ac)
     }
     
     func addCustomAction(_ ac: UIAlertController, cellData: TUIConversationCellData) {
-        let extensionList = TUICore.getExtensionList(TUICore_TUIConversationExtension_ConversationCellMoreAction_ClassicExtensionID, param: [
-            TUICore_TUIConversationExtension_ConversationCellAction_ConversationIDKey: cellData.conversationID ?? "",
-            TUICore_TUIConversationExtension_ConversationCellAction_MarkListKey: cellData.conversationMarkList ?? [],
-            TUICore_TUIConversationExtension_ConversationCellAction_GroupListKey: cellData.conversationGroupList ?? []
+        let extensionList = TUICore.getExtensionList("TUICore_TUIConversationExtension_ConversationCellMoreAction_ClassicExtensionID", param: [
+            "TUICore_TUIConversationExtension_ConversationCellAction_ConversationIDKey": cellData.conversationID ?? "",
+            "TUICore_TUIConversationExtension_ConversationCellAction_MarkListKey": cellData.conversationMarkList ?? [],
+            "TUICore_TUIConversationExtension_ConversationCellAction_GroupListKey": cellData.conversationGroupList ?? []
         ])
         for info in extensionList {
             let action = UIAlertAction(title: info.text, style: .default) { _ in
@@ -430,19 +425,19 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
     
     // MARK: - Table view delegate
 
-    func tableView(_ tableView: UITableView, shouldIndentWhileEditingRowAt indexPath: IndexPath) -> Bool {
+    public func tableView(_ tableView: UITableView, shouldIndentWhileEditingRowAt indexPath: IndexPath) -> Bool {
         return false
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard indexPath.row < dataProvider.conversationList.count else { return UITableViewCell() }
         guard let cell = tableView.dequeueReusableCell(withIdentifier: gConversationCell_ReuseId, for: indexPath) as? TUIConversationCell else { return UITableViewCell() }
         if indexPath.row < dataProvider.conversationList.count {
             let data = dataProvider.conversationList[indexPath.row]
             tableViewFillCell(cell, withData: data)
-            let extensionList = TUICore.getExtensionList(TUICore_TUIConversationExtension_ConversationCellUpperRightCorner_ClassicExtensionID, param: [
-                TUICore_TUIConversationExtension_ConversationCellUpperRightCorner_GroupListKey: data.conversationGroupList ?? [],
-                TUICore_TUIConversationExtension_ConversationCellUpperRightCorner_MarkListKey: data.conversationMarkList ?? []
+            let extensionList = TUICore.getExtensionList("TUICore_TUIConversationExtension_ConversationCellUpperRightCorner_ClassicExtensionID", param: [
+                "TUICore_TUIConversationExtension_ConversationCellUpperRightCorner_GroupListKey": data.conversationGroupList ?? [],
+                "TUICore_TUIConversationExtension_ConversationCellUpperRightCorner_MarkListKey": data.conversationMarkList ?? []
             ])
             if !extensionList.isEmpty {
                 if let info = extensionList.first {
@@ -460,22 +455,20 @@ class TUIConversationTableView: UITableView, UITableViewDelegate, UITableViewDat
         return cell
     }
     
-    func tableViewFillCell(_ cell: TUIConversationCell, withData data: TUIConversationCellData) {
+    open func tableViewFillCell(_ cell: TUIConversationCell, withData data: TUIConversationCellData) {
         cell.fill(with: data)
     }
     
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    open func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let data = dataProvider.conversationList[indexPath.row]
         tableViewDidSelectCell(data)
     }
     
-    func tableViewDidSelectCell(_ data: TUIConversationCellData) {
-        if let convDelegate = convDelegate, convDelegate.responds(to: #selector(TUIConversationTableViewDelegate.tableViewDidSelectCell(_:))) {
-            convDelegate.tableViewDidSelectCell!(data)
-        }
+    open func tableViewDidSelectCell(_ data: TUIConversationCellData) {
+        convDelegate?.tableViewDidSelectCell(data)
     }
     
-    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+    public func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         let needLastLineFromZeroToMax = false
         if cell.responds(to: #selector(setter: UITableViewCell.separatorInset)) {
             cell.separatorInset = UIEdgeInsets(top: 0, left: 75, bottom: 0, right: 0)

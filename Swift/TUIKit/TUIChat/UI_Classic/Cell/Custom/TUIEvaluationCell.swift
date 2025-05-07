@@ -26,9 +26,9 @@ class TUIEvaluationCell: TUIBubbleMessageCell {
         setupUI()
     }
 
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupUI()
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     private func setupUI() {
@@ -44,7 +44,7 @@ class TUIEvaluationCell: TUIBubbleMessageCell {
         container.addSubview(commentLabel)
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         if let data = data as? TUIEvaluationCellData {
             titleLabel.text = data.desc

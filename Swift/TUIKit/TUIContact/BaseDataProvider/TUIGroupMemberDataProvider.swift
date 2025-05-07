@@ -5,16 +5,16 @@ class TUIGroupMemberDataProvider: NSObject {
     var groupInfo: V2TIMGroupInfo?
     var isNoMoreData: Bool = false
     private let groupID: String
-    private var index: UInt64 = 0
+    private var index: UInt = 0
 
     init(groupID: String) {
         self.groupID = groupID
     }
 
     func loadDatas(completion: @escaping (Bool, String, [TUIMemberInfoCellData]) -> Void) {
-        V2TIMManager.sharedInstance().getGroupMemberList(groupID, filter: UInt32(V2TIMGroupMemberFilter.GROUP_MEMBER_FILTER_ALL.rawValue), nextSeq: index, succ: { [weak self] nextSeq, memberList in
+        V2TIMManager.sharedInstance().getGroupMemberList(groupID, filter: UInt32(V2TIMGroupMemberFilter.GROUP_MEMBER_FILTER_ALL.rawValue), nextSeq: UInt64(UInt(index)), succ: { [weak self] nextSeq, memberList in
             guard let self, let memberList = memberList else { return }
-            self.index = nextSeq
+            self.index = UInt(nextSeq)
             self.isNoMoreData = (nextSeq == 0)
             var arrayM: [TUIMemberInfoCellData] = []
             var ids: [String] = []
@@ -43,8 +43,8 @@ class TUIGroupMemberDataProvider: NSObject {
                 guard let infoList = infoList else { return }
                 let userIDs = map.keys
                 for info in infoList {
-                    if userIDs.contains(info.userID.safeValue) {
-                        map[info.userID.safeValue]?.avatarUrl = info.faceURL.safeValue
+                    if let userID = info.userID, userIDs.contains(userID) {
+                        map[userID]?.avatarUrl = info.faceURL
                     }
                 }
                 completion(true, "", arrayM)

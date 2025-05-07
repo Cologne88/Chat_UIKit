@@ -25,9 +25,7 @@ class TUIContactSelectViewDataProvider: NSObject {
             guard let self = self, let infoList = infoList else { return }
             var arr: [V2TIMUserFullInfo] = []
             for friend in infoList {
-                if let info = friend.userFullInfo {
-                    arr.append(info)
-                }
+                arr.append(friend.userFullInfo)
             }
             self.fillList(profiles: arr, displayNames: nil)
         } fail: { _, _ in
@@ -56,7 +54,7 @@ class TUIContactSelectViewDataProvider: NSObject {
         for profile in profiles {
             let data = TUICommonContactSelectCellData()
             var showName = ""
-            if let displayNames = displayNames, let name = displayNames[profile.userID.safeValue] {
+            if let displayNames = displayNames, let userID = profile.userID, let name = displayNames[userID] {
                 showName = name
             }
             if showName.isEmpty {
@@ -66,7 +64,9 @@ class TUIContactSelectViewDataProvider: NSObject {
             if let faceURL = profile.faceURL, !faceURL.isEmpty {
                 data.avatarUrl = URL(string: faceURL) ?? URL(fileURLWithPath: "")
             }
-            data.identifier = profile.userID.safeValue
+            if let userID = profile.userID {
+                data.identifier = userID
+            }
             
             if let avaliableFilter = avaliableFilter, !avaliableFilter(data) {
                 continue

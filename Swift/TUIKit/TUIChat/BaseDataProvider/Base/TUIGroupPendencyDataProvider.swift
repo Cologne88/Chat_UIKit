@@ -24,7 +24,7 @@ class TUIGroupPendencyDataProvider: NSObject {
     @objc private func onPendencyChanged(_ notification: Notification) {
         var unReadCnt = 0
         for data in dataList {
-            if data.isRejectd || data.isAccepted {
+            if data.isRejected || data.isAccepted {
                 continue
             }
             unReadCnt += 1
@@ -37,20 +37,20 @@ class TUIGroupPendencyDataProvider: NSObject {
 
         isLoading = true
         V2TIMManager.sharedInstance().getGroupApplicationList { [weak self] result in
-            guard let self = self else { return }
-            guard let result = result else { return }
+            guard let self = self, let result = result else { return }
 
             var list: [TUIGroupPendencyCellData] = []
-            if let applicationList: [V2TIMGroupApplication] = result.applicationList as? [V2TIMGroupApplication] {
+            if let applicationList = result.applicationList as? [V2TIMGroupApplication] {
                 for item in applicationList {
                     if item.groupID == self.groupID && item.handleStatus == .GROUP_APPLICATION_HANDLE_STATUS_UNHANDLED {
                         let data = TUIGroupPendencyCellData(pendency: item)
                         list.append(data)
                     }
                 }
+                self.dataList = list
+                self.unReadCnt = list.count
             }
-            self.dataList = list
-            self.unReadCnt = list.count
+
             self.isLoading = false
             self.hasNextData = false
         } fail: { _, _ in

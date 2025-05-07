@@ -5,16 +5,16 @@ class TUIGroupCreatedCellData: TUISystemMessageCellData {
     var opUser: String?
     var cmd: NSNumber?
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let data = message.customElem?.data,
               let param = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
         else {
-            return TUIGroupCreatedCellData(direction: .MsgDirectionIncoming)
+            return TUIGroupCreatedCellData(direction: .incoming)
         }
 
-        let cellData = TUIGroupCreatedCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+        let cellData = TUIGroupCreatedCellData(direction: message.isSelf ? .outgoing : .incoming)
         cellData.innerMessage = message
-        cellData.msgID = message.msgID.safeValue
+        cellData.msgID = message.msgID
         cellData.content = param["content"] as? String ?? ""
         cellData.opUser = getOpUserName(info: message) ?? param["opUser"] as? String
         cellData.cmd = param["cmd"] as? NSNumber
@@ -41,7 +41,7 @@ class TUIGroupCreatedCellData: TUISystemMessageCellData {
                     localizableContent = TUISwift.timCommonLocalizableString("TUIGroupCreateTipsMessage")
                 }
             }
-            let str = "\"\(opUser ?? "")\" \(localizableContent)"
+            let str = "\"\(opUser ?? "")\" \(localizableContent ?? "")"
             let rtlStr = rtlString(str)
             let attributeString = NSMutableAttributedString(string: rtlStr)
             let attributeDict: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.d_systemGray()]
@@ -53,11 +53,11 @@ class TUIGroupCreatedCellData: TUISystemMessageCellData {
         }
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String {
+    override class func getDisplayString(message: V2TIMMessage) -> String {
         guard let data = message.customElem?.data, let param = TUITool.jsonData2Dictionary(data) else { return "" }
 
         guard let businessID = param["businessID"] as? String,
-              businessID == BussinessID_GroupCreate || param.keys.contains(BussinessID_GroupCreate)
+              businessID == "group_create" || param.keys.contains("group_create")
         else {
             return ""
         }

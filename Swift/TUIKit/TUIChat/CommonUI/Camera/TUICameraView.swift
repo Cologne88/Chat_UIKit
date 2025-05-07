@@ -1,5 +1,5 @@
-import UIKit
 import TIMCommon
+import UIKit
 
 protocol TUICameraViewDelegate: NSObjectProtocol {
     // Flash
@@ -84,6 +84,7 @@ class TUICameraView: UIView {
         self.backgroundColor = .black
     }
     
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -103,7 +104,7 @@ class TUICameraView: UIView {
         
         closeButton = UIButton(type: .custom)
         let closeButtonImage = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath("camera_back"))
-        closeButton.setBackgroundImage(closeButtonImage.rtl_imageFlippedForRightToLeftLayoutDirection(), for: .normal)
+        closeButton.setBackgroundImage(closeButtonImage?.rtlImageFlippedForRightToLeftLayoutDirection(), for: .normal)
         closeButton.addTarget(self, action: #selector(closeButtonClick(_:)), for: .touchUpInside)
         contentView.addSubview(closeButton)
         
@@ -162,10 +163,10 @@ class TUICameraView: UIView {
         
         timer = TUICaptureTimer()
         timer.maxCaptureTime = maxVideoCaptureTimeLimit
-        timer.progressBlock = { [weak self] ratio, recordTime in
+        timer.progressBlock = { [weak self] ratio, _ in
             self?.progress = ratio
         }
-        timer.progressFinishBlock = { [weak self] ratio, recordTime in
+        timer.progressFinishBlock = { [weak self] _, recordTime in
             self?.progress = 1
             self?.longPress.isEnabled = false
             self?.endVideoRecordWithCaptureDuration(recordTime)
@@ -188,12 +189,12 @@ class TUICameraView: UIView {
             let previewViewWidth = contentView.bounds.size.width
             var previewViewHeight: CGFloat = 0
             switch aspectRatio {
-                case .aspectRatio1x1:
-                    previewViewHeight = previewViewWidth
-                case .aspectRatio16x9:
-                    previewViewHeight = previewViewWidth * (16.0 / 9.0)
-                case .aspectRatio5x4:
-                    previewViewHeight = previewViewWidth * (5.0 / 4.0)
+            case .aspectRatio1x1:
+                previewViewHeight = previewViewWidth
+            case .aspectRatio16x9:
+                previewViewHeight = previewViewWidth * (16.0 / 9.0)
+            case .aspectRatio5x4:
+                previewViewHeight = previewViewWidth * (5.0 / 4.0)
             }
             let previewViewY = (contentView.bounds.size.height - previewViewHeight) / 2.0
             previewView.frame = CGRect(x: 0, y: previewViewY, width: contentView.bounds.size.width, height: previewViewHeight)
@@ -242,10 +243,10 @@ class TUICameraView: UIView {
     }
     
     @objc func tapAction(_ tap: UIGestureRecognizer) {
-        if self.delegate != nil && ((self.delegate?.responds(to: Selector(("focusAction")))) != nil) {
+        if delegate != nil && ((delegate?.responds(to: Selector(("focusAction")))) != nil) {
             let point = tap.location(in: previewView)
             runFocusAnimation(focusView, point: point)
-            self.delegate?.focusAction(self, point: previewView.captureDevicePoint(for: point)) { error in
+            delegate?.focusAction(self, point: previewView.captureDevicePoint(for: point)) { error in
                 if let error = error {
                     assertionFailure("\(error)")
                 }
@@ -268,7 +269,7 @@ class TUICameraView: UIView {
     }
         
     @objc func pinchAction(_ pinch: UIPinchGestureRecognizer) {
-        if self.delegate != nil && ((self.delegate?.responds(to: Selector(("zoomAction")))) != nil) {
+        if delegate != nil && ((delegate?.responds(to: Selector(("zoomAction")))) != nil) {
             if pinch.state == .began {
                 UIView.animate(withDuration: 0.1) {
                     self.slider.alpha = 1
@@ -279,7 +280,7 @@ class TUICameraView: UIView {
                 } else {
                     slider.value += Float(pinch.velocity / 20)
                 }
-                self.delegate?.zoomAction(self, factor: pow(5, CGFloat(slider.value)))
+                delegate?.zoomAction(self, factor: pow(5, CGFloat(slider.value)))
             } else {
                 UIView.animate(withDuration: 0.1) {
                     self.slider.alpha = 0.0
@@ -289,21 +290,21 @@ class TUICameraView: UIView {
     }
         
     @objc func switchCameraButtonClick(_ btn: UIButton) {
-        if self.delegate != nil && ((self.delegate?.responds(to: Selector(("swicthCameraAction")))) != nil) {
-            delegate?.switchCameraAction(self, handle: { error in
+        if delegate != nil && ((delegate?.responds(to: Selector(("swicthCameraAction")))) != nil) {
+            delegate?.switchCameraAction(self, handle: { _ in
                 // to do
             })
         }
     }
         
     @objc func closeButtonClick(_ btn: UIButton) {
-        if self.delegate != nil && ((self.delegate?.responds(to: Selector(("cancelAction")))) != nil) {
+        if delegate != nil && ((delegate?.responds(to: Selector(("cancelAction")))) != nil) {
             delegate?.cancelAction(self)
         }
     }
         
     @objc func pictureLibClick(_ btn: UIButton) {
-        if self.delegate != nil && ((self.delegate?.responds(to: Selector(("pictureLibAction")))) != nil) {
+        if delegate != nil && ((delegate?.responds(to: Selector(("pictureLibAction")))) != nil) {
             delegate?.pictureLibAction(self)
         }
     }
@@ -367,8 +368,8 @@ class TUICameraView: UIView {
     }
         
     @objc func tapGesture(_ tapGesture: UITapGestureRecognizer) {
-        if self.delegate != nil && ((self.delegate?.responds(to: Selector(("takePhotoAction")))) != nil) {
-            self.delegate?.takePhotoAction(self)
+        if delegate != nil && ((delegate?.responds(to: Selector(("takePhotoAction")))) != nil) {
+            delegate?.takePhotoAction(self)
         }
     }
 }

@@ -108,7 +108,7 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
 
     var content: Any? {
         if let msg = cellData?.innerMessage {
-            let content = NSMutableString(string: TUIMessageDataProvider.getDisplayString(msg) ?? "")
+            let content = NSMutableString(string: TUIMessageDataProvider.getDisplayString(message: msg) ?? "")
 
             switch msg.elemType {
             case .ELEM_TYPE_IMAGE:
@@ -135,12 +135,12 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
         var readViews: [Int: [String: Any]] = [
             TUIMessageReadViewTag.read.rawValue: [
                 "tag": TUIMessageReadViewTag.read.rawValue,
-                "title": "\(cellData?.messageReceipt.readCount ?? 0)" + TUISwift.timCommonLocalizableString("TUIKitMessageReadPartRead"),
+                "title": "\(cellData?.messageReceipt?.readCount ?? 0)" + TUISwift.timCommonLocalizableString("TUIKitMessageReadPartRead"),
                 "selected": true
             ],
             TUIMessageReadViewTag.unread.rawValue: [
                 "tag": TUIMessageReadViewTag.unread.rawValue,
-                "title": "\(cellData?.messageReceipt.unreadCount ?? 0)" + TUISwift.timCommonLocalizableString("TUIKitMessageReadPartUnread"),
+                "title": "\(cellData?.messageReceipt?.unreadCount ?? 0)" + TUISwift.timCommonLocalizableString("TUIKitMessageReadPartUnread"),
                 "selected": false
             ]
         ]
@@ -148,7 +148,7 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
         if showReadStatusDisable {
             readViews[TUIMessageReadViewTag.readDisable.rawValue] = [
                 "tag": TUIMessageReadViewTag.readDisable.rawValue,
-                "title": TUISwift.timCommonLocalizableString("TUIKitMessageReadPartDisable") ?? "",
+                "title": TUISwift.timCommonLocalizableString("TUIKitMessageReadPartDisable"),
                 "selected": false
             ]
         }
@@ -339,7 +339,7 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
         let dateLabel = UILabel()
         let formatter = DateFormatter()
         formatter.dateFormat = "MM-dd HH:mm"
-        let dateString = formatter.string(from: cellData?.innerMessage.timestamp ?? Date())
+        let dateString = formatter.string(from: cellData?.innerMessage?.timestamp ?? Date())
         dateLabel.text = dateString
         dateLabel.font = UIFont.systemFont(ofSize: 12)
         dateLabel.textAlignment = TUISwift.isRTL() ? .right : .left
@@ -445,18 +445,18 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
         })
     }
 
-    func getUserOrFriendProfileVCWithUserID(_ userID: String?, succ: @escaping (UIViewController) -> Void, fail: @escaping (Int, String) -> Void) {
+    func getUserOrFriendProfileVCWithUserID(_ userID: String?, succ: @escaping (UIViewController) -> Void, fail: @escaping (Int32, String?) -> Void) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID ?? "",
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succ,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: fail
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID ?? "",
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succ,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": fail
         ]
-        TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
 
     func isGroupMessageRead() -> Bool {
-        guard let cellData = cellData else { return false }
-        return cellData.innerMessage.groupID.safeValue.count > 0
+        guard let groupID = cellData?.innerMessage?.groupID else { return false }
+        return groupID.count > 0
     }
 
     // MARK: - UITableViewDataSource & UITableViewDelegate
@@ -470,7 +470,7 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
                 self.navigationController?.pushViewController(vc, animated: true)
             }, fail: { _, _ in })
         } else {
-            getUserOrFriendProfileVCWithUserID(cellData?.innerMessage.userID) { [weak self] vc in
+            getUserOrFriendProfileVCWithUserID(cellData?.innerMessage?.userID) { [weak self] vc in
                 guard let self else { return }
                 self.navigationController?.pushViewController(vc, animated: true)
             } fail: { _, _ in }
@@ -496,8 +496,8 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
             guard indexPath.row < members.count else {
                 return UITableViewCell()
             }
-            if let member = members[indexPath.row] {
-                data = TUIMemberCellData(userID: member.userID ?? "",
+            if let member = members[indexPath.row], let userID = member.userID {
+                data = TUIMemberCellData(userID: userID,
                                          nickName: member.nickName ?? "",
                                          friendRemark: member.friendRemark ?? "",
                                          nameCard: member.nameCard ?? "",
@@ -506,8 +506,8 @@ class TUIMessageReadViewController: UIViewController, UITableViewDelegate, UITab
             }
 
         } else {
-            let detail = (cellData?.messageReceipt.isPeerRead ?? false) ? TUISwift.timCommonLocalizableString("TUIKitMessageReadC2CRead") : TUISwift.timCommonLocalizableString("TUIKitMessageReadC2CUnReadDetail")
-            data = TUIMemberCellData(userID: cellData?.innerMessage.userID ?? "",
+            let detail = (cellData?.messageReceipt?.isPeerRead ?? false) ? TUISwift.timCommonLocalizableString("TUIKitMessageReadC2CRead") : TUISwift.timCommonLocalizableString("TUIKitMessageReadC2CUnReadDetail")
+            data = TUIMemberCellData(userID: cellData?.innerMessage?.userID ?? "",
                                      nickName: nil,
                                      friendRemark: c2cReceiverName ?? "",
                                      nameCard: nil,

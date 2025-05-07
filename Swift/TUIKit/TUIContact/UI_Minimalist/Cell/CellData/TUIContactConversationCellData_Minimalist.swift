@@ -39,7 +39,7 @@ class TUIContactConversationCellData_Minimalist: TUICommonCellData {
     }
 
     override func height(ofWidth width: CGFloat) -> CGFloat {
-        return TConversationCell_Height
+        return CGFloat(TConversationCell_Height)
     }
 
     override func isEqual(_ object: Any?) -> Bool {

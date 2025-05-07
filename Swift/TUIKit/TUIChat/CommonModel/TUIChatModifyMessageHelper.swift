@@ -26,7 +26,7 @@ class TUIChatModifyMessageHelper: NSObject, V2TIMAdvancedMsgListener {
     
     // MARK: - V2TIMAdvancedMsgListener
 
-    func onRecvMessageModified(_ msg: V2TIMMessage) {
+    func onRecvMessageModified(msg: V2TIMMessage) {
         if let msgID = msg.msgID, let obj = modifyMessageHelperMap[msgID] {
             obj.msg = msg
         }
@@ -122,7 +122,9 @@ private class TUIChatModifyMessageObject: NSObject {
         
         if let cloudData = rootMsg.cloudCustomData, let originDic = TUITool.jsonData2Dictionary(cloudData) as? [String: Any] {
             messageReplies.merge(originDic) { _, new in new }
-            if let messageRepliesArray = originDic["messageReplies"] as? [String: Any], let repliesArray = messageRepliesArray["replies"] as? [[String: Any]] {
+            if let messageRepliesArray = originDic["messageReplies"] as? [String: Any],
+               let repliesArray = messageRepliesArray["replies"] as? [[String: Any]]
+            {
                 replies.append(contentsOf: repliesArray)
             }
         }
@@ -146,7 +148,9 @@ private class TUIChatModifyMessageObject: NSObject {
         
         if let cloudData = rootMsg.cloudCustomData, let originDic = TUITool.jsonData2Dictionary(cloudData) as? [String: Any] {
             messageReplies.merge(originDic) { _, new in new }
-            if let messageRepliesArray = originDic["messageReplies"] as? [String: Any], let repliesArray = messageRepliesArray["replies"] as? [[String: Any]] {
+            if let messageRepliesArray = originDic["messageReplies"] as? [String: Any],
+               let repliesArray = messageRepliesArray["replies"] as? [[String: Any]]
+            {
                 replies.append(contentsOf: repliesArray)
             }
         }
@@ -201,10 +205,10 @@ private class ModifyCustomOperation: Operation, @unchecked Sendable {
         
         let resolveMsg = obj.resolveOriginCloudCustomData(obj.msg!)
         
-        V2TIMManager.sharedInstance()?.modifyMessage(resolveMsg, completion: { [weak self] code, desc, msg in
+        V2TIMManager.sharedInstance().modifyMessage(msg: resolveMsg, completion: { [weak self] code, desc, msg in
             guard let self = self else { return }
             if code != 0 {
-                self.failedBlock?(code, desc, msg)
+                self.failedBlock?(Int32(code), desc, msg)
             } else {
                 self.successBlock?()
             }

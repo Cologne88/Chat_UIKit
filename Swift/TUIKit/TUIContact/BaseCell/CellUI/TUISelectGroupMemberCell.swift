@@ -28,8 +28,8 @@ class TUISelectGroupMemberCell: UITableViewCell {
 
     func fill(with model: TUIUserModel, isSelect: Bool) {
         userModel = model
-        selectedMark.image = isSelect ? UIImage(named: TUISwift.tuiContactImagePath("ic_selected")) : UIImage(named: TUISwift.tuiContactImagePath("ic_unselect"))
-        userImg.sd_setImage(with: URL(string: model.avatar), placeholderImage: TUISwift.defaultAvatarImage())
+        selectedMark.image = isSelect ? UIImage.safeImage(TUISwift.tuiContactImagePath("ic_selected")) : UIImage.safeImage(TUISwift.tuiContactImagePath("ic_unselect"))
+        userImg.sd_setImage(with: URL(string: model.avatar ?? ""), placeholderImage: TUISwift.defaultAvatarImage())
         nameLabel.text = model.name
 
         setNeedsUpdateConstraints()

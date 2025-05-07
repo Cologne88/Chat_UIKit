@@ -17,13 +17,13 @@ class TUITextReplyQuoteViewData: TUIReplyQuoteViewData {
 
     override func contentSize(maxWidth: CGFloat) -> CGSize {
         let attributeString: NSAttributedString
-        let showRevokeStr = (originCellData?.innerMessage.status == .MSG_STATUS_LOCAL_REVOKED) && !showRevokedOriginMessage
-
+        let showRevokeStr = (originCellData?.innerMessage?.status == .MSG_STATUS_LOCAL_REVOKED) && !showRevokedOriginMessage
+        var locations: [[NSValue: NSAttributedString]]? = nil
         if showRevokeStr {
             let revokeStr = supportForReply ? TUISwift.timCommonLocalizableString("TUIKitRepliesOriginMessageRevoke") : TUISwift.timCommonLocalizableString("TUIKitReferenceOriginMessageRevoke")
-            attributeString = revokeStr?.getFormatEmojiString(with: UIFont.systemFont(ofSize: 10.0), emojiLocations: nil) ?? NSAttributedString()
+            attributeString = revokeStr.getFormatEmojiString(withFont: UIFont.systemFont(ofSize: 10.0), emojiLocations: &locations)
         } else {
-            attributeString = text.getFormatEmojiString(with: UIFont.systemFont(ofSize: 10.0), emojiLocations: nil)
+            attributeString = text.getFormatEmojiString(withFont: UIFont.systemFont(ofSize: 10.0), emojiLocations: &locations)
         }
 
         let size = "0".size(withAttributes: [.font: UIFont.systemFont(ofSize: 10.0)])

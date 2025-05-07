@@ -7,7 +7,6 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
     public var selectContent: String?
     var selectAllContentCallback: TUIReferenceSelectAllContentCallback?
     var currentOriginView: TUIReplyQuoteView?
-    private var originMessageObservation: NSKeyValueObservation?
 
     lazy var senderLabel: UILabel = {
         let label = UILabel()
@@ -55,12 +54,6 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
         fatalError("init(coder:) has not been implemented")
     }
 
-    override public func prepareForReuse() {
-        super.prepareForReuse()
-        originMessageObservation?.invalidate()
-        originMessageObservation = nil
-    }
-
     private func setupViews() {
         bubbleView.addSubview(textView)
         quoteView.addSubview(senderLabel)
@@ -69,18 +62,22 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
         contentView.addSubview(bottomContainer)
     }
 
-    override public func fill(with data: TUIBubbleMessageCellData) {
+    override open func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIReferenceMessageCellData else { return }
 
         referenceData = data
-        senderLabel.text = "\(data.sender.safeValue):"
+        senderLabel.text = "\(data.sender ?? ""):"
         selectContent = data.content
-        textView.attributedText = data.content.getFormatEmojiString(with: textView.font!, emojiLocations: data.emojiLocations as? NSMutableArray)
+        var locations: [[NSValue: NSAttributedString]]? = data.emojiLocations
+        textView.attributedText = data.content.getFormatEmojiString(withFont: textView.font!, emojiLocations: &locations)
+        if let locations = locations {
+            data.emojiLocations = locations
+        }
 
         bottomContainer.isHidden = CGSizeEqualToSize(data.bottomContainerSize, .zero)
 
-        originMessageObservation = data.observe(\.originMessage, options: [.new, .initial]) { [weak self] _, _ in
+        data.onOriginMessageChange = { [weak self] _ in
             guard let self = self else { return }
             self.setNeedsUpdateConstraints()
             self.updateConstraintsIfNeeded()
@@ -92,10 +89,10 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
         layoutIfNeeded()
     }
 
-    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData) {
+    override public func notifyBottomContainerReady(of cellData: TUIMessageCellData?) {
         guard let referenceData = referenceData else { return }
-        let param: [String: Any] = [TUICore_TUIChatExtension_BottomContainer_CellData: referenceData]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID, parentView: bottomContainer ?? UIView(), param: param)
+        let param: [String: Any] = ["TUICore_TUIChatExtension_BottomContainer_CellData": referenceData]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_BottomContainer_ClassicExtensionID", parentView: bottomContainer ?? UIView(), param: param)
     }
 
     func updateUI(with referenceData: TUIReferenceMessageCellData?) {
@@ -116,7 +113,7 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
             make.size.equalTo(referenceData.textSize)
         }
 
-        if referenceData.direction == .MsgDirectionIncoming {
+        if referenceData.direction == .incoming {
             textView.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_content_recv_text_color", defaultColor: "#000000")
             senderLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_recv_text_color", defaultColor: "#888888")
             quoteView.backgroundColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_bg_color", defaultColor: "#4444440c")
@@ -128,7 +125,7 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
 
         textView.textColor = referenceData.textColor
 
-        let hasRiskContent = messageData.innerMessage.hasRiskContent
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             securityStrikeView.snp.remakeConstraints { make in
                 make.top.equalTo(textView.snp.bottom)
@@ -143,11 +140,14 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
             make.size.equalTo(referenceData.senderSize)
         }
 
-        let hideSenderLabel = (referenceData.originCellData?.innerMessage.status == .MSG_STATUS_LOCAL_REVOKED) && !referenceData.showRevokedOriginMessage
-        senderLabel.isHidden = hideSenderLabel
+        var hideSenderLabel = false
+        if let status = referenceData.originCellData?.innerMessage?.status {
+            hideSenderLabel = (status == .MSG_STATUS_LOCAL_REVOKED) && !referenceData.showRevokedOriginMessage
+            senderLabel.isHidden = hideSenderLabel
+        }
 
         quoteView.snp.remakeConstraints { make in
-            if referenceData.direction == .MsgDirectionIncoming {
+            if referenceData.direction == .incoming {
                 make.leading.equalTo(bubbleView)
             } else {
                 make.trailing.equalTo(bubbleView)
@@ -158,7 +158,7 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
 
         if referenceData.showMessageModifyReplies {
             messageModifyRepliesButton.snp.remakeConstraints { make in
-                if referenceData.direction == .MsgDirectionIncoming {
+                if referenceData.direction == .incoming {
                     make.leading.equalTo(quoteView.snp.leading)
                 } else {
                     make.trailing.equalTo(quoteView.snp.trailing)
@@ -188,7 +188,7 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
         var view: TUIReplyQuoteView? = nil
         var reuse = false
 
-        let hasRiskContent = originCellData?.innerMessage.hasRiskContent ?? false
+        let hasRiskContent = originCellData?.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             reuseId = "hasRiskContent"
         }
@@ -215,13 +215,13 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
         }
 
         if let quoteView = view as? TUITextReplyQuoteView {
-            if referenceData?.direction == .MsgDirectionIncoming {
+            if referenceData?.direction == .incoming {
                 quoteView.textLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_recv_text_color", defaultColor: "#888888")
             } else {
                 quoteView.textLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_text_color", defaultColor: "#888888")
             }
         } else if let quoteView = view as? TUIMergeReplyQuoteView {
-            if referenceData?.direction == .MsgDirectionIncoming {
+            if referenceData?.direction == .incoming {
                 quoteView.titleLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_recv_text_color", defaultColor: "#888888")
             } else {
                 quoteView.titleLabel.textColor = TUISwift.tuiChatDynamicColor("chat_reference_message_quoteView_text_color", defaultColor: "#888888")
@@ -271,7 +271,7 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
                 make.top.equalTo(quoteView.snp.bottom).offset(8)
             }
             make.size.equalTo(size)
-            if referenceData.direction == .MsgDirectionOutgoing {
+            if referenceData.direction == .outgoing {
                 make.trailing.equalTo(container)
             } else {
                 make.leading.equalTo(container)
@@ -297,9 +297,7 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
     // MARK: - TUITextViewDelegate
 
     public func onLongPressTextViewMessage(_ textView: UITextView) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIMessageCellDelegate.onLongPressMessage(_:))) {
-            delegate.onLongPressMessage(self)
-        }
+        delegate?.onLongPressMessage(self)
     }
 
     // MARK: - UITextViewDelegate
@@ -371,9 +369,9 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
 
         // Calculate the size of revoke string
         var messageRevokeRect = CGRect.zero
-        let showRevokeStr = referenceCellData.originCellData?.innerMessage.status == .MSG_STATUS_LOCAL_REVOKED && !referenceCellData.showRevokedOriginMessage
+        let showRevokeStr = referenceCellData.originCellData?.innerMessage?.status == .MSG_STATUS_LOCAL_REVOKED && !referenceCellData.showRevokedOriginMessage
         if showRevokeStr {
-            let msgRevokeStr = TUISwift.timCommonLocalizableString("TUIKitReferenceOriginMessageRevoke")!
+            let msgRevokeStr = TUISwift.timCommonLocalizableString("TUIKitReferenceOriginMessageRevoke")
             messageRevokeRect = msgRevokeStr.boundingRect(with: CGSize(width: quoteMaxWidth, height: senderSize.height),
                                                           options: .usesLineFragmentOrigin.union(.usesFontLeading),
                                                           attributes: [.font: UIFont.boldSystemFont(ofSize: 12.0)],
@@ -381,26 +379,27 @@ public class TUIReferenceMessageCell: TUIBubbleMessageCell, UITextViewDelegate, 
         }
 
         // Calculate the size of label which displays the content of replying the original message
-        let attributeString = referenceCellData.content.getFormatEmojiString(with: UIFont.systemFont(ofSize: 16.0), emojiLocations: nil)
+        var location: [[NSValue: NSAttributedString]]? = nil
+        let attributeString = referenceCellData.content.getFormatEmojiString(withFont: UIFont.systemFont(ofSize: 16.0), emojiLocations: &location)
 
         let replyContentRect = attributeString.boundingRect(with: CGSize(width: TUISwift.tTextMessageCell_Text_Width_Max(), height: .greatestFiniteMagnitude),
                                                             options: [.usesLineFragmentOrigin, .usesFontLeading],
                                                             context: nil)
         var size = CGSize(width: ceil(replyContentRect.width), height: ceil(replyContentRect.height))
         referenceCellData.textSize = size
-        referenceCellData.textOrigin = CGPoint(x: referenceCellData.cellLayout.bubbleInsets.left,
-                                               y: referenceCellData.cellLayout.bubbleInsets.top + TUIBubbleMessageCell.getBubbleTop(referenceCellData))
+        referenceCellData.textOrigin = CGPoint(x: (referenceCellData.cellLayout?.bubbleInsets.left ?? 0),
+                                               y: (referenceCellData.cellLayout?.bubbleInsets.top ?? 0) + TUIBubbleMessageCell.getBubbleTop(referenceCellData))
 
-        size.height += referenceCellData.cellLayout.bubbleInsets.top + referenceCellData.cellLayout.bubbleInsets.bottom
-        size.width += referenceCellData.cellLayout.bubbleInsets.left + referenceCellData.cellLayout.bubbleInsets.right
+        size.height += (referenceCellData.cellLayout?.bubbleInsets.top ?? 0) + (referenceCellData.cellLayout?.bubbleInsets.bottom ?? 0)
+        size.width += (referenceCellData.cellLayout?.bubbleInsets.left ?? 0) + (referenceCellData.cellLayout?.bubbleInsets.right ?? 0)
 
-        if referenceCellData.direction == .MsgDirectionIncoming {
-            size.height = max(size.height, TUIBubbleMessageCell.incommingBubble.size.height)
+        if referenceCellData.direction == .incoming {
+            size.height = max(size.height, TUIBubbleMessageCell.incommingBubble?.size.height ?? 0)
         } else {
-            size.height = max(size.height, TUIBubbleMessageCell.outgoingBubble.size.height)
+            size.height = max(size.height, TUIBubbleMessageCell.outgoingBubble?.size.height ?? 0)
         }
 
-        let hasRiskContent = referenceCellData.innerMessage.hasRiskContent
+        let hasRiskContent = referenceCellData.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             size.width = max(size.width, 200)
             size.height += kTUISecurityStrikeViewTopLineMargin

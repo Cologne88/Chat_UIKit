@@ -1,18 +1,18 @@
 //  TUIBlackListController_Minimalist.swift
 //  TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUIBlackListController_Minimalist: UITableViewController, V2TIMFriendshipListener {
     var didSelectCellBlock: ((TUICommonContactCell_Minimalist) -> Void)?
     private var isLoadFinishedObservation: NSKeyValueObservation?
-    
+
     lazy var viewModel: TUIBlackListViewDataProvider_Minimalist = {
         let viewModel = TUIBlackListViewDataProvider_Minimalist()
         return viewModel
     }()
-    
+
     lazy var noDataTipsLabel: UILabel = {
         let label = UILabel()
         label.textColor = TUISwift.timCommonDynamicColor("nodata_tips_color", defaultColor: "#999999")
@@ -21,11 +21,11 @@ class TUIBlackListController_Minimalist: UITableViewController, V2TIMFriendshipL
         label.text = TUISwift.timCommonLocalizableString("TUIKitContactNoBlockList")
         return label
     }()
-    
+
     deinit {
         isLoadFinishedObservation = nil
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -39,7 +39,7 @@ class TUIBlackListController_Minimalist: UITableViewController, V2TIMFriendshipL
         navigationItem.titleView = titleLabel
         tableView.delaysContentTouches = false
 
-        isLoadFinishedObservation = viewModel.observe(\.isLoadFinished, options: [.new, .initial]) { [weak self] (data, change) in
+        isLoadFinishedObservation = viewModel.observe(\.isLoadFinished, options: [.new, .initial]) { [weak self] _, change in
             guard let self = self, let finished = change.newValue else { return }
             if finished {
                 self.tableView.reloadData()
@@ -52,7 +52,7 @@ class TUIBlackListController_Minimalist: UITableViewController, V2TIMFriendshipL
         tableView.backgroundColor = view.backgroundColor
         tableView.separatorStyle = .none
 
-        V2TIMManager.sharedInstance().addFriendListener(listener: self)
+       V2TIMManager.sharedInstance().addFriendListener(listener: self)
 
         tableView.addSubview(noDataTipsLabel)
     }
@@ -63,15 +63,17 @@ class TUIBlackListController_Minimalist: UITableViewController, V2TIMFriendshipL
     }
 
     // MARK: - V2TIMFriendshipListener
-    func onBlackListAdded(_ infoList: [V2TIMFriendInfo]) {
+
+    func onBlackListAdded(infoList: [V2TIMFriendInfo]) {
         viewModel.loadBlackList()
     }
 
-    private func onBlackListDeleted(_ userIDList: [String]) {
+    func onBlackListDeleted(userIDList: [String]) {
         viewModel.loadBlackList()
     }
 
     // MARK: - Table view data source
+
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }

@@ -75,23 +75,25 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
     @objc func onFriendInfoChanged(_ notice: Notification) {
         guard let friendInfo = notice.object as? V2TIMFriendInfo else { return }
         for cellData in dataProvider.conversationList {
-            if cellData.userID == friendInfo.userID, let userFullInfo = friendInfo.userFullInfo {
-                cellData.title.value = friendInfo.friendRemark ?? userFullInfo.nickName ?? friendInfo.userID ?? ""
-                tableView.reloadData()
-                break
+            if cellData.userID == friendInfo.userID {
+                if let userFullInfo = friendInfo.userFullInfo {
+                    cellData.title = friendInfo.friendRemark ?? userFullInfo.nickName ?? friendInfo.userID
+                    tableView.reloadData()
+                    break
+                }
             }
         }
     }
     
     func setupNavigation() {
         let editButton = UIButton(type: .custom)
-        editButton.setImage(UIImage(named: TUISwift.tuiConversationImagePath_Minimalist("nav_edit")), for: .normal)
+        editButton.setImage(UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist("nav_edit")), for: .normal)
         editButton.addTarget(self, action: #selector(editBarButtonClick(_:)), for: .touchUpInside)
         editButton.imageView!.contentMode = .scaleAspectFit
         editButton.frame = CGRect(x: 0, y: 0, width: 18 + 21 * 2, height: 18)
         
         let moreButton = UIButton(type: .custom)
-        moreButton.setImage(UIImage(named: TUISwift.tuiConversationImagePath_Minimalist("nav_add")), for: .normal)
+        moreButton.setImage(UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist("nav_add")), for: .normal)
         moreButton.addTarget(self, action: #selector(rightBarButtonClick(_:)), for: .touchUpInside)
         moreButton.imageView!.contentMode = .scaleAspectFit
         moreButton.frame = CGRect(x: 0, y: 0, width: 20, height: 20)
@@ -133,10 +135,10 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
             let bannerView = UIView(frame: CGRect(x: 0, y: 0, width: size.width, height: size.height))
             tableView.tableHeaderView = bannerView
             let param: [String: Any] = [
-                TUICore_TUIConversationExtension_ConversationListBanner_BannerSize: NSCoder.string(for: size),
-                TUICore_TUIConversationExtension_ConversationListBanner_ModalVC: self
+                "TUICore_TUIConversationExtension_ConversationListBanner_BannerSize": NSCoder.string(for: size),
+                "TUICore_TUIConversationExtension_ConversationListBanner_ModalVC": self
             ]
-            let isResponserExist = TUICore.raiseExtension(TUICore_TUIConversationExtension_ConversationListBanner_MinimalistExtensionID, parentView: bannerView, param: param)
+            let isResponserExist = TUICore.raiseExtension("TUICore_TUIConversationExtension_ConversationListBanner_MinimalistExtensionID", parentView: bannerView, param: param)
             if !isResponserExist {
                 tableView.tableHeaderView = nil
             }
@@ -160,9 +162,9 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
     
     @objc func rightBarButtonClick(_ rightBarButton: UIButton) {
         let menus = [TUIPopCellData(), TUIPopCellData()]
-        menus[0].image = TUISwift.tuiConversationDynamicImage("pop_icon_new_chat_img", defaultImage: UIImage(named: TUISwift.tuiConversationImagePath("new_chat"))!)
+        menus[0].image = TUISwift.tuiConversationDynamicImage("pop_icon_new_chat_img", defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath("new_chat")))
         menus[0].title = TUISwift.timCommonLocalizableString("ChatsNewChatText")
-        menus[1].image = TUISwift.tuiConversationDynamicImage("pop_icon_new_group_img", defaultImage: UIImage(named: TUISwift.tuiConversationImagePath("new_groupchat"))!)
+        menus[1].image = TUISwift.tuiConversationDynamicImage("pop_icon_new_group_img", defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath("new_groupchat")))
         menus[1].title = TUISwift.timCommonLocalizableString("ChatsNewGroupText")
         
         let height = TUIPopCell.getHeight() * CGFloat(menus.count) + TUISwift.tuiPopView_Arrow_Size().height
@@ -175,10 +177,8 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         let frameInNaviView = navigationController?.view.convert(rightBarButton.frame, from: rightBarButton.superview)
         popView.arrowPoint = CGPoint(x: (frameInNaviView?.origin.x ?? 0) + (frameInNaviView?.size.width ?? 0) * 0.5, y: orginY)
         popView.delegate = self
-        if let menu = menus as? NSMutableArray {
-            popView.setData(menu)
-        }
-        popView.show(in: view.window!)
+        popView.setData(menus)
+        popView.showInWindow(view.window!)
     }
     
     public func popView(_ popView: TUIPopView, didSelectRowAt index: Int) {
@@ -192,20 +192,20 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
     public func startConversation(_ type: V2TIMConversationType) {
         let selectContactCompletion: ([TUICommonContactSelectCellData]) -> Void = { [weak self] array in
             guard let self = self else { return }
-            if type == V2TIMConversationType.C2C {
+            if type == .C2C {
                 let param: [String: Any] = [
-                    TUICore_TUIChatObjectFactory_ChatViewController_Title: array.first?.title ?? "",
-                    TUICore_TUIChatObjectFactory_ChatViewController_UserID: array.first?.identifier ?? "",
-                    TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: array.first?.avatarImage ?? TUISwift.defaultAvatarImage() as Any,
-                    TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: array.first?.avatarUrl?.absoluteString ?? ""
+                    "TUICore_TUIChatObjectFactory_ChatViewController_Title": array.first?.title ?? "",
+                    "TUICore_TUIChatObjectFactory_ChatViewController_UserID": array.first?.identifier ?? "",
+                    "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": array.first?.avatarImage ?? TUISwift.defaultAvatarImage() as Any,
+                    "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": array.first?.avatarUrl?.absoluteString ?? ""
                 ]
-                navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Minimalist, param: param, forResult: nil)
+                navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Minimalist", param: param, forResult: nil)
             } else {
                 guard let loginUser = V2TIMManager.sharedInstance().getLoginUser() else { return }
                 V2TIMManager.sharedInstance().getUsersInfo([loginUser]) { [weak self] infoList in
-                    guard let self = self else { return }
+                    guard let self = self, let infoList = infoList else { return }
                     var showName = loginUser
-                    if let nickName = infoList?.first?.nickName {
+                    if let nickName = infoList.first?.nickName {
                         showName = nickName
                     }
                     var groupName = NSMutableString(string: showName)
@@ -219,12 +219,12 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
                     let createGroupCompletion: (Bool, V2TIMGroupInfo?, UIImage?) -> Void = { [weak self] _, info, submitShowImage in
                         guard let self = self else { return }
                         let param: [String: Any] = [
-                            TUICore_TUIChatObjectFactory_ChatViewController_Title: info?.groupName ?? "",
-                            TUICore_TUIChatObjectFactory_ChatViewController_GroupID: info?.groupID ?? "",
-                            TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: info?.faceURL ?? "",
-                            TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: submitShowImage ?? UIImage()
+                            "TUICore_TUIChatObjectFactory_ChatViewController_Title": info?.groupName ?? "",
+                            "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": info?.groupID ?? "",
+                            "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": info?.faceURL ?? "",
+                            "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": submitShowImage ?? UIImage()
                         ]
-                        navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Minimalist, param: param, forResult: nil)
+                        navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Minimalist", param: param, forResult: nil)
                         
                         var tempArray = navigationController?.viewControllers ?? []
                         for vc in navigationController?.viewControllers ?? [] {
@@ -242,41 +242,48 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
                         navigationController?.viewControllers = tempArray
                     }
                     let param: [String: Any] = [
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_TitleKey: array.first?.title ?? "",
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupNameKey: groupName as String,
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupTypeKey: GroupType_Work,
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_CompletionKey: createGroupCompletion,
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_ContactListKey: array
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_TitleKey": array.first?.title ?? "",
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupNameKey": groupName as String,
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupTypeKey": GroupType_Work,
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_CompletionKey": createGroupCompletion,
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_ContactListKey": array
                     ]
                     
                     let afloatVC = TUIFloatViewController()
-                    if let groupVC = TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod, param: param) as? UIViewController {
-                        if let viewController = groupVC as? (UIViewController & TUIFloatSubViewControllerProtocol) {
-                            afloatVC.appendChildViewController(viewController, topMargin: TUISwift.kScale390(87.5))
-                        }
+                    if let groupVC = TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist",
+                                                          key: "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod",
+                                                          param: param) as? UIViewController as? (UIViewController & TUIFloatSubViewControllerProtocol)
+                    {
+                        afloatVC.appendChildViewController(groupVC, topMargin: TUISwift.kScale390(87.5))
+                        afloatVC.topGestureView.setTitleText(mainText: TUISwift.timCommonLocalizableString("ChatsNewGroupText"),
+                                                             subTitleText: "",
+                                                             leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"),
+                                                             rightBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateFinish"))
                     }
-                    afloatVC.topGestureView.setTitleText(TUISwift.timCommonLocalizableString("ChatsNewGroupText"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateFinish"))
                     present(afloatVC, animated: true, completion: nil)
                 } fail: { _, _ in
-                    // to do
                 }
             }
         }
-        let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey: TUISwift.timCommonLocalizableString("ChatsSelectContact") as Any,
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_MaxSelectCount: type == V2TIMConversationType.C2C ? 1 : INT_MAX,
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey: selectContactCompletion
-        ]
-        let _ = TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController
-        
         let floatVC = TUIFloatViewController()
-        let contactVC = TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param)
-        if let contactVC = contactVC as? (UIViewController & TUIFloatSubViewControllerProtocol) {
+        let param: [String: Any] = [
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey": TUISwift.timCommonLocalizableString("ChatsSelectContact"),
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_MaxSelectCount": type == .C2C ? 1 : INT_MAX,
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey": selectContactCompletion
+        ]
+        if let contactVC = TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? (UIViewController & TUIFloatSubViewControllerProtocol) {
             floatVC.appendChildViewController(contactVC, topMargin: TUISwift.kScale390(87.5))
+            floatVC.topGestureView.setTitleText(mainText: (type == .C2C) ? TUISwift.timCommonLocalizableString("ChatsNewChatText") : TUISwift.timCommonLocalizableString("ChatsNewGroupText"),
+                                                subTitleText: "",
+                                                leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"),
+                                                rightBtnText: (type == .C2C) ? "" : TUISwift.timCommonLocalizableString("TUIKitCreateNext"))
         }
-        floatVC.topGestureView.setTitleText((type == .C2C) ? TUISwift.timCommonLocalizableString("ChatsNewChatText") : TUISwift.timCommonLocalizableString("ChatsNewGroupText"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: (type == .C2C) ? "" : TUISwift.timCommonLocalizableString("TUIKitCreateNext"))
+        floatVC.topGestureView.rightButton.isEnabled = false
         
-//        floatVC.topGestureView.rightButton.isEnabled = false
+        floatVC.childVC?.floatDataSourceChanged = { [weak floatVC] arr in
+            guard let floatVC else { return }
+            floatVC.topGestureView.rightButton.isEnabled = (arr.count != 0)
+        }
         
         present(floatVC, animated: true, completion: nil)
     }
@@ -329,9 +336,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
                 TUITool.applicationKeywindow()?.addSubview(multiChooseView)
             }
         } else {
-            if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListControllerListener.onCloseConversationMultiChooseBoard)) {
-                delegate.onCloseConversationMultiChooseBoard!()
-            }
+            delegate?.onCloseConversationMultiChooseBoard()
             enableMultiSelectedMode(false)
             if let moreItem = moreItem, let editItem = editItem {
                 navigationItem.rightBarButtonItems = [moreItem, editItem]
@@ -340,9 +345,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
     }
     
     func chooseViewReadAll() {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListControllerListener.onClearAllConversationUnreadCount)) {
-            delegate.onClearAllConversationUnreadCount!()
-        }
+        delegate?.onClearAllConversationUnreadCount()
         openMultiChooseBoard(false)
     }
     
@@ -380,8 +383,8 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
     }
     
     // #pragma mark TUIConversationListDataProviderDelegate
-    func getConversationDisplayString(_ conversation: V2TIMConversation) -> String? {
-        if let displayString = delegate?.getConversationDisplayString?(conversation) { return displayString }
+    public func getConversationDisplayString(_ conversation: V2TIMConversation) -> String? {
+        if let displayString = delegate?.getConversationDisplayString(conversation) { return displayString }
         
         guard let msg = conversation.lastMessage, let customElem = msg.customElem, let data = customElem.data else {
             return nil
@@ -392,7 +395,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         }
         
         // Check if it's a custom jump message
-        if businessID == BussinessID_TextLink ||
+        if businessID == "text_link" ||
             (param["text"] as? String)?.isEmpty == false &&
             (param["link"] as? String)?.isEmpty == false
         {
@@ -405,9 +408,9 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
                     desc = String(format: TUISwift.timCommonLocalizableString("TUIKitMessageTipsRecallMessageFormat"), userName)
                 } else if msg.isSelf {
                     desc = TUISwift.timCommonLocalizableString("TUIKitMessageTipsYouRecallMessage")
-                } else if !msg.userID.isNilOrEmpty {
+                } else if let userID = msg.userID, !userID.isEmpty {
                     desc = TUISwift.timCommonLocalizableString("TUIKitMessageTipsOthersRecallMessage")
-                } else if !msg.groupID.isNilOrEmpty {
+                } else if let groupID = msg.groupID, !groupID.isEmpty {
                     // For the name display of group messages, the group business card is displayed first, the nickname has the second priority, and the user ID has the lowest priority.
                     if let userName = msg.nameCard ?? msg.nickName ?? msg.sender {
                         desc = String(format: TUISwift.timCommonLocalizableString("TUIKitMessageTipsRecallMessageFormat"), userName)
@@ -421,7 +424,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         return nil
     }
     
-    func insertConversations(at indexPaths: [IndexPath]) {
+    public func insertConversations(at indexPaths: [IndexPath]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.insertConversations(at: indexPaths)
@@ -433,7 +436,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         }
     }
     
-    func reloadConversations(at indexPaths: [IndexPath]) {
+    public func reloadConversations(at indexPaths: [IndexPath]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.reloadConversations(at: indexPaths)
@@ -448,7 +451,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         }
     }
     
-    func deleteConversation(at indexPaths: [IndexPath]) {
+    public func deleteConversation(at indexPaths: [IndexPath]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.deleteConversation(at: indexPaths)
@@ -458,7 +461,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         tableView.deleteRows(at: indexPaths, with: .none)
     }
     
-    func reloadAllConversations() {
+    public func reloadAllConversations() {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.reloadAllConversations()
@@ -501,7 +504,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
                 }
             }
         }
-        markAsReadAction.backgroundColor = TUISwift.rgb(20, green: 122, blue: 255)
+        markAsReadAction.backgroundColor = TUISwift.rgb(20, g: 122, b: 255)
         
         // Mark as hide action
         let markHideAction = UITableViewRowAction(style: .default, title: TUISwift.timCommonLocalizableString("MarkHide")) { [weak self] _, _ in
@@ -511,7 +514,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
                 TUIConversationListDataProvider_Minimalist.cacheConversationFoldListSettings_HideFoldItem(true)
             }
         }
-        markHideAction.backgroundColor = TUISwift.rgb(242, green: 147, blue: 64)
+        markHideAction.backgroundColor = TUISwift.rgb(242, g: 147, b: 64)
         
         // More action
         let moreAction = UITableViewRowAction(style: .default, title: "more") { [weak self] _, _ in
@@ -539,7 +542,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         guard indexPath.row < dataProvider.conversationList.count else { return nil }
         let cellData = dataProvider.conversationList[indexPath.row]
         var arrayM = [UIContextualAction]()
-        let language = TUIGlobalization.tk_localizableLanguageKey() as? String ?? ""
+        let language = TUIGlobalization.tk_localizableLanguageKey() ?? ""
 
         // Mark as read action
         let markAsReadAction = UIContextualAction(style: .normal, title: "") { [weak self] _, _, completionHandler in
@@ -559,7 +562,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         }
         
         let read = cellData.isMarkAsUnread || cellData.unreadCount > 0
-        markAsReadAction.backgroundColor = read ? TUISwift.rgb(37, green: 104, blue: 240) : TUISwift.rgb(102, green: 102, blue: 102)
+        markAsReadAction.backgroundColor = read ? TUISwift.rgb(37, g: 104, b: 240) : TUISwift.rgb(102, g: 102, b: 102)
         var markAsReadImageName = read ? "icon_conversation_swipe_read" : "icon_conversation_swipe_unread"
         
         if language.contains("zh-") {
@@ -567,7 +570,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         } else if language.contains("ar") {
             markAsReadImageName.append("_ar")
         }
-        markAsReadAction.image = TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.conversation_Minimalist, defaultImg: UIImage(named: TUISwift.tuiConversationImagePath_Minimalist(markAsReadImageName)))
+        markAsReadAction.image = TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.conversation_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist(markAsReadImageName)))
         
         // Mark as hide action
         let markHideAction = UIContextualAction(style: .normal, title: TUISwift.timCommonLocalizableString("MarkHide")) { [weak self] _, _, completionHandler in
@@ -587,14 +590,14 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
             self.tableView.isEditing = false
             self.showMoreAction(cellData)
         }
-        moreAction.backgroundColor = TUISwift.rgb(0, green: 0, blue: 0)
+        moreAction.backgroundColor = TUISwift.rgb(0, g: 0, b: 0)
         var moreImageName = "icon_conversation_swipe_more"
         if language.contains("zh-") {
             moreImageName.append("_zh")
         } else if language.contains("ar") {
             moreImageName.append("_ar")
         }
-        moreAction.image = TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.conversation_Minimalist, defaultImg: UIImage(named: TUISwift.tuiConversationImagePath_Minimalist(moreImageName)))
+        moreAction.image = TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.conversation_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist(moreImageName)))
 
         // config Actions
         if cellData.isLocalConversationFoldList {
@@ -745,21 +748,20 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
             return
         }
 
-        if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListControllerListener.conversationListController(_:didSelectConversation:))) {
-            delegate.conversationListController?(self, didSelectConversation: data)
+        if let delegate = delegate, delegate.conversationListController(self, didSelectConversation: data) {
         } else {
             let param: [String: Any] = [
-                TUICore_TUIChatObjectFactory_ChatViewController_Title: data.title.value,
-                TUICore_TUIChatObjectFactory_ChatViewController_UserID: data.userID ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_GroupID: data.groupID ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: data.avatarImage ?? UIImage(),
-                TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: data.faceUrl.value,
-                TUICore_TUIChatObjectFactory_ChatViewController_ConversationID: data.conversationID ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr: data.atTipsStr ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs: data.atMsgSeqs ?? [],
-                TUICore_TUIChatObjectFactory_ChatViewController_Draft: data.draftText ?? ""
+                "TUICore_TUIChatObjectFactory_ChatViewController_Title": data.title ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_UserID": data.userID ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": data.groupID ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": data.avatarImage ?? UIImage(),
+                "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": data.faceUrl ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_ConversationID": data.conversationID ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr": data.atTipsStr ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs": data.atMsgSeqs ?? [],
+                "TUICore_TUIChatObjectFactory_ChatViewController_Draft": data.draftText ?? ""
             ]
-            navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Minimalist, param: param, forResult: nil)
+            navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Minimalist", param: param, forResult: nil)
         }
     }
 
@@ -823,17 +825,13 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         var customizedItems: [UIAlertAction] = []
         
         if let dataSource = TUIConversationConfig.sharedConfig.moreMenuDataSource {
-            if dataSource.responds(to: Selector(("conversationShouldHideItemsInMoreMenu:"))) {
-                let flag = dataSource.conversationShouldHideItemsInMoreMenu(cellData)
-                hideHide = ((flag.rawValue & TUIConversationItemInMoreMenu.Hide.rawValue) != 0)
-                hidePin = ((flag.rawValue & TUIConversationItemInMoreMenu.Pin.rawValue) != 0)
-                hideClear = ((flag.rawValue & TUIConversationItemInMoreMenu.Clear.rawValue) != 0)
-                hideDelete = ((flag.rawValue & TUIConversationItemInMoreMenu.Delete.rawValue) != 0)
-            }
+            let flag = dataSource.conversationShouldHideItemsInMoreMenu(cellData)
+            hideHide = ((flag.rawValue & TUIConversationItemInMoreMenu.Hide.rawValue) != 0)
+            hidePin = ((flag.rawValue & TUIConversationItemInMoreMenu.Pin.rawValue) != 0)
+            hideClear = ((flag.rawValue & TUIConversationItemInMoreMenu.Clear.rawValue) != 0)
+            hideDelete = ((flag.rawValue & TUIConversationItemInMoreMenu.Delete.rawValue) != 0)
             
-            if dataSource.responds(to: Selector(("conversationShouldAddNewItemsToMoreMenu:"))) {
-                customizedItems = dataSource.conversationShouldAddNewItemsToMoreMenu(cellData) as? [UIAlertAction] ?? []
-            }
+            customizedItems = dataSource.conversationShouldAddNewItemsToMoreMenu(cellData) as? [UIAlertAction] ?? []
         }
         
         let ac = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
@@ -881,6 +879,21 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
     }
 
     @objc func startCreatGroupNotification(_ noti: Notification) {
-        startConversation(V2TIMConversationType.GROUP)
+        startConversation(.GROUP)
+    }
+}
+
+class IUConversationView_Minimalist: UIView {
+    var view: UIView
+
+    override init(frame: CGRect) {
+        self.view = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        super.init(frame: frame)
+        addSubview(view)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }

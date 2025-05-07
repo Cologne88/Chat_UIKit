@@ -48,17 +48,17 @@ class TUIContactButtonCell_Minimalist: TUICommonTableViewCell {
         button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
 
         switch data.style {
-        case .ButtonGreen:
+        case .green:
             button.setTitleColor(TUISwift.timCommonDynamicColor("form_green_button_text_color", defaultColor: "#FFFFFF"), for: .normal)
             button.backgroundColor = TUISwift.timCommonDynamicColor("", defaultColor: "#f9f9f9")
             button.setBackgroundImage(imageWithColor(TUISwift.timCommonDynamicColor("", defaultColor: "#f9f9f9")), for: .highlighted)
-        case .ButtonWhite:
+        case .white:
             button.setTitleColor(TUISwift.timCommonDynamicColor("form_white_button_text_color", defaultColor: "#000000"), for: .normal)
             button.backgroundColor = TUISwift.timCommonDynamicColor("", defaultColor: "#f9f9f9")
-        case .ButtonRedText:
+        case .redText:
             button.setTitleColor(TUISwift.timCommonDynamicColor("form_redtext_button_text_color", defaultColor: "#FF0000"), for: .normal)
             button.backgroundColor = TUISwift.timCommonDynamicColor("", defaultColor: "#f9f9f9")
-        case .ButtonBule:
+        case .blue:
             button.titleLabel?.textColor = UIColor.tui_color(withHex: "147AFF")
             button.backgroundColor = UIColor.tui_color(withHex: "#f9f9f9")
             button.contentHorizontalAlignment = .center

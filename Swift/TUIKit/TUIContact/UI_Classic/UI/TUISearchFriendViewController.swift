@@ -4,21 +4,20 @@
 // Created by AlexiChen on 16/2/29.
 // Copyright © 2016 AlexiChen. All rights reserved.
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUISearchFriendViewController: UIViewController, UISearchResultsUpdating, UISearchControllerDelegate {
-
     var searchController: UISearchController?
     var userView: AddFriendUserView?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.title = TUISwift.timCommonLocalizableString("ContactsAddFriends")
-        self.view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
-        self.edgesForExtendedLayout = []
-        self.automaticallyAdjustsScrollViewInsets = false
-        self.definesPresentationContext = true
+        title = TUISwift.timCommonLocalizableString("ContactsAddFriends")
+        view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
+        edgesForExtendedLayout = []
+        automaticallyAdjustsScrollViewInsets = false
+        definesPresentationContext = true
 
         searchController = UISearchController(searchResultsController: nil)
         searchController?.delegate = self
@@ -26,14 +25,14 @@ class TUISearchFriendViewController: UIViewController, UISearchResultsUpdating, 
         searchController?.dimsBackgroundDuringPresentation = false
         searchController?.searchBar.placeholder = TUISwift.timCommonLocalizableString("SearchGroupPlaceholder")
         if let searchBar = searchController?.searchBar {
-            self.view.addSubview(searchBar)
-            searchBar.mm_sizeToFit()
+            view.addSubview(searchBar)
+            searchBar.mm__sizeToFit()
             setSearchIconCenter(center: true)
         }
 
         userView = AddFriendUserView(frame: .zero)
         if let userView = userView {
-            self.view.addSubview(userView)
+            view.addSubview(userView)
             let singleFingerTap = UITapGestureRecognizer(target: self, action: #selector(handleUserTap(_:)))
             userView.addGestureRecognizer(singleFingerTap)
         }
@@ -60,9 +59,9 @@ class TUISearchFriendViewController: UIViewController, UISearchResultsUpdating, 
         print("didPresentSearchController")
         let searchBar = searchController.searchBar
         if searchBar.frame != CGRectZero {
-            self.view.addSubview(searchBar)
-            searchBar.mm_top()(safeAreaTopGap())
-            userView?.mm_top()(searchBar.mm_maxY)!.mm_height()(44)!.mm_width()(TUISwift.screen_Width())
+            view.addSubview(searchBar)
+            searchBar.mm_top(safeAreaTopGap())
+            userView?.mm_top(searchBar.mm_maxY).mm_height(44).mm_width(TUISwift.screen_Width())
         }
     }
 
@@ -80,7 +79,7 @@ class TUISearchFriendViewController: UIViewController, UISearchResultsUpdating, 
 
     func didDismissSearchController(_ searchController: UISearchController) {
         print("didDismissSearchController")
-        searchController.searchBar.mm_top()(0)
+        searchController.searchBar.mm_top(0)
         userView?.profile = nil
     }
 
@@ -88,8 +87,9 @@ class TUISearchFriendViewController: UIViewController, UISearchResultsUpdating, 
         guard let inputStr = searchController.searchBar.text else { return }
         print("search \(inputStr)")
         V2TIMManager.sharedInstance().getUsersInfo([inputStr], succ: { [weak self] infoList in
-            self?.userView?.profile = infoList?.first
-        }, fail: { [weak self] code, msg in
+            guard let infoList = infoList else { return }
+            self?.userView?.profile = infoList.first
+        }, fail: { [weak self] _, _ in
             self?.userView?.profile = nil
         })
     }
@@ -98,7 +98,7 @@ class TUISearchFriendViewController: UIViewController, UISearchResultsUpdating, 
         if let userID = userView?.profile?.userID, !userID.isEmpty {
             let frc = TUIFriendRequestViewController()
             frc.profile = userView?.profile
-            self.navigationController?.pushViewController(frc, animated: true)
+            navigationController?.pushViewController(frc, animated: true)
         }
     }
 }
@@ -108,8 +108,8 @@ class AddFriendUserView: UIView {
         didSet {
             if let profile = profile {
                 idLabel.text = profile.userID
-                idLabel.mm_sizeToFit()()!.tui_mm_center()()!.mm_left()(8)
-                line.mm_height()(1)!.mm_width()(self.mm_w)!.mm_bottom()(0)
+                idLabel.mm__sizeToFit().tui_mm__center().mm_left(8)
+                line.mm_height(1).mm_width(mm_w).mm_bottom(0)
                 line.isHidden = false
             } else {
                 idLabel.text = ""
@@ -131,6 +131,7 @@ class AddFriendUserView: UIView {
         addSubview(line)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

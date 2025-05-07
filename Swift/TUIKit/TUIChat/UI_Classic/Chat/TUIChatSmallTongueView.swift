@@ -29,7 +29,7 @@ public class TUIChatSmallTongueView: UIView {
     private var label: UILabel?
 
     @objc public class func swiftLoad() {
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name(TUIDidApplyingThemeChangedNotfication), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
     }
 
     @objc public class func onThemeChanged() {
@@ -55,7 +55,7 @@ public class TUIChatSmallTongueView: UIView {
         layer.masksToBounds = true
 
         // shadow
-        layer.shadowColor = TUISwift.rgb(0, green: 0, blue: 0, alpha: 0.15).cgColor
+        layer.shadowColor = TUISwift.rgba(0, g: 0, b: 0, a: 0.15).cgColor
         layer.shadowOpacity = 1
         layer.shadowOffset = .zero
         layer.shadowRadius = 2
@@ -125,8 +125,8 @@ public class TUIChatSmallTongueView: UIView {
         }
 
         if tongue.type == .someoneAt {
-            var atMeStr = TUISwift.timCommonLocalizableString("TUIKitConversationTipsAtMe") ?? ""
-            var atAllStr = TUISwift.timCommonLocalizableString("TUIKitConversationTipsAtAll") ?? ""
+            var atMeStr = TUISwift.timCommonLocalizableString("TUIKitConversationTipsAtMe")
+            var atAllStr = TUISwift.timCommonLocalizableString("TUIKitConversationTipsAtAll")
             if let atTipsStr = tongue.atTipsStr {
                 if atTipsStr.contains(atMeStr) {
                     atMeStr = atMeStr.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
@@ -151,9 +151,9 @@ public class TUIChatSmallTongueView: UIView {
         guard let tongue = tongue else { return UIImage() }
         if gImageCache == nil {
             gImageCache = [Int: UIImage]()
-            gImageCache?[TUIChatSmallTongueType.scrollToBoom.rawValue] = TUISwift.tuiChatBundleThemeImage("chat_drop_down_img", defaultImage: "drop_down") ?? UIImage()
-            gImageCache?[TUIChatSmallTongueType.receiveNewMsg.rawValue] = TUISwift.tuiChatBundleThemeImage("chat_drop_down_img", defaultImage: "drop_down") ?? UIImage()
-            gImageCache?[TUIChatSmallTongueType.someoneAt.rawValue] = TUISwift.tuiChatBundleThemeImage("chat_pull_up_img", defaultImage: "pull_up") ?? UIImage()
+            gImageCache?[TUIChatSmallTongueType.scrollToBoom.rawValue] = TUISwift.tuiChatBundleThemeImage("chat_drop_down_img", defaultImage: "drop_down")
+            gImageCache?[TUIChatSmallTongueType.receiveNewMsg.rawValue] = TUISwift.tuiChatBundleThemeImage("chat_drop_down_img", defaultImage: "drop_down")
+            gImageCache?[TUIChatSmallTongueType.someoneAt.rawValue] = TUISwift.tuiChatBundleThemeImage("chat_pull_up_img", defaultImage: "pull_up")
         }
         return gImageCache?[tongue.type.rawValue] ?? UIImage()
     }
@@ -186,15 +186,17 @@ class TUIChatSmallTongueManager {
 
         let tongueWidth = TUIChatSmallTongueView.getTongueWidth(gTongue)
 
+        let margin = TUISwift.bottom_SafeHeight() + CGFloat(TTextView_Height) + 20 + kTongueHeight + gBottomMargin
+        let y = tongue.parentView!.mm_h - margin
         if TUISwift.isRTL() {
             let frame = CGRect(x: 16,
-                               y: tongue.parentView!.mm_h - TUISwift.bottom_SafeHeight() - TUISwift.tTextView_Height() - 20 - kTongueHeight - gBottomMargin,
+                               y: y,
                                width: tongueWidth,
                                height: kTongueHeight)
             gTongueView!.frame = frame
         } else {
             let frame = CGRect(x: tongue.parentView!.mm_w - tongueWidth - 16,
-                               y: tongue.parentView!.mm_h - TUISwift.bottom_SafeHeight() - TUISwift.tTextView_Height() - 20 - kTongueHeight - gBottomMargin,
+                               y: y,
                                width: tongueWidth,
                                height: kTongueHeight)
             gTongueView!.frame = frame

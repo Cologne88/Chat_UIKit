@@ -1,9 +1,8 @@
-import UIKit
 import AVFoundation
 import TIMCommon
+import UIKit
 
 class TUICaptureVideoPreviewViewController: UIViewController {
-
     var fileURL: URL
     var player: AVPlayer?
     var item: AVPlayerItem?
@@ -23,6 +22,7 @@ class TUICaptureVideoPreviewViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -45,25 +45,25 @@ class TUICaptureVideoPreviewViewController: UIViewController {
         let commitBGImage = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath("camer_commitBg"))
         self.commitButton?.setBackgroundImage(commitBGImage, for: .normal)
 
-        self.commitButton?.addTarget(self, action: #selector(commitButtonClick(_:)), for: .touchUpInside)
+        self.commitButton?.addTarget(self, action: #selector(self.commitButtonClick(_:)), for: .touchUpInside)
         if let commitButton = self.commitButton {
             self.view.addSubview(commitButton)
         }
-        
+
         self.cancelButton = UIButton(type: .custom)
         let cancelButtonBGImage = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath("camera_cancel"))
-        self.cancelButton?.setBackgroundImage(cancelButtonBGImage.rtl_imageFlippedForRightToLeftLayoutDirection(), for: .normal)
-        
-        self.cancelButton?.addTarget(self, action: #selector(cancelButtonClick(_:)), for: .touchUpInside)
+        self.cancelButton?.setBackgroundImage(cancelButtonBGImage?.rtlImageFlippedForRightToLeftLayoutDirection(), for: .normal)
+
+        self.cancelButton?.addTarget(self, action: #selector(self.cancelButtonClick(_:)), for: .touchUpInside)
         if let cancelButton = self.cancelButton {
             self.view.addSubview(cancelButton)
         }
 
         self.item?.addObserver(self, forKeyPath: "status", options: .new, context: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(playFinished(_:)), name: .AVPlayerItemDidPlayToEndTime, object: self.item)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.playFinished(_:)), name: .AVPlayerItemDidPlayToEndTime, object: self.item)
     }
 
-    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "status" {
             if let statusNumber = change?[.newKey] as? NSNumber, let status = AVPlayer.Status(rawValue: statusNumber.intValue) {
                 if status == .readyToPlay {

@@ -36,7 +36,7 @@ class TUIGroupMembersView: UIView, UISearchBarDelegate, UICollectionViewDelegate
         
         let y = searchBar?.frame.origin.y ?? 0 + (searchBar?.frame.size.height ?? 0)
         collectionView = UICollectionView(frame: CGRect(x: CGFloat(TGroupMembersController_Margin), y: y, width: frame.size.width - CGFloat(2 * TGroupMembersController_Margin), height: frame.size.height - y), collectionViewLayout: flowLayout!)
-        collectionView?.register(TUIGroupMemberCell.self, forCellWithReuseIdentifier: TGroupMemberCell_ReuseId)
+        collectionView?.register(TUIGroupMemberCell.self, forCellWithReuseIdentifier: "TGroupMemberCell")
         collectionView?.delegate = self
         collectionView?.dataSource = self
         collectionView?.showsHorizontalScrollIndicator = false
@@ -62,7 +62,7 @@ class TUIGroupMembersView: UIView, UISearchBarDelegate, UICollectionViewDelegate
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TGroupMemberCell_ReuseId, for: indexPath) as? TUIGroupMemberCell else {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TGroupMemberCell", for: indexPath) as? TUIGroupMemberCell else {
             return UICollectionViewCell()
         }
         let data = data[indexPath.row]

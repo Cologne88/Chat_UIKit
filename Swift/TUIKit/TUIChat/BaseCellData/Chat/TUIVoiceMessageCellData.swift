@@ -29,22 +29,22 @@ class TUIVoiceMessageCellData: TUIBubbleMessageCellData, AVAudioPlayerDelegate {
 
     var audioPlayerDidFinishPlayingBlock: (() -> Void)?
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let elem = message.soundElem else {
-            return TUIVoiceMessageCellData(direction: .MsgDirectionIncoming)
+            return TUIVoiceMessageCellData(direction: .incoming)
         }
 
-        let direction: TMsgDirection = message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming
+        let direction: TMsgDirection = message.isSelf ? .outgoing : .incoming
         let soundData = TUIVoiceMessageCellData(direction: direction)
         soundData.duration = Int(elem.duration)
         soundData.length = Int(elem.dataSize)
         soundData.uuid = elem.uuid
-        soundData.reuseId = TVoiceMessageCell_ReuseId
+        soundData.reuseId = "TVoiceMessaageCell"
         soundData.path = elem.path
         return soundData
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String {
+    override class func getDisplayString(message: V2TIMMessage) -> String {
         return TUISwift.timCommonLocalizableString("TUIKitMessageTypeVoice")
     }
 
@@ -59,10 +59,10 @@ class TUIVoiceMessageCellData: TUIBubbleMessageCellData, AVAudioPlayerDelegate {
     override init(direction: TMsgDirection) {
         super.init(direction: direction)
 
-        if direction == .MsgDirectionIncoming {
-            self.cellLayout = TUIMessageCellLayout.incommingVoiceMessage()
-            self.voiceImage = TUISwift.tuiChatDynamicImage("chat_voice_message_receiver_voice_normal_img", defaultImage: TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath("message_voice_receiver_normal")))
-            self.voiceImage = voiceImage?.rtl_imageFlippedForRightToLeftLayoutDirection()
+        if direction == .incoming {
+            self.cellLayout = TUIMessageCellLayout.incomingVoiceMessageLayout
+            self.voiceImage = TUISwift.tuiChatDynamicImage("chat_voice_message_receiver_voice_normal_img", defaultImage: TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath("message_voice_receiver_normal")) ?? UIImage())
+            self.voiceImage = voiceImage?.rtlImageFlippedForRightToLeftLayoutDirection()
             self.voiceAnimationImages = [
                 Self.formatImageByName("message_voice_receiver_playing_1"),
                 Self.formatImageByName("message_voice_receiver_playing_2"),
@@ -70,9 +70,9 @@ class TUIVoiceMessageCellData: TUIBubbleMessageCellData, AVAudioPlayerDelegate {
             ]
             self.voiceTop = Self.incommingVoiceTop
         } else {
-            self.cellLayout = TUIMessageCellLayout.outgoingVoiceMessage()
-            self.voiceImage = TUISwift.tuiChatDynamicImage("chat_voice_message_sender_voice_normal_img", defaultImage: TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath("message_voice_sender_normal")))
-            self.voiceImage = voiceImage?.rtl_imageFlippedForRightToLeftLayoutDirection()
+            self.cellLayout = TUIMessageCellLayout.outgoingVoiceMessageLayout
+            self.voiceImage = TUISwift.tuiChatDynamicImage("chat_voice_message_sender_voice_normal_img", defaultImage: TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath("message_voice_sender_normal")) ?? UIImage())
+            self.voiceImage = voiceImage?.rtlImageFlippedForRightToLeftLayoutDirection()
             self.voiceAnimationImages = [
                 Self.formatImageByName("message_voice_sender_playing_1"),
                 Self.formatImageByName("message_voice_sender_playing_2"),
@@ -84,30 +84,30 @@ class TUIVoiceMessageCellData: TUIBubbleMessageCellData, AVAudioPlayerDelegate {
 
     static func formatImageByName(_ imgName: String) -> UIImage {
         let path = TUISwift.tuiChatImagePath(imgName)
-        let img = TUIImageCache.sharedInstance().getResourceFromCache(path ?? "")
-        return img.rtl_imageFlippedForRightToLeftLayoutDirection()
+        let img = TUIImageCache.sharedInstance().getResourceFromCache(path) ?? UIImage()
+        return img.rtlImageFlippedForRightToLeftLayoutDirection()
     }
 
     func getVoicePath(isExist: inout Bool) -> String {
-        var path: String?
+        var voicePath = ""
         var isDir = ObjCBool(false)
         isExist = false
 
-        if let lastComp = URL(string: self.path.safeValue)?.lastPathComponent, direction == .MsgDirectionOutgoing, !self.path.isNilOrEmpty {
-            path = "\(TUISwift.tuiKit_Voice_Path() ?? "")\(lastComp)"
-            if FileManager.default.fileExists(atPath: path!, isDirectory: &isDir), !isDir.boolValue {
+        if let path = path, let lastComp = URL(string: path)?.lastPathComponent, direction == .outgoing {
+            voicePath = "\(TUISwift.tuiKit_Voice_Path())\(lastComp)"
+            if FileManager.default.fileExists(atPath: voicePath, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }
         }
 
-        if !isExist, !uuid.isNilOrEmpty {
-            path = "\(TUISwift.tuiKit_Voice_Path() ?? "")\(uuid.safeValue).amr"
-            if FileManager.default.fileExists(atPath: path!, isDirectory: &isDir), !isDir.boolValue {
+        if !isExist, let uuid = uuid, !uuid.isEmpty {
+            voicePath = "\(TUISwift.tuiKit_Voice_Path())\(uuid).amr"
+            if FileManager.default.fileExists(atPath: voicePath, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }
         }
 
-        return path ?? ""
+        return voicePath
     }
 
     func getIMSoundElem() -> V2TIMSoundElem? {
@@ -123,13 +123,13 @@ class TUIVoiceMessageCellData: TUIBubbleMessageCellData, AVAudioPlayerDelegate {
         }
         isPlaying = true
 
-        if innerMessage.localCustomInt == 0 {
-            innerMessage.localCustomInt = 1
+        if (innerMessage?.localCustomInt ?? 0) == 0 {
+            innerMessage?.localCustomInt = 1
         }
 
         guard let imSound = getIMSoundElem() else { return }
         var isExist = false
-        if uuid.isNilOrEmpty {
+        if uuid == nil || uuid!.isEmpty {
             uuid = imSound.uuid
         }
         let path = getVoicePath(isExist: &isExist)
@@ -141,7 +141,7 @@ class TUIVoiceMessageCellData: TUIBubbleMessageCellData, AVAudioPlayerDelegate {
             }
             isDownloading = true
             imSound.downloadSound(
-                path,
+                path: path,
                 progress: { _, _ in },
                 succ: { [weak self] in
                     self?.isDownloading = false
@@ -173,11 +173,13 @@ class TUIVoiceMessageCellData: TUIBubbleMessageCellData, AVAudioPlayerDelegate {
             if let pathWithoutExtension = URL(string: path)?.deletingPathExtension().path {
                 wavPath = pathWithoutExtension + ".wav"
             }
-            let url = URL(fileURLWithPath: wavPath!)
-            audioPlayer?.stop()
-            audioPlayer = try? AVAudioPlayer(contentsOf: url)
-            audioPlayer?.delegate = self
-            audioPlayer?.play()
+            if let path = wavPath {
+                let url = URL(fileURLWithPath: path)
+                audioPlayer?.stop()
+                audioPlayer = try? AVAudioPlayer(contentsOf: url)
+                audioPlayer?.delegate = self
+                audioPlayer?.play()
+            }
         }
 
         if #available(iOS 10.0, *) {

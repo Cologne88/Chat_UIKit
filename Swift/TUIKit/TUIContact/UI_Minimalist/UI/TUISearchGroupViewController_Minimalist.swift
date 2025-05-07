@@ -1,36 +1,35 @@
 // TUISearchGroupViewController_Minimalist.swift
 // TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUISearchGroupViewController_Minimalist: UIViewController, UISearchControllerDelegate, UISearchBarDelegate {
-
     var searchController: UISearchController?
     var userView: AddGroupItemView_Minimalist?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
-        self.view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
-        
-        self.edgesForExtendedLayout = []
-        self.automaticallyAdjustsScrollViewInsets = false
-        self.definesPresentationContext = true
-        
+        title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
+        view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
+
+        edgesForExtendedLayout = []
+        automaticallyAdjustsScrollViewInsets = false
+        definesPresentationContext = true
+
         searchController = UISearchController(searchResultsController: nil)
         searchController?.delegate = self
         searchController?.dimsBackgroundDuringPresentation = false
         searchController?.searchBar.placeholder = "group ID"
         searchController?.searchBar.delegate = self
         if let searchBar = searchController?.searchBar {
-            self.view.addSubview(searchBar)
+            view.addSubview(searchBar)
         }
         setSearchIconCenter(center: true)
-        
+
         userView = AddGroupItemView_Minimalist(frame: .zero)
         if let userView = userView {
-            self.view.addSubview(userView)
+            view.addSubview(userView)
             let singleFingerTap = UITapGestureRecognizer(target: self, action: #selector(handleUserTap(_:)))
             userView.addGestureRecognizer(singleFingerTap)
         }
@@ -47,12 +46,13 @@ class TUISearchGroupViewController_Minimalist: UIViewController, UISearchControl
     }
 
     // MARK: - UISearchControllerDelegate
+
     func didPresentSearchController(_ searchController: UISearchController) {
         print("didPresentSearchController")
         if let searchBar = self.searchController?.searchBar {
-            self.view.addSubview(searchBar)
-            searchBar.mm_top()(safeAreaTopGap())
-            userView?.mm_top()(searchBar.mm_maxY)!.mm_height()(44)!.mm_width()(TUISwift.screen_Width())
+            view.addSubview(searchBar)
+            searchBar.mm_top(safeAreaTopGap())
+            userView?.mm_top(searchBar.mm_maxY).mm_height(44).mm_width(TUISwift.screen_Width())
         }
     }
 
@@ -74,7 +74,7 @@ class TUISearchGroupViewController_Minimalist: UIViewController, UISearchControl
 
     func didDismissSearchController(_ searchController: UISearchController) {
         print("didDismissSearchController")
-        searchController.searchBar.mm_top()(0)
+        searchController.searchBar.mm_top(0)
         userView?.groupInfo = nil
     }
 
@@ -91,22 +91,24 @@ class TUISearchGroupViewController_Minimalist: UIViewController, UISearchControl
         if let groupInfo = userView?.groupInfo {
             let frc = TUIGroupRequestViewController_Minimalist()
             frc.groupInfo = groupInfo
-            self.navigationController?.pushViewController(frc, animated: true)
+            navigationController?.pushViewController(frc, animated: true)
         }
     }
 
     // MARK: - UISearchBarDelegate
+
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard let inputStr = searchBar.text else { return }
         V2TIMManager.sharedInstance().getGroupsInfo([inputStr], succ: { [weak self] groupResultList in
             guard let self = self else { return }
-            guard let groupResultList = groupResultList else { return }
-            if let result = groupResultList.first, result.resultCode == 0 {
+            let list: [V2TIMGroupInfoResult]? = groupResultList
+            guard let list = list else { return }
+            if let result = list.first, result.resultCode == 0 {
                 self.userView?.groupInfo = result.info
             } else {
                 self.userView?.groupInfo = nil
             }
-        }, fail: { code, desc in
+        }, fail: { _, _ in
             self.userView?.groupInfo = nil
         })
     }
@@ -121,8 +123,8 @@ class AddGroupItemView_Minimalist: UIView {
                 } else {
                     _idLabel.text = groupInfo.groupID
                 }
-                _idLabel.mm_sizeToFit()()!.tui_mm_center()()!.mm_left()(8)
-                _line.mm_height()(1)!.mm_width()(self.mm_w)!.mm_bottom()(0)
+                _idLabel.mm__sizeToFit().tui_mm__center().mm_left(8)
+                _line.mm_height(1).mm_width(mm_w).mm_bottom(0)
                 _line.isHidden = false
             } else {
                 _idLabel.text = ""
@@ -130,7 +132,7 @@ class AddGroupItemView_Minimalist: UIView {
             }
         }
     }
-    
+
     private let _idLabel: UILabel
     private let _line: UIView
 
@@ -138,12 +140,13 @@ class AddGroupItemView_Minimalist: UIView {
         _idLabel = UILabel(frame: .zero)
         _line = UIView(frame: .zero)
         super.init(frame: frame)
-        
+
         addSubview(_idLabel)
         _line.backgroundColor = UIColor.gray
         addSubview(_line)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

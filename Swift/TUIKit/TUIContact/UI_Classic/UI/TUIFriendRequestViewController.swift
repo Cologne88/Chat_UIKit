@@ -28,16 +28,14 @@ class TUIFriendRequestViewController: UIViewController, UITableViewDataSource, U
         addWordTextView.font = UIFont.systemFont(ofSize: 14)
         addWordTextView.textAlignment = TUISwift.isRTL() ? .right : .left
 
-        if let loginUser: String = V2TIMManager.sharedInstance().getLoginUser() {
-            let users: [String] = [loginUser]
-
-            V2TIMManager.sharedInstance().getUsersInfo(users, succ: { (infoList: [V2TIMUserFullInfo]?) in
-                if let userInfo: V2TIMUserFullInfo = infoList?.first {
-                    self.addWordTextView.text = String(format: TUISwift.timCommonLocalizableString("FriendRequestFormat"), userInfo.nickName ?? userInfo.userID)
+        if let loginUser = V2TIMManager.sharedInstance().getLoginUser() {
+            V2TIMManager.sharedInstance().getUsersInfo([loginUser]) { [weak self] infoList in
+                guard let self else { return }
+                if let userInfo = infoList?.first, let name = userInfo.nickName ?? userInfo.userID {
+                    self.addWordTextView.text = String(format: TUISwift.timCommonLocalizableString("FriendRequestFormat"), name)
                 }
-            }, fail: { _, _ in
-                // Handle failure
-            })
+            } fail: { _, _ in
+            }
         }
 
         nickTextField.textAlignment = TUISwift.isRTL() ? .left : .right
@@ -155,7 +153,7 @@ class TUIFriendRequestViewController: UIViewController, UITableViewDataSource, U
         } else if indexPath.section == 3 {
             let cell = TUIButtonCell(style: .default, reuseIdentifier: "send")
             let data = TUIButtonCellData()
-            data.style = .ButtonWhite
+            data.style = .white
             data.title = TUISwift.timCommonLocalizableString("Send")
             data.cselector = #selector(onSend)
             data.textColor = TUISwift.timCommonDynamicColor("primary_theme_color", defaultColor: "147AFF")
@@ -178,11 +176,11 @@ class TUIFriendRequestViewController: UIViewController, UITableViewDataSource, U
         let application = V2TIMFriendAddApplication()
         application.addWording = addWordTextView.text
         application.friendRemark = nickTextField.text
-        application.userID = profile?.userID
+        application.userID = profile?.userID ?? ""
         application.addSource = "iOS"
         application.addType = (singleSwitchData?.isOn == true ? .FRIEND_TYPE_SINGLE : .FRIEND_TYPE_BOTH)
 
-        V2TIMManager.sharedInstance().addFriend(application, succ: { result in
+        V2TIMManager.sharedInstance().addFriend(application: application, succ: { result in
             guard let result = result else { return }
             var msg: String?
             if result.resultCode == ERR_SUCC.rawValue {
@@ -200,7 +198,7 @@ class TUIFriendRequestViewController: UIViewController, UITableViewDataSource, U
             }
 
             TUITool.hideToastActivity()
-            TUITool.makeToast(msg, duration: 3.0, idposition: TUICSToastPositionBottom)
+            TUITool.makeToast(msg ?? "", duration: 3.0, idposition: TUICSToastPositionBottom)
         }, fail: { code, desc in
             TUITool.hideToastActivity()
             TUITool.makeToastError(Int(code), msg: desc)

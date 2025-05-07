@@ -71,11 +71,11 @@ class TUIGroupProfileHeaderView_Minimalist: UIView {
     var idLabel: UILabel!
     var functionListView: UIView!
     var itemViewList: [TUIGroupProfileHeaderItemView_Minimalist]?
-    
+
     var groupInfo: V2TIMGroupInfo? {
         didSet {
             guard let groupInfo = groupInfo else { return }
-            headImg.sd_setImage(with: URL(string: groupInfo.faceURL.safeValue), placeholderImage: TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType))
+            headImg.sd_setImage(with: URL(string: groupInfo.faceURL ?? ""), placeholderImage: TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType))
             configHeadImageView(groupInfo)
             descriptionLabel.text = groupInfo.groupName
             idLabel.text = groupInfo.groupID
@@ -115,7 +115,7 @@ class TUIGroupProfileHeaderView_Minimalist: UIView {
 
         editButton = UIButton(type: .system)
         addSubview(editButton)
-        editButton.setImage(UIImage(named: TUISwift.tuiContactImagePath("icon_group_edit")), for: .normal)
+        editButton.setImage(UIImage.safeImage(TUISwift.tuiContactImagePath("icon_group_edit")), for: .normal)
         editButton.addTarget(self, action: #selector(editButtonClick), for: .touchUpInside)
         editButton.isHidden = true
 
@@ -133,14 +133,14 @@ class TUIGroupProfileHeaderView_Minimalist: UIView {
 
     private func configHeadImageView(_ groupInfo: V2TIMGroupInfo) {
         guard let groupID = groupInfo.groupID, let pFaceUrl = groupInfo.faceURL, let groupType = groupInfo.groupType else { return }
-        let originAvatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType) ?? UIImage()
+        let originAvatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType)
         let param: [String: Any] = [
             "groupID": groupID,
             "faceUrl": pFaceUrl,
             "groupType": groupType,
             "originAvatarImage": originAvatarImage
         ]
-        TUIGroupAvatar.configAvatar(byParam: param, targetView: headImg)
+        TUIGroupAvatar.configAvatar(by: param, targetView: headImg)
     }
 
     func setCustomItemViewList(_ itemList: [TUIGroupProfileHeaderItemView_Minimalist]) {
@@ -255,7 +255,7 @@ class TUIGroupProfileCardViewCell_Minimalist: UITableViewCell {
         cardData = data
         headerView.headImg.sd_setImage(with: data.avatarUrl, placeholderImage: data.avatarImage)
         headerView.descriptionLabel.text = data.name
-        headerView.idLabel.text = "ID: \(data.identifier)"
+        headerView.idLabel.text = "ID: \(data.identifier ?? "")"
     }
 
     override func layoutSubviews() {

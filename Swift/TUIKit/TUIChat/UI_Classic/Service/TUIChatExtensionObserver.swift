@@ -4,8 +4,8 @@ import TUICore
 
 public class TUIChatExtensionObserver: NSObject, TUIExtensionProtocol {
     @objc public class func swiftLoad() {
-        TUICore.registerExtension(TUICore_TUIContactExtension_FriendProfileActionMenu_ClassicExtensionID, object: shared)
-        TUICore.registerExtension(TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID, object: shared)
+        TUICore.registerExtension("TUICore_TUIContactExtension_FriendProfileActionMenu_ClassicExtensionID", object: shared)
+        TUICore.registerExtension("TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID", object: shared)
     }
 
     static let shared: TUIChatExtensionObserver = {
@@ -17,9 +17,9 @@ public class TUIChatExtensionObserver: NSObject, TUIExtensionProtocol {
 
     public func onGetExtension(_ extensionID: String, param: [AnyHashable: Any]?) -> [TUIExtensionInfo]? {
         guard let param = param as? [String: Any] else { return [] }
-        if extensionID == TUICore_TUIContactExtension_FriendProfileActionMenu_ClassicExtensionID {
+        if extensionID == "TUICore_TUIContactExtension_FriendProfileActionMenu_ClassicExtensionID" {
             return getFriendProfileActionMenuExtensionForClassicContact(param: param)
-        } else if extensionID == TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID {
+        } else if extensionID == "TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID" {
             return getNavigationMoreItemExtensionForClassicChat(param: param)
         } else {
             return nil
@@ -31,8 +31,8 @@ public class TUIChatExtensionObserver: NSObject, TUIExtensionProtocol {
         info.weight = 300
         info.text = TUISwift.timCommonLocalizableString("ProfileSendMessages")
         info.onClicked = { actionParam in
-            guard let userID = actionParam[TUICore_TUIContactExtension_FriendProfileActionMenu_UserID] as? String,
-                  let pushVC = actionParam[TUICore_TUIContactExtension_FriendProfileActionMenu_PushVC] as? UINavigationController
+            guard let userID = actionParam["TUICore_TUIContactExtension_FriendProfileActionMenu_UserID"] as? String,
+                  let pushVC = actionParam["TUICore_TUIContactExtension_FriendProfileActionMenu_PushVC"] as? UINavigationController
             else {
                 return
             }
@@ -57,14 +57,14 @@ public class TUIChatExtensionObserver: NSObject, TUIExtensionProtocol {
     }
 
     func getNavigationMoreItemExtensionForClassicChat(param: [String: Any]) -> [TUIExtensionInfo]? {
-        guard let groupID = param[TUICore_TUIChatExtension_NavigationMoreItem_GroupID] as? String, !groupID.isEmpty else {
+        guard let groupID = param["TUICore_TUIChatExtension_NavigationMoreItem_GroupID"] as? String, !groupID.isEmpty else {
             return nil
         }
 
         let info = TUIExtensionInfo()
-        info.icon = TUISwift.tuiChatBundleThemeImage("chat_nav_more_menu_img", defaultImage: "chat_nav_more_menu")
+        info.icon = TUISwift.timCommonBundleThemeImage("chat_nav_more_menu_img", defaultImage: "chat_nav_more_menu")
         info.onClicked = { param in
-            if let pushVC = param[TUICore_TUIChatExtension_NavigationMoreItem_PushVC] as? UINavigationController {
+            if let pushVC = param["TUICore_TUIChatExtension_NavigationMoreItem_PushVC"] as? UINavigationController {
                 let vc = TUIGroupInfoController()
                 vc.groupId = groupID
                 pushVC.pushViewController(vc, animated: true)

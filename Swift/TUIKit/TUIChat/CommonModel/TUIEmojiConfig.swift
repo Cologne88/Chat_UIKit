@@ -67,8 +67,10 @@ public class TUIEmojiConfig: NSObject {
                     let localizableName = TUIGlobalization.getLocalizedString(forKey: name, bundle: "TUIChatFace")
                     data.name = name
                     data.path = TUISwift.tuiChatFaceImagePath(path)
-                    data.localizableName = localizableName ?? ""
-                    addFaceToCache(data.path)
+                    data.localizableName = localizableName
+                    if let path = data.path {
+                        addFaceToCache(path)
+                    }
                     emojiFaces.append(data)
                 }
             }
@@ -76,7 +78,7 @@ public class TUIEmojiConfig: NSObject {
         
         if !emojiFaces.isEmpty {
             let emojiGroup = TUIFaceGroup()
-            emojiGroup.faces = NSMutableArray(array: emojiFaces)
+            emojiGroup.faces = emojiFaces
             emojiGroup.groupIndex = 0
             emojiGroup.groupPath = TUISwift.tuiChatFaceImagePath("emoji/")
             emojiGroup.menuPath = TUISwift.tuiChatFaceImagePath("emoji/menu")
@@ -98,7 +100,9 @@ public class TUIEmojiConfig: NSObject {
                 emojiGroup.needBackDelete = false
             }
             
-            addFaceToCache(emojiGroup.menuPath)
+            if let path = emojiGroup.menuPath {
+                addFaceToCache(path)
+            }
             addFaceToCache(TUISwift.tuiChatFaceImagePath("del_normal"))
             addFaceToCache(TUISwift.tuiChatFaceImagePath("ic_unknown_image"))
             return emojiGroup
@@ -117,16 +121,16 @@ public class TUIEmojiConfig: NSObject {
                     let localizableName = TUIGlobalization.getLocalizedString(forKey: name, bundle: "TUIChatFace")
                     data.name = name
                     data.path = TUISwift.tuiChatFaceImagePath(path)
-                    data.localizableName = localizableName ?? ""
+                    data.localizableName = localizableName
                     emojiFaces.append(data)
                 }
             }
         }
         
         if !emojiFaces.isEmpty {
-            let ocFaces = NSMutableArray()
+            var ocFaces: [TUIFaceCellData] = []
             for emoji in emojiFaces {
-                ocFaces.add(emoji)
+                ocFaces.append(emoji)
             }
             let emojiGroup = TUIFaceGroup()
             emojiGroup.faces = ocFaces

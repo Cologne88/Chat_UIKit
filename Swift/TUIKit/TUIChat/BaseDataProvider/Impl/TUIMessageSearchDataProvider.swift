@@ -43,7 +43,7 @@ class TUIMessageSearchDataProvider: TUIMessageDataProvider {
         } else {
             oldOption.lastMsgSeq = UInt(searchSeq)
         }
-        V2TIMManager.sharedInstance().getHistoryMessageList(oldOption, succ: { msgs in
+        V2TIMManager.sharedInstance().getHistoryMessageList(option: oldOption, succ: { msgs in
             guard let msgs = msgs else { return }
             olders = msgs.reversed()
             if olders.count < self.pageCount {
@@ -69,8 +69,9 @@ class TUIMessageSearchDataProvider: TUIMessageDataProvider {
         } else {
             newOption.lastMsgSeq = UInt(searchSeq)
         }
-        V2TIMManager.sharedInstance().getHistoryMessageList(newOption, succ: { msgs in
-            newers = msgs ?? []
+        V2TIMManager.sharedInstance().getHistoryMessageList(option: newOption, succ: { msgs in
+            guard let msgs = msgs else { return }
+            newers = msgs
             if newers.count < self.pageCount {
                 self.isNewerNoMoreMsg = true
             }
@@ -132,28 +133,26 @@ class TUIMessageSearchDataProvider: TUIMessageDataProvider {
         option.count = UInt(requestCount)
         option.lastMsg = orderType ? msgForOlderGet : msgForNewerGet
 
-        V2TIMManager.sharedInstance().getHistoryMessageList(option, succ: { msgs in
-            var msgs = msgs
+        V2TIMManager.sharedInstance().getHistoryMessageList(option: option, succ: { msgs in
+            guard var msgs = msgs else { return }
             if !orderType {
-                msgs?.reverse()
+                msgs.reverse()
             }
 
             let isLastest = (self.msgForNewerGet == nil) && (self.msgForOlderGet == nil) && orderType
-            if let msgs = msgs {
-                if orderType {
-                    self.msgForOlderGet = msgs.last
-                    if self.msgForNewerGet == nil {
-                        self.msgForNewerGet = msgs.first
-                    }
-                } else {
-                    if self.msgForOlderGet == nil {
-                        self.msgForOlderGet = msgs.last
-                    }
+            if orderType {
+                self.msgForOlderGet = msgs.last
+                if self.msgForNewerGet == nil {
                     self.msgForNewerGet = msgs.first
                 }
+            } else {
+                if self.msgForOlderGet == nil {
+                    self.msgForOlderGet = msgs.last
+                }
+                self.msgForNewerGet = msgs.first
             }
 
-            if let msgs = msgs, msgs.count < requestCount {
+            if msgs.count < requestCount {
                 if orderType {
                     self.isOlderNoMoreMsg = true
                 } else {
@@ -165,27 +164,36 @@ class TUIMessageSearchDataProvider: TUIMessageDataProvider {
                 self.isNewerNoMoreMsg = true
             }
 
-            if let msgs = msgs {
-                let uiMsgs = self.transUIMsgFromIMMsg(msgs)
-                if uiMsgs.isEmpty {
-                    self.loadMsgSucceedBlock?(self.isOlderNoMoreMsg, self.isNewerNoMoreMsg, self.isFirstLoad, uiMsgs)
-                    return
-                }
-                self.getGroupMessageReceipts(msgs: msgs, uiMsgs: uiMsgs, succ: {
-                    self.preProcessMessage(uiMsgs: uiMsgs, orderType: orderType)
-                }, fail: {
-                    self.preProcessMessage(uiMsgs: uiMsgs, orderType: orderType)
-                })
+            var uiMsgs = self.transUIMsgFromIMMsg(msgs)
+            if uiMsgs.isEmpty {
+                self.loadMsgSucceedBlock?(self.isOlderNoMoreMsg, self.isNewerNoMoreMsg, self.isFirstLoad, uiMsgs)
+                return
             }
+
+            // Add media placeholder cell data
+            if let conversationID = self.conversationModel?.conversationID, !conversationID.isEmpty {
+                let tasks = TUIChatMediaSendingManager.shared.findPlaceHolderList(byConversationID: conversationID)
+                for task in tasks {
+                    if let placeHolderCellData = task.placeHolderCellData {
+                        uiMsgs.append(placeHolderCellData)
+                    }
+                }
+            }
+
+            self.getGroupMessageReceipts(msgs: msgs, uiMsgs: uiMsgs, succ: {
+                self.preProcessMessage(uiMsgs: uiMsgs, orderType: orderType)
+            }, fail: {
+                self.preProcessMessage(uiMsgs: uiMsgs, orderType: orderType)
+            })
         }, fail: { _, _ in
             self.isLoadingData = false
         })
     }
 
     func getGroupMessageReceipts(msgs: [V2TIMMessage], uiMsgs: [TUIMessageCellData], succ: (() -> Void)?, fail: (() -> Void)?) {
-        V2TIMManager.sharedInstance().getMessageReadReceipts(msgs, succ: { receiptList in
-            print("getGroupMessageReceipts succeed, receiptList: \(String(describing: receiptList))")
+        V2TIMManager.sharedInstance().getMessageReadReceipts(messageList: msgs, succ: { receiptList in
             guard let receiptList = receiptList else { return }
+            print("getGroupMessageReceipts succeed, receiptList: \(String(describing: receiptList))")
             var dict: [String: V2TIMMessageReceipt] = [:]
             for receipt in receiptList {
                 if let msgID = receipt.msgID {
@@ -193,7 +201,7 @@ class TUIMessageSearchDataProvider: TUIMessageDataProvider {
                 }
             }
             for data in uiMsgs {
-                if let receipt = dict[data.msgID] {
+                if let msgID = data.msgID, let receipt = dict[msgID] {
                     data.messageReceipt = receipt
                 }
             }
@@ -241,7 +249,8 @@ class TUIMessageSearchDataProvider: TUIMessageDataProvider {
     }
 
     func findMessages(msgIDs: [String], callback: ((Bool, String, [V2TIMMessage]?) -> Void)?) {
-        V2TIMManager.sharedInstance().findMessages(msgIDs, succ: { msgs in
+        V2TIMManager.sharedInstance().findMessages(messageIDList: msgIDs, succ: { msgs in
+            guard let msgs = msgs else { return }
             callback?(true, "", msgs)
         }, fail: { _, desc in
             callback?(false, desc ?? "", nil)
@@ -250,10 +259,14 @@ class TUIMessageSearchDataProvider: TUIMessageDataProvider {
 
     // MARK: - V2TIMAdvancedMsgListener
 
-    func onRecvNewMessage(msg: V2TIMMessage) {
+    override func onRecvNewMessage(msg: V2TIMMessage) {
         if !isNewerNoMoreMsg {
             return
         }
-        super.onRecvNewMessage(msg)
+        if dataSource?.isDataSourceConsistent() == false {
+            isNewerNoMoreMsg = false
+            return
+        }
+        super.onRecvNewMessage(msg: msg)
     }
 }

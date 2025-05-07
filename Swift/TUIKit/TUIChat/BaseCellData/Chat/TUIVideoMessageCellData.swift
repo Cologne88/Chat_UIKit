@@ -7,8 +7,8 @@ class TUIVideoMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
     @objc dynamic var thumbProgress: UInt = 0
     @objc dynamic var uploadProgress: UInt = 100
     @objc dynamic var videoProgress: UInt = 0
-    @objc dynamic var videoPath: String = ""
-    var snapshotPath: String = ""
+    @objc dynamic var videoPath: String?
+    var snapshotPath: String?
     var videoItem: TUIVideoItem?
     var snapshotItem: TUISnapshotItem?
 
@@ -24,51 +24,51 @@ class TUIVideoMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
         self.uploadProgress = 100
         self.isDownloadingVideo = false
         self.isDownloadingSnapshot = false
-        if direction == .MsgDirectionIncoming {
-            self.cellLayout = TUIMessageCellLayout.incommingVideoMessage()
+        if direction == .incoming {
+            self.cellLayout = TUIMessageCellLayout.incomingVideoMessageLayout
         } else {
-            self.cellLayout = TUIMessageCellLayout.outgoingVideoMessage()
+            self.cellLayout = TUIMessageCellLayout.outgoingVideoMessageLayout
         }
     }
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let elem = message.videoElem else {
-            return TUIVideoMessageCellData(direction: .MsgDirectionIncoming)
+            return TUIVideoMessageCellData(direction: .incoming)
         }
 
-        let videoData = TUIVideoMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
-        videoData.videoPath = elem.videoPath.safeValue.safePath()
-        videoData.snapshotPath = elem.snapshotPath.safeValue.safePath()
+        let videoData = TUIVideoMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
+        videoData.videoPath = elem.videoPath
+        videoData.snapshotPath = elem.snapshotPath
 
         videoData.videoItem = TUIVideoItem()
-        videoData.videoItem?.uuid = elem.videoUUID.safeValue
-        videoData.videoItem?.type = elem.videoType.safeValue
+        videoData.videoItem?.uuid = elem.videoUUID ?? ""
+        videoData.videoItem?.type = elem.videoType ?? ""
         videoData.videoItem?.length = Int(elem.videoSize)
         videoData.videoItem?.duration = Int(elem.duration)
 
         videoData.snapshotItem = TUISnapshotItem()
-        videoData.snapshotItem?.uuid = elem.snapshotUUID.safeValue
+        videoData.snapshotItem?.uuid = elem.snapshotUUID ?? ""
         videoData.snapshotItem?.length = Int(elem.snapshotSize)
         videoData.snapshotItem?.size = CGSizeMake(CGFloat(elem.snapshotWidth), CGFloat(elem.snapshotHeight))
-        videoData.reuseId = TVideoMessageCell_ReuseId
+        videoData.reuseId = "TVideoMessageCell"
 
         return videoData
     }
 
     static func placeholderCellData(snapshotUrl: String, thumbImage: UIImage) -> TUIMessageCellData {
-        let videoData = TUIVideoMessageCellData(direction: .MsgDirectionOutgoing)
+        let videoData = TUIVideoMessageCellData(direction: .outgoing)
         videoData.thumbImage = thumbImage
-        videoData.snapshotPath = snapshotUrl.safePath()
+        videoData.snapshotPath = snapshotUrl
         videoData.videoItem = TUIVideoItem()
         videoData.snapshotItem = TUISnapshotItem()
         videoData.snapshotItem?.size = thumbImage.size == .zero ? CGSize(width: TUISwift.kScale375(100), height: TUISwift.kScale375(100)) : thumbImage.size
-        videoData.reuseId = TVideoMessageCell_ReuseId
+        videoData.reuseId = "TVideoMessageCell"
         videoData.avatarUrl = URL(string: TUILogin.getFaceUrl() ?? "")
         videoData.isPlaceHolderCellData = true
         return videoData
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String {
+    override class func getDisplayString(message: V2TIMMessage) -> String {
         return TUISwift.timCommonLocalizableString("TUIkitMessageTypeVideo")
     }
 
@@ -102,7 +102,7 @@ class TUIVideoMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
 
         updateThumbProgress(1)
         imMsg.videoElem?.downloadSnapshot(
-            path,
+            path: path,
             progress: { [weak self] curSize, totalSize in
                 guard let self else { return }
                 self.updateThumbProgress(UInt(max(1, curSize * 100 / totalSize)))
@@ -134,10 +134,11 @@ class TUIVideoMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
         }
 
         TUITool.asyncDecodeImage(path, complete: { [weak self] _, image in
+            guard let self else { return }
             DispatchQueue.main.async {
-                self?.thumbImage = image
-                self?.thumbProgress = 100
-                self?.onFinish?()
+                self.thumbImage = image
+                self.thumbProgress = 100
+                self.onFinish?()
             }
         })
     }
@@ -157,7 +158,7 @@ class TUIVideoMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
         let message: V2TIMMessage? = innerMessage
         guard let imMsg = message, imMsg.elemType == .ELEM_TYPE_VIDEO else { return }
 
-        imMsg.videoElem?.downloadVideo(path,
+        imMsg.videoElem?.downloadVideo(path: path,
                                        progress: { [weak self] curSize, totalSize in
                                            guard let self else { return }
                                            self.updateVideoProgress(UInt(curSize * 100 / totalSize))
@@ -209,15 +210,15 @@ class TUIVideoMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
         var isDir = ObjCBool(false)
         isExist = false
 
-        if !videoPath.isEmpty, let lastComp = URL(string: videoPath)?.lastPathComponent {
-            path = "\(TUISwift.tuiKit_Video_Path() ?? "")\(lastComp)"
+        if let videoPath = videoPath, !videoPath.isEmpty, let lastComp = URL(string: videoPath)?.lastPathComponent {
+            path = "\(TUISwift.tuiKit_Video_Path())\(lastComp)"
             if FileManager.default.fileExists(atPath: path!, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }
         }
 
         if !isExist, let videoItem = videoItem, !videoItem.uuid.isEmpty, !videoItem.type.isEmpty {
-            path = "\(TUISwift.tuiKit_Video_Path() ?? "")\(videoItem.uuid).\(videoItem.type)"
+            path = "\(TUISwift.tuiKit_Video_Path())\(videoItem.uuid).\(videoItem.type)"
             if FileManager.default.fileExists(atPath: path!, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }
@@ -235,15 +236,15 @@ class TUIVideoMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
         var isDir = ObjCBool(false)
         isExist = false
 
-        if let lastComp = URL(string: snapshotPath)?.lastPathComponent, !snapshotPath.isEmpty {
-            path = "\(TUISwift.tuiKit_Video_Path() ?? "")\(lastComp)"
+        if let snapshotPath = snapshotPath, let lastComp = URL(string: snapshotPath)?.lastPathComponent, !snapshotPath.isEmpty {
+            path = "\(TUISwift.tuiKit_Video_Path())\(lastComp)"
             if FileManager.default.fileExists(atPath: path!, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }
         }
 
         if !isExist, let snapshotItem = snapshotItem, !snapshotItem.uuid.isEmpty {
-            path = "\(TUISwift.tuiKit_Video_Path() ?? "")\(snapshotItem.uuid)"
+            path = "\(TUISwift.tuiKit_Video_Path())\(snapshotItem.uuid)"
             if FileManager.default.fileExists(atPath: path!, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }

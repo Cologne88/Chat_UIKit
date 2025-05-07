@@ -121,7 +121,7 @@ class TUIGroupConversationListController: UIViewController, UIGestureRecognizerD
             headerView = UITableViewHeaderFooterView(reuseIdentifier: headerViewId)
             let textLabel = UILabel(frame: .zero)
             textLabel.tag = 1
-            textLabel.textColor = TUISwift.rgb(0x80, green: 0x80, blue: 0x80)
+            textLabel.textColor = TUISwift.rgb(0x80, g: 0x80, b: 0x80)
             textLabel.rtlAlignment = .leading
             headerView?.addSubview(textLabel)
             textLabel.snp.remakeConstraints { make in
@@ -149,10 +149,10 @@ class TUIGroupConversationListController: UIViewController, UIGestureRecognizerD
         }
 
         let param: [String: Any] = [
-            TUICore_TUIChatObjectFactory_ChatViewController_Title: cell.contactData?.title ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_GroupID: cell.contactData?.identifier ?? ""
+            "TUICore_TUIChatObjectFactory_ChatViewController_Title": cell.contactData?.title ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": cell.contactData?.identifier ?? ""
         ]
-        navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Classic, param: param, forResult: nil)
+        navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Classic", param: param, forResult: nil)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {

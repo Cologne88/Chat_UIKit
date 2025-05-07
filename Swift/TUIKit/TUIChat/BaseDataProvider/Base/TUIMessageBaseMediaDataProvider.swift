@@ -120,8 +120,9 @@ class TUIMessageBaseMediaDataProvider: NSObject {
             option.userID = self.conversationModel?.userID
             option.lastMsg = loadMsg
             option.messageTypeList = [NSNumber(value: V2TIMElemType.ELEM_TYPE_IMAGE.rawValue), NSNumber(value: V2TIMElemType.ELEM_TYPE_VIDEO.rawValue)]
-            V2TIMManager.sharedInstance().getHistoryMessageList(option, succ: { msgs in
-                olders = msgs ?? []
+            V2TIMManager.sharedInstance().getHistoryMessageList(option: option, succ: { msgs in
+                guard let msgs = msgs else { return }
+                olders = msgs
                 if olders.count < self.pageCount {
                     self.isOlderNoMoreMsg = true
                 }
@@ -143,8 +144,9 @@ class TUIMessageBaseMediaDataProvider: NSObject {
             option.userID = self.conversationModel?.userID
             option.lastMsg = loadMsg
             option.messageTypeList = [NSNumber(value: V2TIMElemType.ELEM_TYPE_IMAGE.rawValue), NSNumber(value: V2TIMElemType.ELEM_TYPE_VIDEO.rawValue)]
-            V2TIMManager.sharedInstance().getHistoryMessageList(option, succ: { msgs in
-                newers = msgs ?? []
+            V2TIMManager.sharedInstance().getHistoryMessageList(option: option, succ: { msgs in
+                guard let msgs = msgs else { return }
+                newers = msgs
                 if newers.count < self.pageCount {
                     self.isNewerNoMoreMsg = true
                 }

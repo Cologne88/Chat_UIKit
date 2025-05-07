@@ -2,16 +2,28 @@ import Foundation
 import ImSDK_Plus
 import TIMCommon
 
-@objc protocol TUIChatBaseDataProviderDelegate: NSObjectProtocol {
+protocol TUIChatBaseDataProviderDelegate: NSObjectProtocol {
     func dataProvider(_ dataProvider: TUIChatBaseDataProvider, mergeForwardTitleWithMyName name: String) -> String
     func dataProvider(_ dataProvider: TUIChatBaseDataProvider, mergeForwardMsgAbstactForMessage message: V2TIMMessage) -> String
 
-    @objc optional func dataProvider(_ dataProvider: TUIChatBaseDataProvider, sendMessage message: V2TIMMessage)
-    @objc optional func onSelectPhotoMoreCellData()
-    @objc optional func onTakePictureMoreCellData()
-    @objc optional func onTakeVideoMoreCellData()
-    @objc optional func onMultimediaRecordMoreCellData()
-    @objc optional func onSelectFileMoreCellData()
+    func dataProvider(_ dataProvider: TUIChatBaseDataProvider, sendMessage message: V2TIMMessage)
+    func onSelectPhotoMoreCellData()
+    func onTakePictureMoreCellData()
+    func onTakeVideoMoreCellData()
+    func onMultimediaRecordMoreCellData()
+    func onSelectFileMoreCellData()
+}
+
+extension TUIChatBaseDataProviderDelegate {
+    func dataProvider(_ dataProvider: TUIChatBaseDataProvider, mergeForwardTitleWithMyName name: String) -> String { return "" }
+    func dataProvider(_ dataProvider: TUIChatBaseDataProvider, mergeForwardMsgAbstactForMessage message: V2TIMMessage) -> String { return "" }
+
+    func dataProvider(_ dataProvider: TUIChatBaseDataProvider, sendMessage message: V2TIMMessage) {}
+    func onSelectPhotoMoreCellData() {}
+    func onTakePictureMoreCellData() {}
+    func onTakeVideoMoreCellData() {}
+    func onMultimediaRecordMoreCellData() {}
+    func onSelectFileMoreCellData() {}
 }
 
 let Input_SendBtn_Key = "Input_SendBtn_Key"
@@ -53,20 +65,26 @@ public class TUIChatBaseDataProvider: NSObject {
                 let convCellData = targets[index]
                 var tmpMsgs: [V2TIMMessage] = []
                 for uiMsg in uiMsgs {
-                    tmpMsgs.append(uiMsg.innerMessage)
+                    if let msg = uiMsg.innerMessage {
+                        tmpMsgs.append(msg)
+                    }
                 }
 
-                let msgs = tmpMsgs.sorted { (obj1, obj2) -> Bool in
-                    if obj1.timestamp.timeIntervalSince1970 == obj2.timestamp.timeIntervalSince1970 {
-                        return obj1.seq < obj2.seq
+                let msgs = tmpMsgs.sorted { obj1, obj2 -> Bool in
+                    if let t1 = obj1.timestamp, let t2 = obj2.timestamp {
+                        if t1.timeIntervalSince1970 == t2.timeIntervalSince1970 {
+                            return obj1.seq < obj2.seq
+                        } else {
+                            return t1.compare(t2) == .orderedAscending
+                        }
                     } else {
-                        return obj1.timestamp.compare(obj2.timestamp) == .orderedAscending
+                        return true
                     }
                 }
 
                 if !merge {
                     let forwardMsgs = msgs.compactMap { msg -> V2TIMMessage? in
-                        let forwardMessage = V2TIMManager.sharedInstance()?.createForwardMessage(msg)
+                        let forwardMessage = V2TIMManager.sharedInstance().createForwardMessage(message: msg)
                         forwardMessage?.isExcludedFromUnreadCount = TUIConfig.default().isExcludedFromUnreadCount
                         forwardMessage?.isExcludedFromLastMessage = TUIConfig.default().isExcludedFromLastMessage
                         return forwardMessage
@@ -75,12 +93,12 @@ public class TUIChatBaseDataProvider: NSObject {
                     return
                 }
 
-                let loginUserId = V2TIMManager.sharedInstance()?.getLoginUser() ?? ""
-                V2TIMManager.sharedInstance()?.getUsersInfo([loginUserId], succ: { [weak self] infoList in
-                    guard let self = self else { return }
+                let loginUserId = V2TIMManager.sharedInstance().getLoginUser() ?? ""
+                V2TIMManager.sharedInstance().getUsersInfo([loginUserId], succ: { [weak self] infoList in
+                    guard let self = self, let infoList = infoList else { return }
 
                     var myName = loginUserId
-                    if let nickName = infoList?.first?.nickName, !nickName.isEmpty {
+                    if let nickName = infoList.first?.nickName, !nickName.isEmpty {
                         myName = nickName
                     }
 
@@ -98,10 +116,10 @@ public class TUIChatBaseDataProvider: NSObject {
                     }
 
                     let compatibleText = TUISwift.timCommonLocalizableString("TUIKitRelayCompatibleText")
-                    guard let mergeMessage = V2TIMManager.sharedInstance()?.createMergerMessage(msgs,
-                                                                                                title: title,
-                                                                                                abstractList: abstractList,
-                                                                                                compatibleText: compatibleText)
+                    guard let mergeMessage = V2TIMManager.sharedInstance().createMergerMessage(messageList: msgs,
+                                                                                               title: title,
+                                                                                               abstractList: abstractList,
+                                                                                               compatibleText: compatibleText)
                     else {
                         fail(Int32(ERR_NO_SUCC_RESULT.rawValue), "failed to merge-forward")
                         return
@@ -123,8 +141,8 @@ public class TUIChatBaseDataProvider: NSObject {
 
 extension TUIChatBaseDataProvider {
     class func getTotalUnreadMessageCount(succ: @escaping (UInt64) -> Void, fail: ((Int, String) -> Void)?) {
-        V2TIMManager.sharedInstance()?.getTotalUnreadMessageCount({ totalCount in
-            succ(totalCount)
+        V2TIMManager.sharedInstance().getTotalUnreadMessageCount(succ: { totalCount in
+            succ(UInt64(totalCount))
         }, fail: { code, desc in
             fail?(Int(code), desc ?? "")
         })
@@ -132,7 +150,7 @@ extension TUIChatBaseDataProvider {
 
     class func saveDraft(withConversationID conversationId: String, text: String) {
         let draft = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        V2TIMManager.sharedInstance()?.setConversationDraft(conversationId, draftText: draft, succ: nil, fail: nil)
+        V2TIMManager.sharedInstance().setConversationDraft(conversationID: conversationId, draftText: draft, succ: nil, fail: nil)
     }
 
     class func getFriendInfo(withUserId userID: String?, succ: @escaping (V2TIMFriendInfoResult) -> Void, fail: ((Int, String) -> Void)?) {
@@ -141,8 +159,8 @@ extension TUIChatBaseDataProvider {
             return
         }
 
-        V2TIMManager.sharedInstance()?.getFriendsInfo([userID], succ: { resultList in
-            if let result = resultList?.first {
+        V2TIMManager.sharedInstance().getFriendsInfo([userID], succ: { resultList in
+            if let resultList = resultList, let result = resultList.first {
                 succ(result)
             }
         }) { _, _ in
@@ -156,8 +174,8 @@ extension TUIChatBaseDataProvider {
             return
         }
 
-        V2TIMManager.sharedInstance()?.getUsersInfo([userID], succ: { infoList in
-            if let info = infoList?.first {
+        V2TIMManager.sharedInstance().getUsersInfo([userID], succ: { infoList in
+            if let infoList = infoList, let info = infoList.first {
                 succ(info)
             }
         }) { _, _ in
@@ -171,8 +189,8 @@ extension TUIChatBaseDataProvider {
             return
         }
 
-        V2TIMManager.sharedInstance()?.getGroupsInfo([groupID], succ: { groupResultList in
-            if let result = groupResultList?.first {
+        V2TIMManager.sharedInstance().getGroupsInfo([groupID], succ: { groupResultList in
+            if let groupResultList = groupResultList, let result = groupResultList.first {
                 if result.resultCode == 0 {
                     succ(result)
                 } else {
@@ -186,10 +204,65 @@ extension TUIChatBaseDataProvider {
     }
 
     class func findMessages(_ msgIDs: [String], callback: ((Bool, String?, [V2TIMMessage]) -> Void)?) {
-        V2TIMManager.sharedInstance()?.findMessages(msgIDs, succ: { msgs in
-            callback?(true, nil, msgs ?? [])
+        V2TIMManager.sharedInstance().findMessages(messageIDList: msgIDs, succ: { msgs in
+            guard let msgs = msgs else { return }
+            callback?(true, nil, msgs)
         }, fail: { _, desc in
             callback?(false, desc, [])
         })
+    }
+
+    class func insertLocalTipsMessage(_ content: String, chatID: String, isGroup: Bool) {
+        let dic: [String: Any] = [
+            "version": 1,
+            "businessID": "local_tips",
+            "content": content.isEmpty ? "" : content
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted),
+              let msg = V2TIMManager.sharedInstance().createCustomMessage(data: data)
+        else {
+            return
+        }
+
+        let senderID = TUILogin.getUserID()
+
+        if isGroup {
+            let groupID = chatID.isEmpty ? "" : chatID
+            _ = V2TIMManager.sharedInstance().insertGroupMessageToLocalStorage(msg: msg,
+                                                                               to: groupID,
+                                                                               sender: senderID,
+                                                                               succ: {
+                                                                                   let userInfo: [String: Any] = [
+                                                                                       "message": msg,
+                                                                                       "needScrollToBottom": "1"
+                                                                                   ]
+                                                                                   NotificationCenter.default.post(
+                                                                                       name: NSNotification.Name("TUIChatInsertMessageWithoutUpdateUINotification"),
+                                                                                       object: nil,
+                                                                                       userInfo: userInfo
+                                                                                   )
+                                                                               },
+                                                                               fail: { _, _ in
+                                                                               })
+        } else {
+            let userID = chatID.isEmpty ? "" : chatID
+            _ = V2TIMManager.sharedInstance().insertC2CMessageToLocalStorage(msg: msg,
+                                                                             to: userID,
+                                                                             sender: senderID,
+                                                                             succ: {
+                                                                                 let userInfo: [String: Any] = [
+                                                                                     "message": msg,
+                                                                                     "needScrollToBottom": "1"
+                                                                                 ]
+                                                                                 NotificationCenter.default.post(
+                                                                                     name: NSNotification.Name("TUIChatInsertMessageWithoutUpdateUINotification"),
+                                                                                     object: nil,
+                                                                                     userInfo: userInfo
+                                                                                 )
+                                                                             },
+                                                                             fail: { _, _ in
+                                                                             })
+        }
     }
 }

@@ -80,7 +80,7 @@ class TUIGroupNoticeController: UIViewController {
         dataProvider.updateNotice(textView.text) { [weak self] code, desc in
             guard let self = self else { return }
             if code != 0 {
-                TUITool.makeToastError(code, msg: desc)
+                TUITool.makeToastError(code, msg: desc ?? "")
                 return
             }
             self.onNoticeChanged?()

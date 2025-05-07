@@ -4,34 +4,34 @@ import UIKit
 
 public class TUIChatConversationModel: NSObject {
     /// UniqueID for a conversation
-    public var conversationID: String? = ""
+    public var conversationID: String?
     
     /// If the conversation type is group chat, the groupID means group id
-    public var groupID: String? = ""
+    public var groupID: String?
     
     /// Group type
-    public var groupType: String? = ""
+    public var groupType: String?
     
     /// If the conversation type is one-to-one chat, the userID means peer user id
-    public var userID: String? = ""
+    public var userID: String?
     
     /// Title
-    @objc public dynamic var title: String? = ""
+    @objc public dynamic var title: String?
     
     /// The avatar of the user or group corresponding to the conversation
-    @objc public dynamic var faceUrl: String? = ""
+    @objc public dynamic var faceUrl: String?
     
     /// Image for avatar
     public var avatarImage: UIImage?
     
     /// Conversation draft
-    public var draftText: String? = ""
+    public var draftText: String?
     
     /// Group@ message tip string
-    public var atTipsStr: String? = ""
+    public var atTipsStr: String?
     
     /// Sequence list of group-at message
-    public var atMsgSeqs: [Int]? = []
+    public var atMsgSeqs: [Int]?
     
     /// The input status of the other Side (C2C Only)
     @objc public dynamic var otherSideTyping: Bool = false
@@ -57,8 +57,8 @@ public class TUIChatConversationModel: NSObject {
     public var enableAlbum: Bool = true
     public var enableFile: Bool = true
     
-    public var customizedNewItemsInMoreMenu: [Any]? = []
+    public var customizedNewItemsInMoreMenu: [Any]?
     public var shortcutViewBackgroundColor: UIColor?
     public var shortcutViewHeight: CGFloat = 0.0
-    public var shortcutMenuItems: [TUIChatShortcutMenuCellData]? = []
+    public var shortcutMenuItems: [TUIChatShortcutMenuCellData]?
 }

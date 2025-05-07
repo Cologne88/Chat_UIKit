@@ -8,8 +8,8 @@ class TUIFoldConversationListDataProvider: TUIFoldConversationListBaseDataProvid
     }
 
     override func getDisplayStringFromService(_ msg: V2TIMMessage) -> String {
-        let param: [String: Any] = [TUICore_TUIChatService_GetDisplayStringMethod_MsgKey: msg]
-        return TUICore.callService(TUICore_TUIChatService, method: TUICore_TUIChatService_GetDisplayStringMethod, param: param) as? String ?? ""
+        let param: [String: Any] = ["msg": msg]
+        return TUICore.callService("TUICore_TUIChatService", method: "TUICore_TUIChatService_GetDisplayStringMethod", param: param) as? String ?? ""
     }
 
     override func getLastDisplayString(_ conv: V2TIMConversation) -> NSMutableAttributedString {
@@ -21,11 +21,12 @@ class TUIFoldConversationListDataProvider: TUIFoldConversationListBaseDataProvid
 
         // If there is a draft box, the draft box information will be displayed first
         if let draftText = conv.draftText, !draftText.isEmpty {
-            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, green: 81, blue: 81)!])
+            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, g: 81, b: 81)])
             attributeString.append(draft)
 
             if let draftContentStr = getDraftContent(conv) {
-                let draftContent = draftContentStr.getAdvancedFormatEmojiString(with: UIFont.systemFont(ofSize: 16.0), textColor: TUISwift.tuiChatDynamicColor("chat_input_text_color", defaultColor: "#000000"), emojiLocations: nil)
+                var emojiLocations: [[NSValue : NSAttributedString]]? = [[NSValue: NSAttributedString]]()
+                let draftContent = draftContentStr.getAdvancedFormatEmojiString(withFont: UIFont.systemFont(ofSize: 16.0), textColor: TUISwift.tuiChatDynamicColor("chat_input_text_color", defaultColor: "#000000"), emojiLocations: &emojiLocations);
                 attributeString.append(draftContent)
             }
         } else {
@@ -33,14 +34,12 @@ class TUIFoldConversationListDataProvider: TUIFoldConversationListBaseDataProvid
             var lastMsgStr = ""
 
             // Attempt to get externally customized display information
-            if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.getConversationDisplayString(_:))) {
-                lastMsgStr = delegate.getConversationDisplayString!(conv) ?? ""
-            }
+            lastMsgStr = delegate?.getConversationDisplayString(conv) ?? ""
 
             // If there is no external customization, get the lastMsg display information through the message module
             if lastMsgStr.isEmpty && conv.lastMessage != nil {
-                let param: [String: Any] = [TUICore_TUIChatService_GetDisplayStringMethod_MsgKey: conv.lastMessage!]
-                lastMsgStr = TUICore.callService(TUICore_TUIChatService, method: TUICore_TUIChatService_GetDisplayStringMethod, param: param) as? String ?? ""
+                let param: [String: Any] = ["msg": conv.lastMessage!]
+                lastMsgStr = TUICore.callService("TUICore_TUIChatService", method: "TUICore_TUIChatService_GetDisplayStringMethod", param: param) as? String ?? ""
             }
 
             // If there is no lastMsg display information and no draft information, return nil directly
@@ -57,12 +56,12 @@ class TUIFoldConversationListDataProvider: TUIFoldConversationListBaseDataProvid
         }
 
         // If the status of the lastMsg of the conversation is sending or failed, display the sending status of the message (the draft box does not need to display the sending status)
-        if conv.draftText.isNilOrEmpty && (conv.lastMessage?.status == V2TIMMessageStatus.MSG_STATUS_SENDING || conv.lastMessage?.status == V2TIMMessageStatus.MSG_STATUS_SEND_FAIL) {
+        if (conv.draftText == nil || conv.draftText!.isEmpty) && (conv.lastMessage?.status == .MSG_STATUS_SENDING || conv.lastMessage?.status == .MSG_STATUS_SEND_FAIL) {
             let textFont = UIFont.systemFont(ofSize: 14)
             let spaceString = NSAttributedString(string: " ", attributes: [.font: textFont])
             let attchment = NSTextAttachment()
             let image: UIImage?
-            if conv.lastMessage?.status == V2TIMMessageStatus.MSG_STATUS_SENDING {
+            if conv.lastMessage?.status == .MSG_STATUS_SENDING {
                 image = TUISwift.tuiConversationCommonBundleImage("msg_sending_for_conv")
             } else {
                 image = TUISwift.tuiConversationCommonBundleImage("msg_error_for_conv")

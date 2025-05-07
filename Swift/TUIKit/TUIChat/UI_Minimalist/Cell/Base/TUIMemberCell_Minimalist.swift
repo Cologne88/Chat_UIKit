@@ -120,7 +120,7 @@ class TUIMemberCell_Minimalist: TUICommonTableViewCell {
         contentView.addSubview(avatarView)
         contentView.addSubview(titleLabel)
         contentView.addSubview(detailLabel)
-        detailLabel.mm__centerY()(avatarView.mm_centerY)
+        detailLabel.mm__centerY(avatarView.mm_centerY)
 
         selectionStyle = .none
         changeColorWhenTouched = true

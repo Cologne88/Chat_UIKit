@@ -9,16 +9,16 @@ class TUIOrderCellData: TUIBubbleMessageCellData {
     var imageUrl: String? = ""
     var link: String? = ""
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let data = message.customElem?.data,
               let param = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
         else {
-            return TUIOrderCellData(direction: .MsgDirectionIncoming)
+            return TUIOrderCellData(direction: .incoming)
         }
 
-        let cellData = TUIOrderCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+        let cellData = TUIOrderCellData(direction: message.isSelf ? .outgoing : .incoming)
         cellData.innerMessage = message
-        cellData.msgID = message.msgID.safeValue
+        cellData.msgID = message.msgID
         cellData.title = param["title"] as? String ?? ""
         cellData.desc = param["description"] as? String ?? ""
         cellData.imageUrl = param["imageUrl"] as? String ?? ""
@@ -28,7 +28,7 @@ class TUIOrderCellData: TUIBubbleMessageCellData {
         return cellData
     }
 
-    static func getDisplayString(message: V2TIMMessage) -> String {
+    override class func getDisplayString(message: V2TIMMessage) -> String {
         guard let data = message.customElem?.data,
               let param = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
         else {

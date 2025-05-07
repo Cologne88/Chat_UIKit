@@ -6,13 +6,11 @@
 //  Copyright © 2022 Tencent. All rights reserved.
 //
 
-
-import UIKit
-import TUICore
 import TIMCommon
+import TUICore
+import UIKit
 
 class TUIIMIntroductionViewController: UIViewController {
-
     // MARK: - Life Cycle
 
     override func viewDidLoad() {
@@ -24,7 +22,7 @@ class TUIIMIntroductionViewController: UIViewController {
         view.backgroundColor = UIColor.white
 
         let imLogo = UIImageView(frame: CGRect(x: TUISwift.kScale390(34), y: 56, width: 62, height: 31))
-        imLogo.image = TUISwift.tuiDemoDynamicImage("", defaultImage:UIImage(named: TUISwift.tuiDemoImagePath("im_logo")))
+        imLogo.image = TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("im_logo")))
         view.addSubview(imLogo)
 
         let imLabel = UILabel(frame: CGRect(x: imLogo.frame.origin.x, y: imLogo.frame.maxY + 10, width: 100, height: 36))
@@ -44,11 +42,11 @@ class TUIIMIntroductionViewController: UIViewController {
         let startY = introductionLabel.frame.maxY + 30
         let widthSpace = TUISwift.kScale390(10)
         let heightSpace: CGFloat = 10
-        let viewWidth = (TUISwift.screen_Width() - startX * 2 - widthSpace) / 2
+        let viewWidth = (TUISwift.screen_Width() - startX * 2 - widthSpace)/2
         let viewHeight: CGFloat = 82
 
-        for i in 0..<4 {
-            let introductionView = UIView(frame: CGRect(x: startX + (viewWidth + widthSpace) * CGFloat(i % 2), y: startY + (viewHeight + heightSpace) * CGFloat(i / 2), width: viewWidth, height: viewHeight))
+        for i in 0 ..< 4 {
+            let introductionView = UIView(frame: CGRect(x: startX + (viewWidth + widthSpace) * CGFloat(i % 2), y: startY + (viewHeight + heightSpace) * CGFloat(i/2), width: viewWidth, height: viewHeight))
             let label = UILabel(frame: CGRect(x: TUISwift.kScale390(20), y: 14, width: introductionView.frame.width - TUISwift.kScale390(20) * 2, height: 35))
             label.textColor = UIColor(red: 0/255, green: 110/255, blue: 255/255, alpha: 1)
             label.font = UIFont.systemFont(ofSize: 24)
@@ -84,11 +82,11 @@ class TUIIMIntroductionViewController: UIViewController {
         understoodBtn.backgroundColor = UIColor(red: 16/255, green: 78/255, blue: 245/255, alpha: 1)
         let btnWidth: CGFloat = 202
         let btnHeight: CGFloat = 42
-        understoodBtn.frame = CGRect(x: (view.frame.width - btnWidth) / 2, y: view.frame.height - btnHeight - TUISwift.bottom_SafeHeight() - 100, width: btnWidth, height: btnHeight)
+        understoodBtn.frame = CGRect(x: (view.frame.width - btnWidth)/2, y: view.frame.height - btnHeight - TUISwift.bottom_SafeHeight() - 100, width: btnWidth, height: btnHeight)
         understoodBtn.setTitle(TUISwift.timCommonLocalizableString("TIMAppOK"), for: .normal)
         understoodBtn.setTitleColor(UIColor.white, for: .normal)
         understoodBtn.titleLabel?.font = UIFont.systemFont(ofSize: 14.0)
-        understoodBtn.layer.cornerRadius = btnHeight / 2
+        understoodBtn.layer.cornerRadius = btnHeight/2
         understoodBtn.layer.masksToBounds = true
         understoodBtn.addTarget(self, action: #selector(understood), for: .touchUpInside)
         view.addSubview(understoodBtn)

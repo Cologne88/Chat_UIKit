@@ -1,11 +1,10 @@
 // TUISearchFriendViewController_Minimalist.swift
 // TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUISearchFriendViewController_Minimalist: UIViewController, UISearchResultsUpdating, UISearchControllerDelegate {
-
     var searchController: UISearchController!
     var userView: AddFriendUserView_Minimalist!
 
@@ -26,12 +25,12 @@ class TUISearchFriendViewController_Minimalist: UIViewController, UISearchResult
         self.searchController.searchBar.placeholder = TUISwift.timCommonLocalizableString("SearchGroupPlaceholder")
         self.view.addSubview(self.searchController.searchBar)
         self.searchController.searchBar.sizeToFit()
-        setSearchIconCenter(center: true)
+        self.setSearchIconCenter(center: true)
 
         self.userView = AddFriendUserView_Minimalist(frame: .zero)
         self.view.addSubview(self.userView)
 
-        let singleFingerTap = UITapGestureRecognizer(target: self, action: #selector(handleUserTap(_:)))
+        let singleFingerTap = UITapGestureRecognizer(target: self, action: #selector(self.handleUserTap(_:)))
         self.userView.addGestureRecognizer(singleFingerTap)
     }
 
@@ -48,19 +47,19 @@ class TUISearchFriendViewController_Minimalist: UIViewController, UISearchResult
     // MARK: - UISearchControllerDelegate
 
     func willPresentSearchController(_ searchController: UISearchController) {
-        setSearchIconCenter(center: false)
+        self.setSearchIconCenter(center: false)
     }
 
     func didPresentSearchController(_ searchController: UISearchController) {
         print("didPresentSearchController")
         self.view.addSubview(self.searchController.searchBar)
 
-        self.searchController.searchBar.frame.origin.y = safeAreaTopGap()
+        self.searchController.searchBar.frame.origin.y = self.safeAreaTopGap()
         self.userView.frame = CGRect(x: 0, y: self.searchController.searchBar.frame.maxY, width: TUISwift.screen_Width(), height: 44)
     }
 
     func willDismissSearchController(_ searchController: UISearchController) {
-        setSearchIconCenter(center: true)
+        self.setSearchIconCenter(center: true)
     }
 
     func safeAreaTopGap() -> CGFloat {
@@ -81,10 +80,9 @@ class TUISearchFriendViewController_Minimalist: UIViewController, UISearchResult
         guard let inputStr = searchController.searchBar.text else { return }
         print("search \(inputStr)")
         V2TIMManager.sharedInstance().getUsersInfo([inputStr], succ: { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+            guard let self = self, let infoList = infoList else { return }
             self.userView.profile = infoList.first
-        }, fail: { [weak self] code, msg in
+        }, fail: { [weak self] _, _ in
             guard let self = self else { return }
             self.userView.profile = nil
         })
@@ -112,14 +110,14 @@ class AddFriendUserView_Minimalist: UIView {
     var profile: V2TIMUserFullInfo? {
         didSet {
             if let profile = profile {
-                _idLabel.text = profile.userID
-                _idLabel.sizeToFit()
-                _idLabel.center = CGPoint(x: 8, y: self.center.y)
-                _line.frame = CGRect(x: 0, y: self.bounds.height - 1, width: self.bounds.width, height: 1)
-                _line.isHidden = false
+                self._idLabel.text = profile.userID
+                self._idLabel.sizeToFit()
+                self._idLabel.center = CGPoint(x: 8, y: self.center.y)
+                self._line.frame = CGRect(x: 0, y: self.bounds.height - 1, width: self.bounds.width, height: 1)
+                self._line.isHidden = false
             } else {
-                _idLabel.text = ""
-                _line.isHidden = true
+                self._idLabel.text = ""
+                self._line.isHidden = true
             }
         }
     }
@@ -128,16 +126,17 @@ class AddFriendUserView_Minimalist: UIView {
     private let _line: UIView
 
     override init(frame: CGRect) {
-        _idLabel = UILabel(frame: .zero)
-        _line = UIView(frame: .zero)
-        _line.backgroundColor = .gray
+        self._idLabel = UILabel(frame: .zero)
+        self._line = UIView(frame: .zero)
+        self._line.backgroundColor = .gray
 
         super.init(frame: frame)
 
-        self.addSubview(_idLabel)
-        self.addSubview(_line)
+        self.addSubview(self._idLabel)
+        self.addSubview(self._line)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

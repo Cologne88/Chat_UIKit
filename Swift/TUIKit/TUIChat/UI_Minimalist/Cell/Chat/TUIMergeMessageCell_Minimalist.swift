@@ -97,7 +97,7 @@ class TUIMergeMessageCell_Minimalist: TUIMessageCell_Minimalist {
         let label = UILabel()
         label.text = "Chat history"
         label.font = UIFont.systemFont(ofSize: 12)
-        label.textColor = TUISwift.rgb(0, green: 0, blue: 0, alpha: 0.8)
+        label.textColor = TUISwift.rgba(0, g: 0, b: 0, a: 0.8)
         return label
     }()
 
@@ -114,7 +114,7 @@ class TUIMergeMessageCell_Minimalist: TUIMessageCell_Minimalist {
     lazy var bottomTipsLabel: UILabel = {
         let label = UILabel()
         label.text = TUISwift.timCommonLocalizableString("TUIKitRelayChatHistory")
-        label.textColor = TUISwift.rgb(153, green: 153, blue: 153, alpha: 1)
+        label.textColor = TUISwift.rgba(153, g: 153, b: 153, a: 1)
         label.font = UIFont.systemFont(ofSize: 10)
         return label
     }()
@@ -124,9 +124,9 @@ class TUIMergeMessageCell_Minimalist: TUIMessageCell_Minimalist {
         setupViews()
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupViews()
+        fatalError("init(coder:) has not been implemented")
     }
 
     private func setupViews() {
@@ -204,7 +204,7 @@ class TUIMergeMessageCell_Minimalist: TUIMessageCell_Minimalist {
         }
     }
 
-    override func fill(with data: TUIMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIMergeMessageCellData else { return }
         mergeData = data
@@ -250,10 +250,10 @@ class TUIMergeMessageCell_Minimalist: TUIMessageCell_Minimalist {
         mergeCellData.abstractRow2Size = caculate(data: mergeCellData, index: 1)
         mergeCellData.abstractRow3Size = caculate(data: mergeCellData, index: 2)
 
-        let mergeMessageCellWidthMax = TUISwift.tMergeMessageCell_Width_Max()
+        let mergeMessageCellWidthMax = TMergeMessageCell_Width_Max
 
         let abstractAttributedString = mergeCellData.abstractAttributedString()
-        let rect = abstractAttributedString.boundingRect(with: CGSize(width: mergeMessageCellWidthMax - 20, height: .infinity),
+        let rect = abstractAttributedString.boundingRect(with: CGSize(width: CGFloat(mergeMessageCellWidthMax) - 20, height: .infinity),
                                                          options: [.usesLineFragmentOrigin, .usesFontLeading],
                                                          context: nil)
         let size = CGSize(width: ceil(rect.width), height: ceil(rect.height) - 10)
@@ -261,7 +261,7 @@ class TUIMergeMessageCell_Minimalist: TUIMessageCell_Minimalist {
         var height = mergeCellData.abstractRow1Size.height + mergeCellData.abstractRow2Size.height + mergeCellData.abstractRow3Size.height
         let titleFont = UIFont.systemFont(ofSize: 16)
         height = (10 + titleFont.lineHeight + 3) + height + 1 + 5 + 20 + 5 + 3
-        return CGSize(width: mergeMessageCellWidthMax, height: height + mergeCellData.msgStatusSize.height)
+        return CGSize(width: CGFloat(mergeMessageCellWidthMax), height: height + mergeCellData.msgStatusSize.height)
     }
 
     class func caculate(data: TUIMergeMessageCellData, index: Int) -> CGSize {
@@ -283,16 +283,16 @@ class TUIMergeMessageCell_Minimalist: TUIMessageCell_Minimalist {
             abstr.append(detail)
         }
 
-        let mergeMessageCellWidthMax = TUISwift.tMergeMessageCell_Width_Max()
-        let mergeMessageCellHeightMax = TUISwift.tMergeMessageCell_Height_Max()
+        let mergeMessageCellWidthMax = TMergeMessageCell_Width_Max
+        let mergeMessageCellHeightMax = TMergeMessageCell_Height_Max
 
         let senderWidth = senderRect.width
-        let rect = abstr.boundingRect(with: CGSize(width: mergeMessageCellWidthMax - 20 - senderWidth, height: .infinity),
+        let rect = abstr.boundingRect(with: CGSize(width: CGFloat(mergeMessageCellWidthMax - 20) - senderWidth, height: .infinity),
                                       options: [.usesLineFragmentOrigin, .usesFontLeading],
                                       context: nil)
 
-        let size = CGSize(width: mergeMessageCellWidthMax,
-                          height: min(mergeMessageCellHeightMax / 3.0, ceil(rect.height)))
+        let size = CGSize(width: CGFloat(mergeMessageCellWidthMax),
+                          height: min(CGFloat(mergeMessageCellHeightMax) / 3.0, ceil(rect.height)))
 
         return size
     }

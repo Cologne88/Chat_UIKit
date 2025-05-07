@@ -9,9 +9,9 @@ class TUIMessageMediaDataProvider: TUIMessageBaseMediaDataProvider {
         }
         var data: TUIMessageCellData?
         if message.elemType == .ELEM_TYPE_IMAGE {
-            data = TUIImageMessageCellData.getCellData(message)
+            data = TUIImageMessageCellData.getCellData(message: message)
         } else if message.elemType == .ELEM_TYPE_VIDEO {
-            data = TUIVideoMessageCellData.getCellData(message)
+            data = TUIVideoMessageCellData.getCellData(message: message)
         }
         if let data = data {
             data.innerMessage = message

@@ -50,7 +50,7 @@ class TUIContactConversationCellData: TUICommonCellData {
     }
 
     override func height(ofWidth width: CGFloat) -> CGFloat {
-        return TUISwift.tConversationCell_Height()
+        return CGFloat(TConversationCell_Height)
     }
 
     override func isEqual(_ object: Any?) -> Bool {

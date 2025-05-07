@@ -8,7 +8,7 @@ class TUITextMessageCellData: TUIBubbleMessageCellData {
     var isCaller: Bool = false
     var showUnreadPoint: Bool = false
 
-    var emojiLocations: [[NSValue: NSAttributedString]] = []
+    var emojiLocations: [[NSValue: NSAttributedString]]? = []
     var textSize: CGSize = .zero
     var textOrigin: CGPoint = .zero
 
@@ -26,24 +26,28 @@ class TUITextMessageCellData: TUIBubbleMessageCellData {
 
     override init(direction: TMsgDirection) {
         super.init(direction: direction)
-        if direction == .MsgDirectionIncoming {
-            self.cellLayout = TUIMessageCellLayout.incommingTextMessage()
+        if direction == .incoming {
+            self.cellLayout = TUIMessageCellLayout.incomingTextMessageLayout
         } else {
-            self.cellLayout = TUIMessageCellLayout.outgoingTextMessage()
+            self.cellLayout = TUIMessageCellLayout.outgoingTextMessageLayout
         }
     }
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
-        let textData = TUITextMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+    required init() {
+        fatalError("init() has not been implemented")
+    }
+
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
+        let textData = TUITextMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
         if let textElem = message.textElem {
-            textData.content = textElem.text.safeValue
+            textData.content = textElem.text ?? ""
         }
-        textData.reuseId = TTextMessageCell_ReuseId
-        textData.status = .Msg_Status_Init
+        textData.reuseId = "TTextMessageCell"
+        textData.status = .initStatus
         return textData
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String {
+    override class func getDisplayString(message: V2TIMMessage) -> String {
         if let textElem = message.textElem, let text = textElem.text {
             return text.getLocalizableStringWithFaceContent()
         }
@@ -61,7 +65,7 @@ class TUITextMessageCellData: TUIBubbleMessageCellData {
     func getContentAttributedString(textFont: UIFont) -> NSAttributedString {
         if attributedString == nil {
             emojiLocations = []
-            attributedString = content.getFormatEmojiString(with: textFont, emojiLocations: emojiLocations as? NSMutableArray)
+            attributedString = content.getFormatEmojiString(withFont: textFont, emojiLocations: &emojiLocations)
             if isAudioCall || isVideoCall {
                 let attachment = NSTextAttachment()
                 var image: UIImage?

@@ -38,7 +38,7 @@ class TUIJoinGroupMessageCell: TUISystemMessageCell, UITextViewDelegate {
         textView.delaysContentTouches = false
     }
 
-    override func fill(with data: TUISystemMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIJoinGroupMessageCellData else { return }
 
@@ -48,7 +48,7 @@ class TUIJoinGroupMessageCell: TUISystemMessageCell, UITextViewDelegate {
         retryView.isHidden = true
         indicator.stopAnimating()
 
-        let attributeString = NSMutableAttributedString(string: data.content)
+        let attributeString = NSMutableAttributedString(string: data.content ?? "")
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
         let attributeDict: [NSAttributedString.Key: Any] = [
@@ -93,8 +93,8 @@ class TUIJoinGroupMessageCell: TUISystemMessageCell, UITextViewDelegate {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        container.tui_mm_center()
-        textView.mm_fill()
+        container.tui_mm__center()
+        textView.mm__fill()
     }
 
     private func onSelectUserName(_ index: Int) {

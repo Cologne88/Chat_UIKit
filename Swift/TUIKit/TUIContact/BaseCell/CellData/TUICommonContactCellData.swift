@@ -7,7 +7,7 @@ enum TUIContactOnlineStatus: Int {
     case offline = 2
 }
 
-class TUICommonContactCellData: TUICommonCellData {
+public class TUICommonContactCellData: TUICommonCellData {
     var friendProfile: V2TIMFriendInfo?
     var identifier: String?
     var avatarUrl: URL?
@@ -21,11 +21,11 @@ class TUICommonContactCellData: TUICommonCellData {
         if let friendRemark = friend.friendRemark, !friendRemark.isEmpty {
             title = friendRemark
         } else {
-            title = friend.userFullInfo?.showName()
+            title = friend.userFullInfo.showName()
         }
 
         identifier = friend.userID
-        if let faceURL = friend.userFullInfo?.faceURL {
+        if let faceURL = friend.userFullInfo.faceURL {
             avatarUrl = URL(string: faceURL)
         }
         friendProfile = friend
@@ -46,7 +46,7 @@ class TUICommonContactCellData: TUICommonCellData {
         return (title ?? "").localizedCompare(data.title ?? "")
     }
 
-    override func height(ofWidth width: CGFloat) -> CGFloat {
+    override public func height(ofWidth width: CGFloat) -> CGFloat {
         return 56
     }
 }

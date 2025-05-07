@@ -90,16 +90,16 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let data = dataProvider.dataList[indexPath.section][indexPath.row]
         if let data = data as? TUIProfileCardCellData {
-            let cell = tableView.dequeueReusableCell(withIdentifier: TGroupCommonCell_ReuseId) as? TUIProfileCardCell ?? TUIProfileCardCell(style: .default, reuseIdentifier: TGroupCommonCell_ReuseId)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TGroupCommonCell") as? TUIProfileCardCell ?? TUIProfileCardCell(style: .default, reuseIdentifier: "TGroupCommonCell")
             cell.delegate = self
             cell.fill(with: data)
             return cell
         } else if let data = data as? TUICommonTextCellData {
-            let cell = tableView.dequeueReusableCell(withIdentifier: TKeyValueCell_ReuseId) as? TUICommonTextCell ?? TUICommonTextCell(style: .default, reuseIdentifier: TKeyValueCell_ReuseId)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TKeyValueCell") as? TUICommonTextCell ?? TUICommonTextCell(style: .default, reuseIdentifier: "TKeyValueCell")
             cell.fill(with: data)
             return cell
         } else if let data = data as? TUIGroupMembersCellData {
-            let cell = TUICommonTableViewCell(style: .default, reuseIdentifier: TGroupMembersCell_ReuseId)
+            let cell = TUICommonTableViewCell(style: .default, reuseIdentifier: "TGroupMembersCell")
             let param: [String: Any] = [
                 "data": data,
                 "pushVC": navigationController as Any,
@@ -107,14 +107,14 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
                 "membersData": dataProvider.membersData,
                 "groupMembersCellData": dataProvider.groupMembersCellData as Any
             ]
-            TUICore.raiseExtension(TUICore_TUIChatExtension_GroupProfileMemberListExtension_ClassicExtensionID, parentView: cell, param: param)
+            TUICore.raiseExtension("TUICore_TUIChatExtension_GroupProfileMemberListExtension_ClassicExtensionID", parentView: cell, param: param)
             return cell
         } else if let data = data as? TUICommonSwitchCellData {
-            let cell = tableView.dequeueReusableCell(withIdentifier: TSwitchCell_ReuseId) as? TUICommonSwitchCell ?? TUICommonSwitchCell(style: .default, reuseIdentifier: TSwitchCell_ReuseId)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TSwitchCell") as? TUICommonSwitchCell ?? TUICommonSwitchCell(style: .default, reuseIdentifier: "TSwitchCell")
             cell.fill(with: data)
             return cell
         } else if let data = data as? TUIButtonCellData {
-            let cell = tableView.dequeueReusableCell(withIdentifier: TButtonCell_ReuseId) as? TUIButtonCell ?? TUIButtonCell(style: .default, reuseIdentifier: TButtonCell_ReuseId)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TButtonCell") as? TUIButtonCell ?? TUIButtonCell(style: .default, reuseIdentifier: "TButtonCell")
             cell.fill(with: data)
             return cell
         } else if let data = data as? TUIGroupNoticeCellData {
@@ -132,7 +132,7 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
     // MARK: TUIGroupInfoDataProviderDelegate
 
     @objc func groupProfileExtensionButtonClick(_ cell: TUICommonTextCell) {
-        guard let info = cell.data.tui_extValueObj as? TUIExtensionInfo,
+        guard let info = cell.data?.tui_extValueObj as? TUIExtensionInfo,
               let onClicked = info.onClicked else { return }
         onClicked([:])
     }
@@ -145,21 +145,21 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
         if let groupInfo = dataProvider.groupInfo {
             param["groupInfo"] = groupInfo
         }
-        if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetGroupMemberVCMethod, param: param) as? UIViewController {
+        if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetGroupMemberVCMethod", param: param) as? UIViewController {
             navigationController?.pushViewController(vc, animated: true)
         }
     }
 
     @objc func didSelectAddOption(_ cell: UITableViewCell) {
         guard let cell = cell as? TUICommonTextCell else { return }
-        let data = cell.textData
+        guard let data = cell.textData else { return }
         let isApprove = data.key == TUISwift.timCommonLocalizableString("TUIKitGroupProfileInviteType")
         let ac = UIAlertController(title: nil, message: isApprove ? TUISwift.timCommonLocalizableString("TUIKitGroupProfileInviteType") : TUISwift.timCommonLocalizableString("TUIKitGroupProfileJoinType"), preferredStyle: .actionSheet)
 
         let actionList: [[V2TIMGroupAddOpt: String]] = [
-            [V2TIMGroupAddOpt.GROUP_ADD_FORBID: isApprove ? TUISwift.timCommonLocalizableString("TUIKitGroupProfileInviteDisable") : TUISwift.timCommonLocalizableString("TUIKitGroupProfileJoinDisable")],
-            [V2TIMGroupAddOpt.GROUP_ADD_AUTH: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdminApprove")],
-            [V2TIMGroupAddOpt.GROUP_ADD_ANY: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAutoApproval")]
+            [.GROUP_ADD_FORBID: isApprove ? TUISwift.timCommonLocalizableString("TUIKitGroupProfileInviteDisable") : TUISwift.timCommonLocalizableString("TUIKitGroupProfileJoinDisable")],
+            [.GROUP_ADD_AUTH: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdminApprove")],
+            [.GROUP_ADD_ANY: TUISwift.timCommonLocalizableString("TUIKitGroupProfileAutoApproval")]
         ]
 
         for map in actionList {
@@ -189,7 +189,7 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
         modify.delegate = self
         modify.setData(data)
         if let window = view.window {
-            modify.show(in: window)
+            modify.showInWindow(window)
         }
     }
 
@@ -209,7 +209,7 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
                 modify.delegate = self
                 modify.setData(data)
                 if let window = self.view.window {
-                    modify.show(in: window)
+                    modify.showInWindow(window)
                 }
             })
         }
@@ -224,7 +224,7 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
                 modify.delegate = self
                 modify.setData(data)
                 if let window = self.view.window {
-                    modify.show(in: window)
+                    modify.showInWindow(window)
                 }
             })
         }
@@ -234,14 +234,14 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
                 guard let self else { return }
                 let vc = TUISelectAvatarController()
                 vc.selectAvatarType = .groupAvatar
-                vc.profilFaceURL = groupInfo.faceURL.safeValue
+                vc.profilFaceURL = groupInfo.faceURL
                 self.navigationController?.pushViewController(vc, animated: true)
                 vc.selectCallBack = { [weak self] urlStr in
                     guard let self = self, !urlStr.isEmpty else { return }
                     let info = V2TIMGroupInfo()
-                    info.groupID = self.groupId.safeValue
+                    info.groupID = self.groupId
                     info.faceURL = urlStr
-                    V2TIMManager.sharedInstance().setGroupInfo(info, succ: {
+                   V2TIMManager.sharedInstance().setGroupInfo(info: info, succ: {
                         self.updateGroupInfo()
                     }, fail: { code, msg in
                         TUITool.makeToastError(Int(code), msg: msg)
@@ -255,9 +255,9 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
     }
 
     @objc func didSelectOnNotDisturb(_ cell: TUICommonSwitchCell) {
-        let opt: V2TIMReceiveMessageOpt = cell.switcher.isOn ? V2TIMReceiveMessageOpt.RECEIVE_NOT_NOTIFY_MESSAGE : V2TIMReceiveMessageOpt.RECEIVE_MESSAGE
+        let opt: V2TIMReceiveMessageOpt = cell.switcher.isOn ? .RECEIVE_NOT_NOTIFY_MESSAGE : .RECEIVE_MESSAGE
 
-        V2TIMManager.sharedInstance().markConversation(["group_\(groupId ?? "")"], markType: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue as NSNumber, enableMark: false, succ: nil, fail: nil)
+       V2TIMManager.sharedInstance().markConversation(conversationIDList: ["group_\(groupId ?? "")"], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue), enableMark: false, succ: nil, fail: nil)
 
         dataProvider.setGroupReceiveMessageOpt(opt, succ: { [weak self] in
             guard let self else { return }
@@ -268,17 +268,17 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
     @objc func didSelectOnTop(_ cell: TUICommonSwitchCell) {
         let conversationID = "group_\(groupId ?? "")"
         if cell.switcher.isOn {
-            TUIConversationPin.sharedInstance().addTopConversation(conversationID) { success, errorMessage in
+            TUIConversationPin.sharedInstance.addTopConversation(conversationID) { success, errorMessage in
                 if !success {
                     cell.switcher.isOn.toggle()
-                    TUITool.makeToast(errorMessage)
+                    TUITool.makeToast(errorMessage ?? "")
                 }
             }
         } else {
-            TUIConversationPin.sharedInstance().removeTopConversation(conversationID) { success, errorMessage in
+            TUIConversationPin.sharedInstance.removeTopConversation(conversationID) { success, errorMessage in
                 if !success {
                     cell.switcher.isOn.toggle()
-                    TUITool.makeToast(errorMessage)
+                    TUITool.makeToast(errorMessage ?? "")
                 }
             }
         }
@@ -312,8 +312,8 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             let vc = self.findConversationListViewController()
-            TUIConversationPin.sharedInstance().removeTopConversation("group_\(self.groupId ?? "")", callback: nil)
-            V2TIMManager.sharedInstance().markConversation(["group_\(self.groupId ?? "")"], markType: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue as NSNumber, enableMark: false, succ: { _ in
+            TUIConversationPin.sharedInstance.removeTopConversation("group_\(self.groupId ?? "")", callback: nil)
+           V2TIMManager.sharedInstance().markConversation(conversationIDList: ["group_\(self.groupId ?? "")"], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue), enableMark: false, succ: { _ in
                 self.navigationController?.popToViewController(vc, animated: true)
             }, fail: { _, _ in
                 self.navigationController?.popToViewController(vc, animated: true)
@@ -340,10 +340,10 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
 
     @objc func didSelectOnFoldConversation(_ cell: TUICommonSwitchCell) {
         let enableMark = cell.switcher.isOn
-        V2TIMManager.sharedInstance().markConversation(["group_\(groupId ?? "")"], markType: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue as NSNumber, enableMark: enableMark, succ: { [weak self] _ in
+       V2TIMManager.sharedInstance().markConversation(conversationIDList: ["group_\(groupId ?? "")"], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue), enableMark: enableMark, succ: { [weak self] _ in
             guard let self else { return }
-            cell.switchData.isOn = enableMark
-            TUIConversationPin.sharedInstance().removeTopConversation("group_\(self.groupId ?? "")", callback: { [weak self] _, _ in
+            cell.switchData?.isOn = enableMark
+            TUIConversationPin.sharedInstance.removeTopConversation("group_\(self.groupId ?? "")", callback: { [weak self] _, _ in
                 guard let self else { return }
                 self.updateGroupInfo()
             })
@@ -353,14 +353,14 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
     @objc func didSelectOnChangeBackgroundImage(_ cell: TUICommonTextCell) {
         let conversationID = "group_\(groupId ?? "")"
         let vc = TUISelectAvatarController()
-        vc.selectAvatarType = .conversationBackGroundCover
+        vc.selectAvatarType = .conversationBackgroundCover
         vc.profilFaceURL = getBackgroundImageUrl(by: conversationID) ?? ""
         navigationController?.pushViewController(vc, animated: true)
         vc.selectCallBack = { [weak self] urlStr in
             guard let self else { return }
             self.appendBackgroundImage(urlStr, conversationID: conversationID)
             if !conversationID.isEmpty {
-                TUICore.notifyEvent(TUICore_TUIContactNotify, subKey: TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey, object: self, param: [TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID: conversationID])
+                TUICore.notifyEvent("TUICore_TUIContactNotify", subKey: "TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey", object: self, param: ["TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID": conversationID])
             }
         }
     }
@@ -375,7 +375,7 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
 
     private func appendBackgroundImage(_ imgUrl: String, conversationID: String) {
         guard !conversationID.isEmpty else { return }
-        var dict = UserDefaults.standard.object(forKey: "conversation_backgroundImage_map");
+        var dict = UserDefaults.standard.object(forKey: "conversation_backgroundImage_map")
         if dict == nil {
             dict = [String: String]()
         }
@@ -395,7 +395,7 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
         let ac = UIAlertController(title: nil, message: TUISwift.timCommonLocalizableString("TUIKitClearAllChatHistoryTips"), preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: TUISwift.timCommonLocalizableString("Confirm"), style: .destructive) { [weak self] _ in
             self?.dataProvider.clearAllHistory(succ: {
-                TUICore.notifyEvent(TUICore_TUIConversationNotify, subKey: TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey, object: self, param: nil)
+                TUICore.notifyEvent("TUICore_TUIConversationNotify", subKey: "TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey", object: self, param: nil)
                 TUITool.makeToast("success")
             }, fail: { code, desc in
                 TUITool.makeToastError(Int(code), msg: desc)
@@ -431,7 +431,7 @@ class TUIGroupInfoController: UITableViewController, TUIModifyViewDelegate, TUIP
             let info = V2TIMGroupInfo()
             info.groupID = self.groupId
             info.faceURL = urlStr
-            V2TIMManager.sharedInstance().setGroupInfo(info, succ: {
+           V2TIMManager.sharedInstance().setGroupInfo(info: info, succ: {
                 self.updateGroupInfo()
             }, fail: { code, msg in
                 TUITool.makeToastError(Int(code), msg: msg)

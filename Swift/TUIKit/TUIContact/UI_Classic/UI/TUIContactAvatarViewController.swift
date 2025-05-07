@@ -4,7 +4,6 @@
 import UIKit
 import TIMCommon
 import TUICore
-import ReactiveObjC
 import SDWebImage
 
 class TUIContactAvatarViewController: UIViewController, UIScrollViewDelegate {

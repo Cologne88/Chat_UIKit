@@ -4,7 +4,7 @@ import TUICore
 
 class TUICommonPendencyCellData_Minimalist: TUICommonCellData {
     let application: V2TIMFriendApplication
-    let identifier: String
+    var identifier: String = ""
     let avatarUrl: URL?
     let title: String
     let addSource: String?
@@ -17,7 +17,9 @@ class TUICommonPendencyCellData_Minimalist: TUICommonCellData {
 
     init(application: V2TIMFriendApplication) {
         self.application = application
-        self.identifier = application.userID ?? ""
+        if let userID = application.userID {
+            self.identifier = userID
+        }
         self.title = application.nickName?.isEmpty == false ? application.nickName! : identifier
         if let addSource = application.addSource {
             self.addSource = String(format: TUISwift.timCommonLocalizableString("TUIKitAddFriendSourceFormat"), addSource.dropFirst("AddSource_Type_".count) as CVarArg)
@@ -37,7 +39,7 @@ class TUICommonPendencyCellData_Minimalist: TUICommonCellData {
     }
 
     func agreeWithSuccess(success: (() -> Void)?, failure: ((Int, String) -> Void)?) {
-        V2TIMManager.sharedInstance().accept(application, type: V2TIMFriendAcceptType.FRIEND_ACCEPT_AGREE_AND_ADD, succ: { _ in
+        V2TIMManager.sharedInstance().acceptFriendApplication(application: application, acceptType: V2TIMFriendAcceptType.FRIEND_ACCEPT_AGREE_AND_ADD, succ: { _ in
             success?()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("TUIKitFriendApplicationApproved"))
         }, fail: { code, msg in
@@ -47,7 +49,7 @@ class TUICommonPendencyCellData_Minimalist: TUICommonCellData {
     }
 
     func rejectWithSuccess(success: (() -> Void)?, failure: ((Int, String) -> Void)?) {
-        V2TIMManager.sharedInstance().refuse(application, succ: { _ in
+        V2TIMManager.sharedInstance().refuseFriendApplication(application: application, succ: { _ in
             success?()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("TUIKitFirendRequestRejected"))
         }, fail: { code, msg in

@@ -4,7 +4,7 @@ import TIMCommon
 import TUICore
 import UIKit
 
-class TUIConversationCell: UITableViewCell {
+public class TUIConversationCell: UITableViewCell {
     var headImageView: UIImageView!
     var titleLabel: UILabel!
     var subTitleLabel: UILabel!
@@ -16,8 +16,9 @@ class TUIConversationCell: UITableViewCell {
     var onlineStatusIcon: UIImageView!
     var lastMessageStatusImageView: UIImageView!
     
-    let titleObserver = Observer()
-    let faceUrlObserver = Observer()
+    private var titleObservation: NSKeyValueObservation?
+    private var faceUrlObservation: NSKeyValueObservation?
+    public var displayOnlineStatusIconObservation: NSKeyValueObservation?
     
     @objc dynamic var convData: TUIConversationCellData?
 
@@ -32,7 +33,7 @@ class TUIConversationCell: UITableViewCell {
         timeLabel.font = UIFont.systemFont(ofSize: 12)
         timeLabel.textColor = TUISwift.timCommonDynamicColor("form_desc_color", defaultColor: "#BBBBBB")
         timeLabel.layer.masksToBounds = true
-        timeLabel.textAlignment = .left
+        timeLabel.rtlAlignment = .leading
         contentView.addSubview(timeLabel)
         
         titleLabel = UILabel()
@@ -54,14 +55,14 @@ class TUIConversationCell: UITableViewCell {
         
         notDisturbRedDot = UIView()
         notDisturbRedDot.backgroundColor = .red
-        notDisturbRedDot.layer.cornerRadius = TConversationCell_Margin_Disturb_Dot / 2.0
+        notDisturbRedDot.layer.cornerRadius = CGFloat(TConversationCell_Margin_Disturb_Dot) / 2.0
         notDisturbRedDot.layer.masksToBounds = true
         contentView.addSubview(notDisturbRedDot)
         
         notDisturbView = UIImageView()
         contentView.addSubview(notDisturbView)
         
-        separatorInset = UIEdgeInsets(top: 0, left: TConversationCell_Margin, bottom: 0, right: 0)
+        separatorInset = UIEdgeInsets(top: 0, left: CGFloat(TConversationCell_Margin), bottom: 0, right: 0)
         selectionStyle = .none
         
         selectedIcon = UIImageView()
@@ -81,11 +82,15 @@ class TUIConversationCell: UITableViewCell {
     }
     
     deinit {
-        convData?.title.removeObserver(titleObserver)
-        convData?.faceUrl.removeObserver(faceUrlObserver)
+        titleObservation?.invalidate()
+        titleObservation = nil
+        faceUrlObservation?.invalidate()
+        faceUrlObservation = nil
+        displayOnlineStatusIconObservation?.invalidate()
+        displayOnlineStatusIconObservation = nil
     }
     
-    func fill(with convData: TUIConversationCellData) {
+    public func fill(with convData: TUIConversationCellData) {
         self.convData = convData
         
         titleLabel.textColor = TUISwift.timCommonDynamicColor("form_title_color", defaultColor: "#000000")
@@ -126,9 +131,9 @@ class TUIConversationCell: UITableViewCell {
         
         headImageView.sd_setImage(with: nil, placeholderImage: convData.avatarImage)
         
-        titleLabel.text = convData.title.value
-        convData.title.addObserver(titleObserver) { [weak self] newValue, _ in
-            guard let self = self else { return }
+        titleLabel.text = convData.title
+        titleObservation = convData.observe(\.title, options: [.new, .initial], changeHandler: { [weak self] _, change in
+            guard let self = self, let newValue = change.newValue else { return }
             self.titleLabel.text = newValue
             // tell constraints they need updating
             setNeedsUpdateConstraints()
@@ -137,14 +142,13 @@ class TUIConversationCell: UITableViewCell {
             updateConstraintsIfNeeded()
 
             layoutIfNeeded()
-        }
+        })
         
         if let groupID = convData.groupID {
             if TUIConfig.default().enableGroupGridAvatar {
                 let key = "TUIConversationLastGroupMember_\(groupID)"
                 let member = UserDefaults.standard.integer(forKey: key)
-                let avatar = TUIGroupAvatar.getCacheAvatar(forGroup: groupID, number: UInt32(member))
-                if avatar.size.width > 0 {
+                if let avatar = TUIGroupAvatar.getCacheAvatar(forGroup: groupID, number: UInt32(member)) {
                     convData.avatarImage = avatar
                 } else {
                     convData.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: convData.groupType)
@@ -152,10 +156,10 @@ class TUIConversationCell: UITableViewCell {
             }
         }
         
-        let faceUrl = convData.faceUrl.value
+        let faceUrl = convData.faceUrl
         if let _ = convData.groupID {
             // Group avatar
-            if !faceUrl.isEmpty {
+            if let faceUrl = faceUrl {
                 // The group avatar has been manually set externally
                 headImageView.sd_setImage(with: URL(string: faceUrl), placeholderImage: convData.avatarImage)
             } else {
@@ -172,7 +176,7 @@ class TUIConversationCell: UITableViewCell {
                     TUIGroupAvatar.getCacheGroupAvatar(getGroupID) { [weak self] avatar, groupID in
                         guard let self = self, groupID == getGroupID else { return }
                         
-                        if !avatar.size.equalTo(CGSizeZero) {
+                        if let avatar = avatar {
                             // 2. Hit the cache and assign directly
                             self.headImageView.sd_setImage(with: nil, placeholderImage: avatar)
                         } else {
@@ -198,7 +202,7 @@ class TUIConversationCell: UITableViewCell {
             }
         } else {
             // Personal avatar
-            headImageView.sd_setImage(with: URL(string: faceUrl), placeholderImage: convData.avatarImage)
+            headImageView.sd_setImage(with: URL(string: faceUrl ?? ""), placeholderImage: convData.avatarImage)
         }
         
         if convData.showCheckBox {
@@ -210,7 +214,7 @@ class TUIConversationCell: UITableViewCell {
             } else {
                 imageName = TUISwift.timCommonImagePath("icon_select_normal")
             }
-            selectedIcon.image = UIImage(named: imageName)
+            selectedIcon.image = UIImage.safeImage(imageName)
         }
         
         configOnlineStatusIcon(convData)
@@ -230,24 +234,24 @@ class TUIConversationCell: UITableViewCell {
     func getDisplayLastMessageStatusImage(_ convData: TUIConversationCellData) -> UIImage? {
         if convData.draftText == nil, convData.lastMessage?.status == .MSG_STATUS_SENDING || convData.lastMessage?.status == .MSG_STATUS_SEND_FAIL {
             if convData.lastMessage?.status == .MSG_STATUS_SENDING {
-                return UIImage(named: TUISwift.tuiConversationImagePath("msg_sending_for_conv"))
+                return UIImage.safeImage(TUISwift.tuiConversationImagePath("msg_sending_for_conv"))
             } else {
-                return UIImage(named: TUISwift.tuiConversationImagePath("msg_error_for_conv"))
+                return UIImage.safeImage(TUISwift.tuiConversationImagePath("msg_error_for_conv"))
             }
         }
         return nil
     }
     
     func configOnlineStatusIcon(_ convData: TUIConversationCellData) {
-        TUISwift.racObserveTUIConfig_displayOnlineStatusIcon(self) { [weak self] _ in
+        displayOnlineStatusIconObservation = TUIConfig.default().observe(\.displayOnlineStatusIcon, options: [.new, .initial]) { [weak self] _, _ in
             guard let self = self else { return }
             if TUIConfig.default().displayOnlineStatusIcon {
                 if convData.onlineStatus == .online {
                     onlineStatusIcon.isHidden = false
-                    onlineStatusIcon.image = UIImage(named: TUISwift.timCommonImagePath("icon_online_status"))
+                    onlineStatusIcon.image = UIImage.safeImage(TUISwift.timCommonImagePath("icon_online_status"))
                 } else if convData.onlineStatus == .offline {
                     onlineStatusIcon.isHidden = false
-                    onlineStatusIcon.image = UIImage(named: TUISwift.timCommonImagePath("icon_offline_status"))
+                    onlineStatusIcon.image = UIImage.safeImage(TUISwift.timCommonImagePath("icon_offline_status"))
                 } else {
                     onlineStatusIcon.isHidden = true
                     onlineStatusIcon.image = nil
@@ -268,7 +272,7 @@ class TUIConversationCell: UITableViewCell {
             }
             notDisturbView.isHidden = false
             unReadView.isHidden = true
-            notDisturbView.image = TUISwift.tuiConversationBundleThemeImage("conversation_message_not_disturb_img", defaultImageName: "message_not_disturb")
+            notDisturbView.image = TUISwift.tuiConversationBundleThemeImage("conversation_message_not_disturb_img", defaultImage: "message_not_disturb")
         } else {
             notDisturbRedDot.isHidden = true
             notDisturbView.isHidden = true
@@ -290,11 +294,11 @@ class TUIConversationCell: UITableViewCell {
         }
     }
     
-    override class var requiresConstraintBasedLayout: Bool {
+    override public class var requiresConstraintBasedLayout: Bool {
         return true
     }
     
-    override func updateConstraints() {
+    override public func updateConstraints() {
         super.updateConstraints()
         let height = convData?.height(ofWidth: mm_w) ?? 0
         mm_h = height
@@ -314,14 +318,14 @@ class TUIConversationCell: UITableViewCell {
             }
         }
         
-        let imgHeight = height - 2 * TConversationCell_Margin
+        let imgHeight = height - 2 * CGFloat(TConversationCell_Margin)
         headImageView.snp.remakeConstraints { make in
             make.size.equalTo(imgHeight)
             make.centerY.equalTo(contentView)
             if convData?.showCheckBox == true {
-                make.leading.equalTo(selectedIcon.snp.trailing).offset(TConversationCell_Margin + 3)
+                make.leading.equalTo(selectedIcon.snp.trailing).offset(Int(TConversationCell_Margin) + 3)
             } else {
-                make.leading.equalTo(contentView).offset(TConversationCell_Margin + 3)
+                make.leading.equalTo(contentView).offset(Int(TConversationCell_Margin) + 3)
             }
         }
         
@@ -339,8 +343,8 @@ class TUIConversationCell: UITableViewCell {
             titleLabel.snp.remakeConstraints { make in
                 make.width.greaterThanOrEqualTo(titleLabelHeight)
                 make.top.equalTo((height - titleLabelHeight) / 2)
-                make.leading.equalTo(headImageView).offset(TConversationCell_Margin)
-                make.trailing.equalTo(contentView).offset(-2 * TConversationCell_Margin_Text)
+                make.leading.equalTo(headImageView.snp.trailing).offset(CGFloat(TConversationCell_Margin))
+                make.trailing.equalTo(contentView).offset(-2 * Int(TConversationCell_Margin_Text))
             }
             timeLabel.isHidden = true
             lastMessageStatusImageView.isHidden = true
@@ -352,33 +356,33 @@ class TUIConversationCell: UITableViewCell {
         } else {
             timeLabel.sizeToFit()
             timeLabel.snp.remakeConstraints { make in
-                make.width.equalTo(timeLabel.frame.width)
+                make.width.equalTo(timeLabel)
                 make.height.greaterThanOrEqualTo(timeLabel.font.lineHeight)
-                make.top.equalTo(contentView).offset(TConversationCell_Margin_Text)
-                make.trailing.equalTo(contentView).offset(-TConversationCell_Margin_Text)
+                make.top.equalTo(contentView).offset(CGFloat(TConversationCell_Margin_Text))
+                make.trailing.equalTo(contentView).offset(-CGFloat(TConversationCell_Margin_Text))
             }
             
             lastMessageStatusImageView.snp.remakeConstraints { make in
                 make.width.equalTo(TUISwift.kScale390(14))
                 make.height.equalTo(14)
-                make.trailing.equalTo(contentView).offset(-(TUISwift.kScale390(1) + TConversationCell_Margin_Disturb + TUISwift.kScale390(8)))
+                make.trailing.equalTo(contentView).offset(-(TUISwift.kScale390(1) + CGFloat(TConversationCell_Margin_Disturb) + TUISwift.kScale390(8)))
                 make.bottom.equalTo(contentView).offset(TUISwift.kScale390(16))
             }
             
             titleLabel.sizeToFit()
             titleLabel.snp.remakeConstraints { make in
                 make.height.greaterThanOrEqualTo(titleLabelHeight)
-                make.top.equalTo(contentView).offset(TConversationCell_Margin_Text - 5)
-                make.leading.equalTo(headImageView.snp.trailing).offset(TConversationCell_Margin)
-                make.trailing.lessThanOrEqualTo(timeLabel).offset(-2 * TConversationCell_Margin_Text)
+                make.top.equalTo(contentView).offset(CGFloat(TConversationCell_Margin_Text) - 5)
+                make.leading.equalTo(headImageView.snp.trailing).offset(CGFloat(TConversationCell_Margin))
+                make.trailing.lessThanOrEqualTo(timeLabel).offset(-2 * CGFloat(TConversationCell_Margin_Text))
             }
             
             subTitleLabel.sizeToFit()
             subTitleLabel.snp.remakeConstraints { make in
                 make.height.greaterThanOrEqualTo(subTitleLabel.frame.height)
-                make.bottom.equalTo(contentView).offset(-TConversationCell_Margin_Text)
+                make.bottom.equalTo(contentView).offset(-CGFloat(TConversationCell_Margin_Text))
                 make.leading.equalTo(titleLabel)
-                make.trailing.equalTo(contentView).offset(-2 * TConversationCell_Margin_Text)
+                make.trailing.equalTo(contentView).offset(-2 * CGFloat(TConversationCell_Margin_Text))
             }
             
             unReadView.unReadLabel.sizeToFit()
@@ -399,11 +403,11 @@ class TUIConversationCell: UITableViewCell {
             notDisturbRedDot.snp.remakeConstraints { make in
                 make.trailing.equalTo(headImageView).offset(3)
                 make.top.equalTo(headImageView).offset(1)
-                make.width.height.equalTo(TConversationCell_Margin_Disturb_Dot)
+                make.width.height.equalTo(CGFloat(TConversationCell_Margin_Disturb_Dot))
             }
             
             notDisturbView.snp.remakeConstraints { make in
-                make.width.height.equalTo(TConversationCell_Margin_Disturb)
+                make.width.height.equalTo(CGFloat(TConversationCell_Margin_Disturb))
                 make.trailing.equalTo(timeLabel)
                 make.bottom.equalTo(contentView).offset(-15)
             }
@@ -417,7 +421,7 @@ class TUIConversationCell: UITableViewCell {
         }
     }
     
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
     }
 }

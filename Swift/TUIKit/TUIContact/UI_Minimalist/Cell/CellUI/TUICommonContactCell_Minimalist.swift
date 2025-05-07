@@ -1,11 +1,10 @@
 //  TUICommonContactCell_Minimalist.swift
 //  TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUICommonContactCell_Minimalist: TUICommonTableViewCell {
-
     let avatarView = UIImageView()
     let titleLabel = UILabel()
     // The icon of indicating the user's online status
@@ -13,6 +12,7 @@ class TUICommonContactCell_Minimalist: TUICommonTableViewCell {
     var separtorView = UIView()
     private(set) var contactData: TUICommonContactCellData_Minimalist?
     private var faceUrlObservation: NSKeyValueObservation?
+    private var displayOnlineStatusIconObservation: NSKeyValueObservation?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -33,12 +33,18 @@ class TUICommonContactCell_Minimalist: TUICommonTableViewCell {
         selectionStyle = .none
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    deinit {
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        faceUrlObservation?.invalidate()
         faceUrlObservation = nil
+
+        displayOnlineStatusIconObservation?.invalidate()
+        displayOnlineStatusIconObservation = nil
     }
 
     override func fill(with contactData: TUICommonCellData) {
@@ -50,14 +56,14 @@ class TUICommonContactCell_Minimalist: TUICommonTableViewCell {
         titleLabel.text = contactData.title
         configHeadImageView(contactData)
 
-        TUISwift.racObserveTUIConfig_displayOnlineStatusIcon(self) { [weak self] _ in
+        displayOnlineStatusIconObservation = TUIConfig.default().observe(\.displayOnlineStatusIcon, options: [.new, .initial]) { [weak self] _, _ in
             guard let self = self else { return }
             if contactData.onlineStatus == .online && TUIConfig.default().displayOnlineStatusIcon {
                 self.onlineStatusIcon.isHidden = false
-                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_online_status", defaultImage: UIImage(named: TUISwift.timCommonImagePath("icon_online_status")))
+                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_online_status", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("icon_online_status")))
             } else if contactData.onlineStatus == .offline && TUIConfig.default().displayOnlineStatusIcon {
                 self.onlineStatusIcon.isHidden = false
-                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_offline_status", defaultImage: UIImage(named: TUISwift.timCommonImagePath("icon_offline_status")))
+                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_offline_status", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("icon_offline_status")))
             } else {
                 self.onlineStatusIcon.isHidden = true
                 self.onlineStatusIcon.image = nil
@@ -119,14 +125,14 @@ class TUICommonContactCell_Minimalist: TUICommonTableViewCell {
 
     func configHeadImageView(_ convData: TUICommonContactCellData_Minimalist) {
         if let groupID = convData.groupID, let type = convData.groupType {
-            convData.avatarImage = TUIGroupAvatar.getNormalGroupCacheAvatar(groupID, groupType: type)
+            convData.avatarImage = TUIGroupAvatar.getNormalGroupCacheAvatar(groupID: groupID, groupType: type)
         }
 
-        faceUrlObservation = convData.observe(\.faceUrl, options: [.new, .initial]) { [weak self] (data, change) in
+        faceUrlObservation = convData.observe(\.faceUrl, options: [.new, .initial]) { [weak self] _, change in
             guard let self = self, let _ = change.newValue else { return }
             let groupID = convData.groupID ?? ""
             let pFaceUrl = convData.faceUrl ?? ""
-            let groupType = convData.groupType ?? ""
+            let groupType = convData.groupType
             let originAvatarImage: UIImage?
             if groupID.count > 0 {
                 originAvatarImage = convData.avatarImage ?? TUISwift.defaultGroupAvatarImage(byGroupType: groupType)
@@ -139,7 +145,7 @@ class TUICommonContactCell_Minimalist: TUICommonTableViewCell {
                 "groupType": groupType,
                 "originAvatarImage": originAvatarImage as Any
             ]
-            TUIGroupAvatar.configAvatar(byParam: param, targetView: self.avatarView)
+            TUIGroupAvatar.configAvatar(by: param, targetView: self.avatarView)
         }
     }
 }

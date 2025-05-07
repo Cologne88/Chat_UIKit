@@ -7,6 +7,7 @@ class TUICommonContactCell: TUICommonTableViewCell {
     let titleLabel = UILabel()
     let onlineStatusIcon = UIImageView()
     var contactData: TUICommonContactCellData?
+    private var displayOnlineStatusIconObservation: NSKeyValueObservation?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -26,6 +27,12 @@ class TUICommonContactCell: TUICommonTableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        displayOnlineStatusIconObservation?.invalidate()
+        displayOnlineStatusIconObservation = nil
+    }
+    
     override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         
@@ -35,14 +42,14 @@ class TUICommonContactCell: TUICommonTableViewCell {
         titleLabel.text = contactData.title
         avatarView.sd_setImage(with: contactData.avatarUrl, placeholderImage: contactData.avatarImage ?? TUISwift.defaultAvatarImage())
         
-        TUISwift.racObserveTUIConfig_displayOnlineStatusIcon(self) { [weak self] _ in
+        displayOnlineStatusIconObservation = TUIConfig.default().observe(\.displayOnlineStatusIcon, options: [.new, .initial]) { [weak self] _, _ in
             guard let self = self else { return }
             if contactData.onlineStatus == .online && TUIConfig.default().displayOnlineStatusIcon {
                 self.onlineStatusIcon.isHidden = false
-                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_online_status", defaultImage: UIImage(named: TUISwift.timCommonImagePath("icon_online_status")))
+                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_online_status", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("icon_online_status")))
             } else if contactData.onlineStatus == .offline && TUIConfig.default().displayOnlineStatusIcon {
                 self.onlineStatusIcon.isHidden = false
-                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_offline_status", defaultImage: UIImage(named: TUISwift.timCommonImagePath("icon_offline_status")))
+                self.onlineStatusIcon.image = TUISwift.timCommonDynamicImage("icon_offline_status", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("icon_offline_status")))
             } else {
                 self.onlineStatusIcon.isHidden = true
                 self.onlineStatusIcon.image = nil

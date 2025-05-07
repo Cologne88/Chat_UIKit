@@ -107,7 +107,7 @@ public class TUIChatShortcutMenuView: UIView, UICollectionViewDelegate, UICollec
             make.left.top.right.equalToSuperview()
             make.height.equalTo(viewHeight > 0 ? viewHeight : 46)
         }
-        collectionView.mm_fill()
+        collectionView.mm__fill()
     }
 
     private func setupCollectionView() {

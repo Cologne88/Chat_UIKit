@@ -131,7 +131,7 @@ class TUIImageCollectionCell: TUIMediaCollectionCell {
         imageView.contentMode = .scaleAspectFill
         imageView.backgroundColor = .clear
         scrollView.containerView.addSubview(imageView)
-        imageView.mm_fill()
+        imageView.mm__fill()
         imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         mainDownloadBtn = UIButton(type: .custom)
@@ -202,7 +202,7 @@ class TUIImageCollectionCell: TUIMediaCollectionCell {
         imgCellData = data
         imageView.image = nil
 
-        let hasRiskContent = data.innerMessage.hasRiskContent
+        let hasRiskContent = data.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             imageView.image = TUISwift.timCommonBundleThemeImage("", defaultImage: "icon_security_strike")
             for subview in subviews {
@@ -379,13 +379,11 @@ class TUIImageCollectionCell: TUIMediaCollectionCell {
 
     // MARK: - V2TIMAdvancedMsgListener
 
-    func onRecvMessageModified(_ msg: V2TIMMessage?) {
-        guard let imMsg = msg else { return }
-
-        if imgCellData?.innerMessage.msgID == imMsg.msgID {
-            let hasRiskContent = imMsg.hasRiskContent
+    func onRecvMessageModified(msg: V2TIMMessage) {
+        if imgCellData?.innerMessage?.msgID == msg.msgID {
+            let hasRiskContent = msg.hasRiskContent
             if hasRiskContent {
-                imgCellData?.innerMessage = imMsg
+                imgCellData?.innerMessage = msg
                 showRiskAlert()
             }
         }

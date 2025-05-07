@@ -9,7 +9,6 @@ class TUIReplyMessageCellData: TUIBubbleMessageCellData {
     var sender: String?
     var faceURL: String?
     var originMsgType: V2TIMElemType = .ELEM_TYPE_NONE
-    @objc dynamic var originMessage: V2TIMMessage?
     var originCellData: TUIMessageCellData?
     var quoteData: TUIReplyQuoteViewData?
     var showRevokedOriginMessage: Bool = false
@@ -28,25 +27,32 @@ class TUIReplyMessageCellData: TUIBubbleMessageCellData {
     var selectContent: String? = ""
     var emojiLocations: [[NSValue: NSAttributedString]] = []
 
+    var onOriginMessageChange: ((V2TIMMessage?) -> Void)?
+    var originMessage: V2TIMMessage? {
+        didSet {
+            onOriginMessageChange?(originMessage)
+        }
+    }
+
     override init(direction: TMsgDirection) {
         super.init(direction: direction)
-        if direction == .MsgDirectionIncoming {
-            self.cellLayout = TUIMessageCellLayout.incommingTextMessage()
+        if direction == .incoming {
+            self.cellLayout = TUIMessageCellLayout.incomingTextMessageLayout
         } else {
-            self.cellLayout = TUIMessageCellLayout.outgoingTextMessage()
+            self.cellLayout = TUIMessageCellLayout.outgoingTextMessageLayout
         }
         self.emojiLocations = []
     }
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard message.cloudCustomData != nil else {
-            return TUIReplyMessageCellData(direction: .MsgDirectionIncoming)
+            return TUIReplyMessageCellData(direction: .incoming)
         }
 
-        var replyData = TUIReplyMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+        var replyData = TUIReplyMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
         message.doThingsInContainsCloudCustom(of: .messageReply, callback: { isContains, obj in
             if isContains, let reply = obj as? [String: Any] {
-                replyData.reuseId = TReplyMessageCell_ReuseId
+                replyData.reuseId = "TUIReplyMessageCell"
                 replyData.originMsgID = reply["messageID"] as? String
                 replyData.msgAbstract = reply["messageAbstract"] as? String
                 replyData.sender = reply["messageSender"] as? String
@@ -69,7 +75,7 @@ class TUIReplyMessageCellData: TUIBubbleMessageCellData {
     func getQuoteData(originCellData: TUIMessageCellData?) -> TUIReplyQuoteViewData? {
         var quoteData: TUIReplyQuoteViewData? = nil
         if let classType = originCellData?.getReplyQuoteViewDataClass() {
-            let hasRiskContent = originCellData?.innerMessage.hasRiskContent ?? false
+            let hasRiskContent = originCellData?.innerMessage?.hasRiskContent ?? false
             if hasRiskContent && TIMConfig.isClassicEntrance() {
                 let myData = TUITextReplyQuoteViewData()
                 myData.text = TUIReplyPreviewData.displayAbstract(type: originMsgType, abstract: msgAbstract ?? "", withFileName: false, isRisk: hasRiskContent)
@@ -96,12 +102,12 @@ class TUIReferenceMessageCellData: TUIReplyMessageCellData {
     var textSize: CGSize = .zero
     var textOrigin: CGPoint = .zero
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let cloudCustomData = message.cloudCustomData else {
-            return TUIReferenceMessageCellData(direction: .MsgDirectionIncoming)
+            return TUIReferenceMessageCellData(direction: .incoming)
         }
 
-        var replyData: TUIReplyMessageCellData = TUIReferenceMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
+        var replyData: TUIReplyMessageCellData = TUIReferenceMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
         message.doThingsInContainsCloudCustom(of: .messageReference) { isContains, obj in
             if isContains, let reply = obj as? [String: Any] {
                 replyData.reuseId = TUIReferenceMessageCell_ReuseId

@@ -33,7 +33,7 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
         progress.layer.masksToBounds = true
         container.addSubview(progress)
 
-        msgTimeLabel.textColor = TUISwift.rgb(255, green: 255, blue: 255)
+        msgTimeLabel.textColor = TUISwift.rgb(255, g: 255, b: 255)
         makeConstraints()
     }
 
@@ -50,7 +50,7 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
         thumbProgressObservation = nil
     }
 
-    override func fill(with data: TUIMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let imageData = data as? TUIImageMessageCellData else {
             assertionFailure("data must be kind of TUIImageMessageCellData")
@@ -58,6 +58,16 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
         }
         self.imageData = imageData
         thumb.image = nil
+
+        if let hasRiskContent = messageData?.innerMessage?.hasRiskContent, hasRiskContent {
+            thumb.image = TUISwift.timCommonBundleThemeImage("", defaultImage: "icon_security_strike")
+            progress.isHidden = true
+            return
+        }
+
+        if imageData.thumbImage == nil {
+            imageData.downloadImage(type: TUIImageType.thumb)
+        }
 
         thumbImageObservation?.invalidate()
         thumbImageObservation = imageData.observe(\.thumbImage, options: [.new, .initial]) { [weak self] _, change in
@@ -68,7 +78,7 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
             self.layoutIfNeeded()
         }
 
-        if imageData.direction == .MsgDirectionIncoming {
+        if imageData.direction == .incoming {
             thumbProgressObservation?.invalidate()
             thumbProgressObservation = imageData.observe(\.thumbProgress, options: [.new, .initial]) { [weak self] _, change in
                 guard let self = self, let progress = change.newValue else { return }
@@ -101,9 +111,18 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
 
         let height = container.mm_h
 
-        thumb.snp.makeConstraints { make in
-            make.height.equalTo(height)
-            make.width.top.leading.equalTo(container)
+        let hasRiskContent = messageData?.innerMessage?.hasRiskContent ?? false
+        thumb.snp.remakeConstraints { make in
+            if hasRiskContent {
+                make.top.equalTo(self.container).offset(12)
+                make.size.equalTo(CGSize(width: 150, height: 150))
+                make.centerX.equalTo(self.container)
+            } else {
+                make.height.equalTo(height)
+                make.width.equalTo(self.container.snp.width)
+                make.top.equalTo(self.container).offset(0)
+                make.leading.equalTo(self.container)
+            }
         }
 
         progress.snp.remakeConstraints { make in
@@ -112,14 +131,14 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
 
         msgTimeLabel.snp.makeConstraints { make in
             make.width.equalTo(38)
-            make.height.equalTo(messageData.msgStatusSize.height)
+            make.height.equalTo(messageData?.msgStatusSize.height ?? 0)
             make.bottom.equalTo(container).offset(-TUISwift.kScale390(9))
             make.trailing.equalTo(container).offset(-TUISwift.kScale390(8))
         }
 
         msgStatusView.snp.makeConstraints { make in
             make.width.equalTo(16)
-            make.height.equalTo(messageData.msgStatusSize.height)
+            make.height.equalTo(messageData?.msgStatusSize.height ?? 0)
             make.bottom.equalTo(msgTimeLabel)
             make.trailing.equalTo(msgTimeLabel.snp.leading)
         }
@@ -133,7 +152,7 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
         super.layoutSubviews()
     }
 
-    override func highlight(whenMatchKeyword keyword: String?) {
+    override open func highlightWhenMatchKeyword(_ keyword: String?) {
         if let _ = keyword {
             if highlightAnimating {
                 return
@@ -181,12 +200,17 @@ class TUIImageMessageCell_Minimalist: TUIMessageCell_Minimalist {
             assertionFailure("data must be kind of TUIImageMessageCellData")
             return CGSize.zero
         }
-        guard let path = imageCellData.path else { return CGSize.zero }
+
+        if let hasRishContent = imageCellData.innerMessage?.hasRiskContent, hasRishContent {
+            return CGSizeMake(150, 150)
+        }
 
         var size = CGSize.zero
-        var isDir = ObjCBool(false)
-        if !path.isEmpty && FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && !isDir.boolValue {
-            size = UIImage(contentsOfFile: path)?.size ?? CGSize.zero
+        if let path = imageCellData.path {
+            var isDir = ObjCBool(false)
+            if !path.isEmpty && FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && !isDir.boolValue {
+                size = UIImage(contentsOfFile: path)?.size ?? CGSize.zero
+            }
         }
 
         if size == .zero {

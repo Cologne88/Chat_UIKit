@@ -10,7 +10,6 @@ import ImSDK_Plus
  *  The view model is also responsible for loading the pulled information to facilitate data processing in the client.
  */
 class TUIBlackListViewDataProvider_Minimalist: NSObject {
-
     /**
      *  Bocklist data
      *  The blocklist stores the detailed information of the blocked users.
@@ -27,8 +26,7 @@ class TUIBlackListViewDataProvider_Minimalist: NSObject {
         isLoadFinished = false
 
         V2TIMManager.sharedInstance().getBlackList { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+            guard let self = self, let infoList = infoList else { return }
             var list: [TUICommonContactCellData_Minimalist] = []
             for fd in infoList {
                 let data = TUICommonContactCellData_Minimalist(friend: fd)
@@ -37,7 +35,7 @@ class TUIBlackListViewDataProvider_Minimalist: NSObject {
             self.blackListData = list
             self.isLoadFinished = true
             self.isLoading = false
-        } fail: { [weak self] code, msg in
+        } fail: { [weak self] _, _ in
             self?.isLoading = false
         }
     }

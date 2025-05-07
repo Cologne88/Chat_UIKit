@@ -8,8 +8,8 @@ class TUIFoldConversationListDataProvider_Minimalist: TUIFoldConversationListBas
     }
     
     override func getDisplayStringFromService(_ msg: V2TIMMessage) -> String {
-        let param: [String: Any] = [TUICore_TUIChatService_GetDisplayStringMethod_MsgKey: msg]
-        return TUICore.callService(TUICore_TUIChatService_Minimalist, method: TUICore_TUIChatService_GetDisplayStringMethod, param: param) as? String ?? ""
+        let param: [String: Any] = ["msg": msg]
+        return TUICore.callService("TUICore_TUIChatService_Minimalist", method: "TUICore_TUIChatService_GetDisplayStringMethod", param: param) as? String ?? ""
     }
     
     override func getLastDisplayString(_ conversation: V2TIMConversation) -> NSMutableAttributedString {
@@ -25,7 +25,7 @@ class TUIFoldConversationListDataProvider_Minimalist: TUIFoldConversationListBas
          * If there is a draft box, the draft box information will be displayed first
          */
         if let _ = conversation.draftText {
-            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, green: 81, blue: 81)])
+            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, g: 81, b: 81)])
             attributeString.append(draft)
             
             if let draftContentStr = getDraftContent(conversation) {
@@ -41,9 +41,7 @@ class TUIFoldConversationListDataProvider_Minimalist: TUIFoldConversationListBas
             /**
              * Attempt to get externally customized display information
              */
-            if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.getConversationDisplayString(_:))) {
-                lastMsgStr = delegate.getConversationDisplayString!(conversation) ?? ""
-            }
+            lastMsgStr = delegate?.getConversationDisplayString(conversation) ?? ""
             
             /**
              * If there is no external customization, get the lastMsg display information through the message module

@@ -59,13 +59,13 @@ class TUIVoiceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist {
         currentTimeObservation = nil
     }
 
-    override func notifyBottomContainerReady(of cellData: TUIMessageCellData) {
+    override func notifyBottomContainerReady(of cellData: TUIMessageCellData?) {
         guard let voiceData = voiceData else { return }
-        let param = [TUICore_TUIChatExtension_BottomContainer_CellData: voiceData]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID, parentView: bottomContainer, param: param)
+        let param = ["TUICore_TUIChatExtension_BottomContainer_CellData": voiceData]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_BottomContainer_MinimalistExtensionID", parentView: bottomContainer, param: param)
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIVoiceMessageCellData else { return }
         voiceData = data
@@ -78,7 +78,7 @@ class TUIVoiceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist {
 
         bottomContainer.isHidden = CGSizeEqualToSize(data.bottomContainerSize, CGSize.zero)
 
-        if voiceData?.innerMessage.localCustomInt == 0 && voiceData?.direction == .MsgDirectionIncoming {
+        if voiceData?.innerMessage?.localCustomInt == 0 && voiceData?.direction == .incoming {
             voiceReadPoint.isHidden = false
         }
 
@@ -138,7 +138,7 @@ class TUIVoiceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist {
             make.trailing.equalTo(container).offset(-TUISwift.kScale390(14))
         }
 
-        if voiceData?.direction == .MsgDirectionOutgoing {
+        if voiceData?.direction == .outgoing {
             voiceReadPoint.isHidden = true
         } else {
             voiceReadPoint.snp.remakeConstraints { make in
@@ -151,30 +151,31 @@ class TUIVoiceMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist {
     }
 
     private func layoutBottomContainer() {
-        let isBottomContainerSizeZero = CGSizeEqualToSize(voiceData?.bottomContainerSize ?? CGSize.zero, CGSize.zero)
-        if !isBottomContainerSizeZero {
-            if let size = voiceData?.bottomContainerSize {
-                bottomContainer.snp.remakeConstraints { make in
-                    if voiceData?.direction == .MsgDirectionIncoming {
-                        make.leading.equalTo(container)
-                    } else {
-                        make.trailing.equalTo(container)
-                    }
-                    make.top.equalTo(container.snp.bottom).offset((self.messageData?.messageContainerAppendSize.height ?? 0) + 6)
-                    make.size.equalTo(size)
+        if CGSizeEqualToSize(voiceData?.bottomContainerSize ?? CGSize.zero, CGSize.zero) {
+            return
+        }
+
+        if let size = voiceData?.bottomContainerSize {
+            bottomContainer.snp.remakeConstraints { make in
+                if voiceData?.direction == .incoming {
+                    make.leading.equalTo(container)
+                } else {
+                    make.trailing.equalTo(container)
                 }
+                make.top.equalTo(container.snp.bottom).offset((self.messageData?.messageContainerAppendSize.height ?? 0) + 6)
+                make.size.equalTo(size)
             }
         }
-        let topView = !isBottomContainerSizeZero ? bottomContainer! : container!
+
         if !messageModifyRepliesButton.isHidden {
-            if let lastAvatarImageView = replyAvatarImageViews.lastObject as? UIView {
+            if let lastAvatarImageView = replyAvatarImageViews.last {
                 messageModifyRepliesButton.snp.remakeConstraints { make in
-                    if voiceData?.direction == .MsgDirectionIncoming {
+                    if voiceData?.direction == .incoming {
                         make.leading.equalTo(lastAvatarImageView.snp.trailing)
                     } else {
                         make.trailing.equalTo(container)
                     }
-                    make.top.equalTo(topView.snp.bottom).priority(100)
+                    make.top.equalTo(bottomContainer.snp.bottom)
                     make.size.equalTo(CGSize(width: messageModifyRepliesButton.frame.size.width + 10, height: 30))
                 }
             }

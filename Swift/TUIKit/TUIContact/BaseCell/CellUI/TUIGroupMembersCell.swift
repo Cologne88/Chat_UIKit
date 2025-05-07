@@ -6,6 +6,10 @@ protocol TUIGroupMembersCellDelegate: AnyObject {
     func groupMembersCell(_ cell: TUIGroupMembersCell, didSelectItemAtIndex index: Int)
 }
 
+extension TUIGroupMembersCellDelegate {
+    func groupMembersCell(_ cell: TUIGroupMembersCell, didSelectItemAtIndex index: Int) {}
+}
+
 class TUIGroupMembersCell: UITableViewCell, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     var memberCollectionView: UICollectionView!
     var memberFlowLayout: UICollectionViewFlowLayout!
@@ -37,7 +41,7 @@ class TUIGroupMembersCell: UITableViewCell, UICollectionViewDelegate, UICollecti
         memberFlowLayout.sectionInset = UIEdgeInsets(top: CGFloat(TGroupMembersCell_Margin), left: 20, bottom: CGFloat(TGroupMembersCell_Margin), right: 20)
         
         memberCollectionView = UICollectionView(frame: .zero, collectionViewLayout: memberFlowLayout)
-        memberCollectionView.register(TUIGroupMemberCell.self, forCellWithReuseIdentifier: TGroupMemberCell_ReuseId)
+        memberCollectionView.register(TUIGroupMemberCell.self, forCellWithReuseIdentifier: "TGroupMemberCell")
         memberCollectionView.collectionViewLayout = memberFlowLayout
         memberCollectionView.delegate = self
         memberCollectionView.dataSource = self
@@ -56,8 +60,8 @@ class TUIGroupMembersCell: UITableViewCell, UICollectionViewDelegate, UICollecti
     }
     
     static func getHeight(_ data: TUIGroupMembersCellData) -> CGFloat {
-        guard data.members.count > 0 else { return 0 }
-        var row = Int(ceil(Double(data.members.count) / Double(TGroupMembersCell_Column_Count)))
+        guard let members = data.members, members.count > 0 else { return 0 }
+        var row = Int(ceil(Double(members.count) / Double(TGroupMembersCell_Column_Count)))
         if row > TGroupMembersCell_Row_Count {
             row = Int(TGroupMembersCell_Row_Count)
         }
@@ -67,7 +71,7 @@ class TUIGroupMembersCell: UITableViewCell, UICollectionViewDelegate, UICollecti
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return data?.members.count ?? 0
+        return data?.members?.count ?? 0
     }
     
     func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -75,8 +79,8 @@ class TUIGroupMembersCell: UITableViewCell, UICollectionViewDelegate, UICollecti
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TGroupMemberCell_ReuseId, for: indexPath) as! TUIGroupMemberCell
-        if let data = data?.members[indexPath.item] as? TUIGroupMemberCellData {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TGroupMemberCell", for: indexPath) as! TUIGroupMemberCell
+        if let data = data?.members?[indexPath.item] as? TUIGroupMemberCellData {
             cell.data = data
         }
         return cell

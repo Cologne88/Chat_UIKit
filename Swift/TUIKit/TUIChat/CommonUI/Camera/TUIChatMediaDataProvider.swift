@@ -4,6 +4,7 @@ import Foundation
 import MobileCoreServices
 import Photos
 import PhotosUI
+import SDWebImage
 import TIMCommon
 import UIKit
 
@@ -23,13 +24,37 @@ protocol TUIChatMediaDataListener: NSObjectProtocol {
     func onProvideVideo(_ videoUrl: String, snapshot: String, duration: Int, placeHolderCellData: TUIMessageCellData?)
     func onProvidePlaceholderVideoSnapshot(_ snapshotUrl: String, snapImage: UIImage, completion: ((Bool, TUIMessageCellData) -> Void)?)
     func onProvideVideoError(_ errorMessage: String)
+
     func onProvideFile(_ fileUrl: String, filename: String, fileSize: Int)
     func onProvideFileError(_ errorMessage: String)
+
+    func currentConversatinID() -> String
+    func isPageAppears() -> Bool
+    func sendPlaceHolderUIMessage(cellData: TUIMessageCellData)
+    func sendMessage(_ message: V2TIMMessage, placeHolderCellData: TUIMessageCellData)
+}
+
+extension TUIChatMediaDataListener {
+    func onProvideImage(_ imageUrl: String) {}
+    func onProvideImageError(_ errorMessage: String) {}
+
+    func onProvideVideo(_ videoUrl: String, snapshot: String, duration: Int, placeHolderCellData: TUIMessageCellData?) {}
+    func onProvidePlaceholderVideoSnapshot(_ snapshotUrl: String, snapImage: UIImage, completion: ((Bool, TUIMessageCellData) -> Void)?) {}
+    func onProvideVideoError(_ errorMessage: String) {}
+
+    func onProvideFile(_ fileUrl: String, filename: String, fileSize: Int) {}
+    func onProvideFileError(_ errorMessage: String) {}
+
+    func currentConversatinID() -> String { return "" }
+    func isPageAppears() -> Bool { return false }
+    func sendPlaceHolderUIMessage(cellData: TUIMessageCellData) {}
+    func sendMessage(_ message: V2TIMMessage, placeHolderCellData: TUIMessageCellData) {}
 }
 
 class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavigationControllerDelegate, UIImagePickerControllerDelegate, UIDocumentPickerDelegate, TUICameraViewControllerDelegate {
     weak var presentViewController: UIViewController?
     weak var listener: TUIChatMediaDataListener?
+    var conversationID: String?
 
     // MARK: - Public API
 
@@ -74,11 +99,11 @@ class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavi
             }
         } else {
             if !TUIUserAuthorizationCenter.isEnableCameraAuthorization {
-                TUIUserAuthorizationCenter.cameraStateAction {
+                TUIUserAuthorizationCenter.cameraStateActionWithPopCompletion(completion: {
                     DispatchQueue.main.async {
                         actionBlock()
                     }
-                }
+                })
             }
         }
     }
@@ -106,22 +131,22 @@ class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavi
             }
         } else {
             if !TUIUserAuthorizationCenter.isEnableMicroAuthorization {
-                TUIUserAuthorizationCenter.microStateAction {
+                TUIUserAuthorizationCenter.microStateActionWithPopCompletion(completion: {
                     if TUIUserAuthorizationCenter.isEnableCameraAuthorization {
                         DispatchQueue.main.async {
                             actionBlock()
                         }
                     }
-                }
+                })
             }
             if !TUIUserAuthorizationCenter.isEnableCameraAuthorization {
-                TUIUserAuthorizationCenter.cameraStateAction {
+                TUIUserAuthorizationCenter.cameraStateActionWithPopCompletion(completion: {
                     if TUIUserAuthorizationCenter.isEnableMicroAuthorization {
                         DispatchQueue.main.async {
                             actionBlock()
                         }
                     }
-                }
+                })
             }
         }
     }
@@ -143,7 +168,7 @@ class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavi
                 .PNG: "png",
                 .GIF: "gif",
                 .TIFF: "tiff",
-//                .WebP: "webp",
+                .webP: "webp",
                 .HEIC: "heic",
                 .HEIF: "heif",
                 .PDF: "pdf",
@@ -154,48 +179,45 @@ class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavi
         }
 
         DispatchQueue.main.async {
-            if !succ || imageData == nil, let message = message {
-                if self.listener != nil && ((self.listener?.responds(to: Selector(("onProvideImageError")))) != nil) {
-                    self.listener?.onProvideImageError(message)
-                }
+            guard let imageData = imageData, succ else {
+                self.listener?.onProvideImageError(message ?? "")
                 return
             }
 
-            let image = UIImage(data: imageData!)
-            var data = imageData
+            guard let image = UIImage(data: imageData) else { return }
+            var data = image.jpegData(compressionQuality: 1.0)
             var path = TUISwift.tuiKit_Image_Path() + TUITool.genImageName(nil)
-            let extensionName = imageFormatExtensionMap?[image?.sd_imageFormat ?? .undefined] ?? ""
-            if !extensionName.isEmpty {
-                path += ".\(extensionName)"
+
+            if let extensionName = imageFormatExtensionMap?[image.sd_imageFormat], !extensionName.isEmpty {
+                path = (path as NSString).appendingPathExtension(extensionName) ?? path
             }
 
-            if image?.sd_imageFormat != .GIF {
-                var newImage = image
-                let imageOrientation = image?.imageOrientation ?? .up
-                if imageOrientation != .up || imageData!.count > 28 * 1024 * 1024 {
-                    let aspectRatio = min(1920 / (image?.size.width ?? 1), 1920 / (image?.size.height ?? 1))
-                    let aspectWidth = (image?.size.width ?? 1) * aspectRatio
-                    let aspectHeight = (image?.size.height ?? 1) * aspectRatio
+            var imageFormatSizeMax = 28 * 1024 * 1024
 
-                    UIGraphicsBeginImageContext(CGSize(width: aspectWidth, height: aspectHeight))
-                    image?.draw(in: CGRect(x: 0, y: 0, width: aspectWidth, height: aspectHeight))
-                    newImage = UIGraphicsGetImageFromCurrentImageContext()
-                    UIGraphicsEndImageContext()
-                }
-                data = newImage?.jpegData(compressionQuality: 0.75)
-            } else {
-                if imageData!.count > 10 * 1024 * 1024 {
-                    if self.listener != nil && ((self.listener?.responds(to: Selector(("onProvideFileError")))) != nil) {
-                        self.listener?.onProvideFileError(TUISwift.timCommonLocalizableString("TUIKitImageSizeCheckLimited"))
-                    }
-                    return
-                }
+            if image.sd_imageFormat == .GIF {
+                imageFormatSizeMax = 10 * 1024 * 1024
+            }
+
+            if imageData.count > imageFormatSizeMax {
+                self.listener?.onProvideFileError(TUISwift.timCommonLocalizableString("TUIKitImageSizeCheckLimited"))
+                return
+            }
+
+            if image.sd_imageFormat != .GIF {
+                var newImage = image
+                let imageOrientation = image.imageOrientation
+                let aspectRatio = min(1920 / image.size.width, 1920 / image.size.height)
+                let aspectWidth = image.size.width * aspectRatio
+                let aspectHeight = image.size.height * aspectRatio
+                UIGraphicsBeginImageContext(CGSize(width: aspectWidth, height: aspectHeight))
+                image.draw(in: CGRect(x: 0, y: 0, width: aspectWidth, height: aspectHeight))
+                newImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                UIGraphicsEndImageContext()
+                data = newImage.jpegData(compressionQuality: 0.75)
             }
 
             FileManager.default.createFile(atPath: path, contents: data, attributes: nil)
-            if self.listener != nil && ((self.listener?.responds(to: Selector(("onProvideImage")))) != nil) {
-                self.listener?.onProvideImage(path)
-            }
+            self.listener?.onProvideImage(path)
         }
     }
 
@@ -373,7 +395,7 @@ class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavi
         }
 
         let videoData = try? Data(contentsOf: videoUrl!)
-        let videoPath = "\(TUISwift.tuiKit_Video_Path() ?? "")\(TUITool.genVideoName(nil) ?? "")_\(arc4random()).mp4"
+        let videoPath = "\(TUISwift.tuiKit_Video_Path())\(TUITool.genVideoName(nil) ?? "")_\(arc4random()).mp4"
         FileManager.default.createFile(atPath: videoPath, contents: videoData, attributes: nil)
 
         let opts: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: false]
@@ -389,7 +411,7 @@ class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavi
         let image = UIImage(cgImage: imageRef!)
 
         let imageData = image.pngData()
-        let imagePath = "\(TUISwift.tuiKit_Video_Path() ?? "")\(TUITool.genSnapshotName(nil) ?? "")_\(arc4random())"
+        let imagePath = "\(TUISwift.tuiKit_Video_Path())\(TUITool.genSnapshotName(nil) ?? "")_\(arc4random())"
         FileManager.default.createFile(atPath: imagePath, contents: imageData, attributes: nil)
 
         self.listener?.onProvideVideo(videoPath, snapshot: imagePath, duration: duration, placeHolderCellData: placeHolderCellData)

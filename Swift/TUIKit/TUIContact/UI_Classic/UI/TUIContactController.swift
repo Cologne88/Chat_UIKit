@@ -2,10 +2,16 @@ import TIMCommon
 import TUICore
 import UIKit
 
-@objc protocol TUIContactControllerListener: NSObjectProtocol {
-    @objc optional func onSelectFriend(_ cell: TUICommonContactCell)
-    @objc optional func onAddNewFriend(_ cell: TUICommonTableViewCell)
-    @objc optional func onGroupConversation(_ cell: TUICommonTableViewCell)
+protocol TUIContactControllerListener: NSObjectProtocol {
+    func onSelectFriend(_ cell: TUICommonContactCell) -> Bool
+    func onAddNewFriend(_ cell: TUICommonTableViewCell) -> Bool
+    func onGroupConversation(_ cell: TUICommonTableViewCell) -> Bool
+}
+
+extension TUIContactControllerListener {
+    func onSelectFriend(_ cell: TUICommonContactCell) -> Bool { return false }
+    func onAddNewFriend(_ cell: TUICommonTableViewCell) -> Bool { return false }
+    func onGroupConversation(_ cell: TUICommonTableViewCell) -> Bool { return false }
 }
 
 let kContactCellReuseId = "ContactCellReuseId"
@@ -35,21 +41,21 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
         var list: [TUIContactActionCellData] = []
         list.append({
             let data = TUIContactActionCellData()
-            data.icon = TUISwift.tuiContactDynamicImage("contact_new_friend_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("new_friend")))
+            data.icon = TUISwift.tuiContactDynamicImage("contact_new_friend_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("new_friend")))
             data.title = TUISwift.timCommonLocalizableString("TUIKitContactsNewFriends")
             data.cselector = #selector(onAddNewFriend(_:))
             return data
         }())
         list.append({
             let data = TUIContactActionCellData()
-            data.icon = TUISwift.tuiContactDynamicImage("contact_public_group_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("public_group")))
+            data.icon = TUISwift.tuiContactDynamicImage("contact_public_group_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("public_group")))
             data.title = TUISwift.timCommonLocalizableString("TUIKitContactsGroupChats")
             data.cselector = #selector(onGroupConversation(_:))
             return data
         }())
         list.append({
             let data = TUIContactActionCellData()
-            data.icon = TUISwift.tuiContactDynamicImage("contact_blacklist_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("blacklist")))
+            data.icon = TUISwift.tuiContactDynamicImage("contact_blacklist_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("blacklist")))
             data.title = TUISwift.timCommonLocalizableString("TUIKitContactsBlackList")
             data.cselector = #selector(onBlackList(_:))
             return data
@@ -61,13 +67,13 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
         setupNavigator()
         setupViews()
 
-        NotificationCenter.default.addObserver(self, selector: #selector(onLoginSucceeded), name: NSNotification.Name(NSNotification.Name.TUILoginSuccess.rawValue), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onLoginSucceeded), name: NSNotification.Name("TUILoginSuccessNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onFriendInfoChanged), name: NSNotification.Name("FriendInfoChangedNotification"), object: nil)
     }
 
     private func addExtensionsToList(list: inout [TUIContactActionCellData]) {
-        let param: [String: Any] = [TUICore_TUIContactExtension_ContactMenu_Nav: navigationController as Any]
-        let extensionList = TUICore.getExtensionList(TUICore_TUIContactExtension_ContactMenu_ClassicExtensionID, param: param)
+        let param: [String: Any] = ["TUICore_TUIContactExtension_ContactMenu_Nav": navigationController as Any]
+        let extensionList = TUICore.getExtensionList("TUICore_TUIContactExtension_ContactMenu_ClassicExtensionID", param: param)
         let sortedExtensionList = extensionList.sorted { $0.weight > $1.weight }
         for info in sortedExtensionList {
             list.append({
@@ -93,7 +99,7 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
 
     private func setupNavigator() {
         let moreButton = UIButton(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
-        moreButton.setImage(TUISwift.timCommonDynamicImage("nav_more_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("more"))), for: .normal)
+        moreButton.setImage(TUISwift.timCommonDynamicImage("nav_more_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("more"))), for: .normal)
         moreButton.addTarget(self, action: #selector(onRightItem(_:)), for: .touchUpInside)
         moreButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
         moreButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
@@ -141,12 +147,12 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
     @objc private func onRightItem(_ rightBarButton: UIButton) {
         var menus: [TUIPopCellData] = []
         let friend = TUIPopCellData()
-        friend.image = TUISwift.tuiDemoDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("add_friend")))
+        friend.image = TUISwift.tuiDemoDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("add_friend")))
         friend.title = TUISwift.timCommonLocalizableString("ContactsAddFriends")
         menus.append(friend)
 
         let group = TUIPopCellData()
-        group.image = TUISwift.tuiDemoDynamicImage("pop_icon_add_group_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("add_group")))
+        group.image = TUISwift.tuiDemoDynamicImage("pop_icon_add_group_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("add_group")))
         group.title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
         menus.append(group)
 
@@ -160,8 +166,8 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
         let frameInNaviView = navigationController?.view.convert(rightBarButton.frame, from: rightBarButton.superview)
         popView.arrowPoint = CGPoint(x: frameInNaviView?.origin.x ?? 0 + (frameInNaviView?.size.width ?? 0) * 0.5, y: orginY)
         popView.delegate = self
-        popView.setData(menus as! NSMutableArray)
-        popView.show(in: view.window!)
+        popView.setData(menus)
+        popView.showInWindow(view.window!)
     }
 
     public func popView(_ popView: TUIPopView, didSelectRowAt index: Int) {
@@ -174,13 +180,23 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
         add.onSelect = { [weak self] cellModel in
             guard let self = self else { return }
             if cellModel.type == .c2c {
-                let frc = TUIFriendRequestViewController()
-                frc.profile = cellModel.userInfo
-                self.navigationController?.popViewController(animated: false)
-                self.navigationController?.pushViewController(frc, animated: true)
+                var userID = ""
+                if let cellUserID = cellModel.userInfo?.userID, !cellUserID.isEmpty {
+                    userID = cellUserID
+                }
+                if let friendContactData = viewModel.contactMap[userID] {
+                    let vc = TUIFriendProfileController()
+                    vc.friendProfile = friendContactData.friendProfile
+                    navigationController?.pushViewController(vc, animated: true)
+                } else {
+                    let frc = TUIFriendRequestViewController()
+                    frc.profile = cellModel.userInfo
+                    navigationController?.popViewController(animated: false)
+                    navigationController?.pushViewController(frc, animated: true)
+                }
             } else {
-                let param: [String: Any] = [TUICore_TUIContactObjectFactory_GetGroupRequestViewControllerMethod_GroupInfoKey: cellModel.groupInfo as Any]
-                if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetGroupRequestViewControllerMethod, param: param) as? UIViewController {
+                let param: [String: Any] = ["TUICore_TUIContactObjectFactory_GetGroupRequestViewControllerMethod_GroupInfoKey": cellModel.groupInfo as Any]
+                if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetGroupRequestViewControllerMethod", param: param) as? UIViewController {
                     self.navigationController?.pushViewController(vc, animated: true)
                 }
             }
@@ -214,7 +230,7 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
             let textLabel = UILabel(frame: .zero)
             textLabel.tag = 1
             textLabel.font = UIFont.systemFont(ofSize: 16)
-            textLabel.textColor = TUISwift.rgb(0x80, green: 0x80, blue: 0x80)
+            textLabel.textColor = TUISwift.rgb(0x80, g: 0x80, b: 0x80)
             textLabel.rtlAlignment = .leading
             headerView?.addSubview(textLabel)
             textLabel.snp.remakeConstraints { make in
@@ -265,9 +281,8 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
     }
 
     @objc private func onSelectFriend(_ cell: TUICommonContactCell) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIContactControllerListener.onSelectFriend(_:))) {
-            delegate.onSelectFriend?(cell)
-            return
+        if let delegate = delegate {
+            if delegate.onSelectFriend(cell) { return }
         }
         let data = cell.contactData
         let vc = TUIFriendProfileController(style: .grouped)
@@ -276,9 +291,8 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
     }
 
     @objc private func onAddNewFriend(_ cell: TUICommonTableViewCell) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIContactControllerListener.onAddNewFriend(_:))) {
-            delegate.onAddNewFriend?(cell)
-            return
+        if let delegate = delegate {
+            if delegate.onAddNewFriend(cell) { return }
         }
         let vc = TUINewFriendViewController()
         vc.cellClickBlock = { [weak self] cell in
@@ -286,8 +300,7 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
             let controller = TUIUserProfileController(style: .grouped)
             if let pendencyData = cell.pendencyData {
                 V2TIMManager.sharedInstance().getUsersInfo([pendencyData.identifier]) { [weak self] profiles in
-                    guard let self = self else { return }
-                    guard let profiles = profiles else { return }
+                    guard let self = self, let profiles = profiles else { return }
                     controller.userFullInfo = profiles.first
                     controller.pendency = cell.pendencyData
                     controller.actionType = .PCA_PENDENDY_CONFIRM
@@ -300,15 +313,14 @@ public class TUIContactController: UIViewController, UITableViewDelegate, UITabl
     }
 
     @objc private func onGroupConversation(_ cell: TUICommonTableViewCell) {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIContactControllerListener.onGroupConversation(_:))) {
-            delegate.onGroupConversation?(cell)
-            return
+        if let delegate = delegate {
+            if delegate.onGroupConversation(cell) { return }
         }
         let vc = TUIGroupConversationListController()
         vc.onSelect = { [weak self] cellData in
             guard let self = self else { return }
-            let param: [String: Any] = [TUICore_TUIChatObjectFactory_ChatViewController_GroupID: cellData.identifier ?? ""]
-            self.navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Classic, param: param, forResult: nil)
+            let param: [String: Any] = ["TUICore_TUIChatObjectFactory_ChatViewController_GroupID": cellData.identifier ?? ""]
+            self.navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Classic", param: param, forResult: nil)
         }
         navigationController?.pushViewController(vc, animated: true)
     }

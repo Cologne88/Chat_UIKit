@@ -32,7 +32,7 @@ class TUIChatSmallTongueView_Minimalist: UIView {
 
     private func setupView() {
         // shadow
-        layer.shadowColor = TUISwift.rgb(0, green: 0, blue: 0, alpha: 0.15).cgColor
+        layer.shadowColor = TUISwift.rgba(0, g: 0, b: 0, a: 0.15).cgColor
         layer.shadowOpacity = 1
         layer.shadowOffset = .zero
         layer.shadowRadius = 2
@@ -41,13 +41,14 @@ class TUIChatSmallTongueView_Minimalist: UIView {
         // backgroundView
         let backgroudView = UIImageView(frame: bounds)
         addSubview(backgroudView)
-        backgroudView.mm_fill()
+        backgroudView.mm__fill()
         backgroudView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        var bkImage = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath_Minimalist("small_tongue_bk"))
-        bkImage = bkImage.rtl_imageFlippedForRightToLeftLayoutDirection()
-        var ei = NSCoder.uiEdgeInsets(for: "{5,12,5,5}")
-        ei = rtlEdgeInsetsWithInsets(ei)
-        backgroudView.image = bkImage.resizableImage(withCapInsets: ei, resizingMode: .stretch)
+        if var bkImage = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath_Minimalist("small_tongue_bk")) {
+            bkImage = bkImage.rtlImageFlippedForRightToLeftLayoutDirection()
+            var ei = NSCoder.uiEdgeInsets(for: "{5,12,5,5}")
+            ei = rtlEdgeInsetsWithInsets(ei)
+            backgroudView.image = bkImage.resizableImage(withCapInsets: ei, resizingMode: .stretch)
+        }
 
         // tap gesture
         let tap = UITapGestureRecognizer(target: self, action: #selector(onTap))
@@ -67,7 +68,7 @@ class TUIChatSmallTongueView_Minimalist: UIView {
         }
 
         imageView!.image = TUIChatSmallTongueView_Minimalist.getTongueImage(tongue)
-        imageView!.mm_width()(TUISwift.kScale390(18))?.mm_height()(TUISwift.kScale390(18))?.mm_left()(TUISwift.kScale390(18))?.mm_top()(TUISwift.kScale390(5))
+        imageView!.mm_width(TUISwift.kScale390(18)).mm_height(TUISwift.kScale390(18)).mm_left(TUISwift.kScale390(18)).mm_top(TUISwift.kScale390(5))
 
         if label == nil {
             label = UILabel()
@@ -80,7 +81,7 @@ class TUIChatSmallTongueView_Minimalist: UIView {
             label.text = text
             label.textAlignment = .center
             label.textColor = TUISwift.tuiChatDynamicColor("chat_drop_down_color", defaultColor: "#147AFF")
-            label.mm_width()(TUISwift.kScale390(16))?.mm_height()(TUISwift.kScale390(20))?.mm_top()(imageView!.mm_b + TUISwift.kScale390(2))?.mm__centerX()(imageView!.mm_centerX)
+            label.mm_width(TUISwift.kScale390(16)).mm_height(TUISwift.kScale390(20)).mm_top(imageView!.mm_b + TUISwift.kScale390(2)).mm__centerX(imageView!.mm_centerX)
         } else {
             label?.isHidden = true
         }
@@ -158,13 +159,13 @@ class TUIChatSmallTongueManager_Minimalist {
 
         if TUISwift.isRTL() {
             let frame = CGRect(x: TUISwift.kScale390(16),
-                               y: tongue.parentView!.mm_h - TUISwift.bottom_SafeHeight() - TUISwift.tTextView_Height() - 20 - tongueHeight,
+                               y: tongue.parentView!.mm_h - TUISwift.bottom_SafeHeight() - CGFloat(TTextView_Height) - 20 - tongueHeight,
                                width: tongueWidth,
                                height: tongueHeight)
             gTongueView!.frame = frame
         } else {
             let frame = CGRect(x: tongue.parentView!.mm_w - TUISwift.kScale390(54),
-                               y: tongue.parentView!.mm_h - TUISwift.bottom_SafeHeight() - TUISwift.tTextView_Height() - 20 - tongueHeight,
+                               y: tongue.parentView!.mm_h - TUISwift.bottom_SafeHeight() - CGFloat(TTextView_Height) - 20 - tongueHeight,
                                width: tongueWidth,
                                height: tongueHeight)
             gTongueView!.frame = frame

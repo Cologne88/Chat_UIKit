@@ -1,4 +1,3 @@
-import ReactiveObjC
 import TIMCommon
 import TUICore
 import UIKit
@@ -30,9 +29,9 @@ class TUIFileViewController_Minimalist: UIViewController, UIDocumentInteractionC
         navigationItem.titleView = titleLabel
 
         // left
-        let defaultImage = UIImage(named: TUISwift.tuiChatImagePath("back"))
+        let defaultImage = UIImage.safeImage(TUISwift.tuiChatImagePath("back"))
         let leftButton = UIButton(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
-        let formatImage = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: defaultImage).rtl_imageFlippedForRightToLeftLayoutDirection()
+        let formatImage = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: defaultImage).rtlImageFlippedForRightToLeftLayoutDirection()
         leftButton.addTarget(self, action: #selector(onBack(_:)), for: .touchUpInside)
         leftButton.setImage(formatImage, for: .normal)
         let leftItem = UIBarButtonItem(customView: leftButton)
@@ -43,7 +42,7 @@ class TUIFileViewController_Minimalist: UIViewController, UIDocumentInteractionC
                            width: 80, height: 80)
         image = UIImageView(frame: frame)
         image!.contentMode = .scaleAspectFit
-        image!.image = UIImage(named: TUISwift.tuiChatImagePath("msg_file"))
+        image!.image = UIImage.safeImage(TUISwift.tuiChatImagePath("msg_file"))
         view.addSubview(image!)
 
         name = UILabel(frame: CGRect(x: 0, y: image!.frame.origin.y + image!.frame.size.height + 20, width: view.frame.size.width, height: 40))

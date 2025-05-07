@@ -21,7 +21,7 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
     var responseKeyboard: Bool = false
     var conversationData: TUIChatConversationModel?
     var originCellLayout: TUIMessageCellLayout?
-    var direction: TMsgDirection = .MsgDirectionIncoming
+    var direction: TMsgDirection = .incoming
     var showAvatar: Bool = false
     var sameToNextMsgSender: Bool = false
     var isMsgNeedReadReceipt: Bool = false
@@ -92,7 +92,7 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
         
         updateSubContainerView()
         V2TIMManager.sharedInstance().addAdvancedMsgListener(listener: self)
-        TUICore.registerEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_DidChangePluginViewSubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_DidChangePluginViewSubKey", object: self)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -225,7 +225,7 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
         addChild(inputController!)
         containerView.addSubview(inputController!.view)
         
-        if let group = TIMConfig.default().faceGroups.first {
+        if let group = TIMConfig.shared.faceGroups?.first {
             inputController!.faceSegementScrollView?.setItems([group], delegate: inputController!)
             
             let data = TUIMenuCellData()
@@ -249,22 +249,22 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
         originCellLayout = cellData.cellLayout
         direction = cellData.direction
         
-        var layout = TUIMessageCellLayout.incommingMessage()
+        var layout = TUIMessageCellLayout.incomingMessageLayout
         if cellData is TUITextMessageCellData {
-            layout = TUIMessageCellLayout.incommingTextMessage()
+            layout = TUIMessageCellLayout.incomingTextMessageLayout
         } else if cellData is TUIReferenceMessageCellData {
-            layout = TUIMessageCellLayout.incommingTextMessage()
+            layout = TUIMessageCellLayout.incomingTextMessageLayout
         } else if cellData is TUIVoiceMessageCellData {
-            layout = TUIMessageCellLayout.incommingVoiceMessage()
+            layout = TUIMessageCellLayout.incomingVoiceMessageLayout
         }
         
         cellData.cellLayout = layout
-        cellData.direction = .MsgDirectionIncoming
+        cellData.direction = .incoming
         cellData.showMessageModifyReplies = false
     }
     
     func revertRootMsg() {
-        cellData?.cellLayout = originCellLayout ?? TUIMessageCellLayout()
+        cellData?.cellLayout = originCellLayout ?? TUIMessageCellLayout(isIncoming: false)
         cellData?.direction = direction
         cellData?.showMessageModifyReplies = true
     }
@@ -273,22 +273,26 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
         var uiMsgs = [TUIMessageCellData]()
         
         for msg in msgs {
-            let data = TUITextMessageCellData.getCellData(msg)
-            var layout = TUIMessageCellLayout.incommingMessage()
+            let data = TUITextMessageCellData.getCellData(message: msg)
+            var layout = TUIMessageCellLayout.incomingMessageLayout
             if data is TUITextMessageCellData {
-                layout = TUIMessageCellLayout.incommingTextMessage()
+                layout = TUIMessageCellLayout.incomingTextMessageLayout
             }
-            data.direction = .MsgDirectionIncoming
+            data.direction = .incoming
             data.cellLayout = layout
             data.innerMessage = msg
             uiMsgs.append(data)
         }
         
         let sortedArray = uiMsgs.sorted { obj1, obj2 -> Bool in
-            if obj1.innerMessage.timestamp.timeIntervalSince1970 == obj2.innerMessage.timestamp.timeIntervalSince1970 {
-                return obj1.innerMessage.seq > obj2.innerMessage.seq
+            if let t1 = obj1.innerMessage?.timestamp, let t2 = obj2.innerMessage?.timestamp {
+                if t1.timeIntervalSince1970 == t2.timeIntervalSince1970 {
+                    return (obj1.innerMessage?.seq ?? 0) > (obj2.innerMessage?.seq ?? 0)
+                } else {
+                    return t1 < t2
+                }
             } else {
-                return obj1.innerMessage.timestamp < obj2.innerMessage.timestamp
+                return true
             }
         }
         
@@ -405,7 +409,7 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
     
     func sendMessage(_ message: V2TIMMessage) {
         guard let cellData = TUIMessageDataProvider.convertToCellData(from: message) else { return }
-        cellData.innerMessage.needReadReceipt = isMsgNeedReadReceipt
+        cellData.innerMessage?.needReadReceipt = isMsgNeedReadReceipt
         sendUIMessage(cellData)
     }
     
@@ -415,18 +419,18 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
             guard let self = self else { return }
             let delay = cellData is TUIImageMessageCellData ? 0 : 1
             DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delay * 1000)) {
-                if cellData.status == .Msg_Status_Sending {
-                    self.changeMsg(cellData, status: .Msg_Status_Sending_2)
+                if cellData.status == .sending {
+                    self.changeMsg(cellData, status: .sending2)
                 }
             }
         }, SuccBlock: { [weak self] in
             guard let self = self else { return }
-            self.changeMsg(cellData, status: .Msg_Status_Succ)
+            self.changeMsg(cellData, status: .success)
             self.scrollToBottom(true)
         }, FailBlock: { [weak self] code, desc in
             guard let self = self else { return }
             TUITool.makeToastError(Int(code), msg: desc)
-            self.changeMsg(cellData, status: .Msg_Status_Fail)
+            self.changeMsg(cellData, status: .fail)
         })
     }
     
@@ -466,7 +470,7 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
         replyData.msgID = data.msgID
         replyData.msgAbstract = desc
         replyData.sender = data.senderName
-        replyData.type = data.innerMessage.elemType
+        replyData.type = data.innerMessage?.elemType ?? .ELEM_TYPE_NONE
         replyData.originMessage = data.innerMessage
         inputController?.replyData = replyData
     }
@@ -477,26 +481,27 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
         switch message.elemType {
         case .ELEM_TYPE_FILE:
             if let fileElem = message.fileElem {
-                str = fileElem.filename.safeValue
+                str = fileElem.filename
             }
         case .ELEM_TYPE_MERGER:
             if let mergerElem = message.mergerElem {
-                str = mergerElem.title.safeValue
+                str = mergerElem.title
             }
         case .ELEM_TYPE_CUSTOM:
-            str = TUIMessageDataProvider.getDisplayString(message) ?? ""
+            str = TUIMessageDataProvider.getDisplayString(message: message) ?? ""
         case .ELEM_TYPE_TEXT:
             if let textElem = message.textElem {
-                str = textElem.text.safeValue
+                str = textElem.text
             }
         default: break
         }
         return str ?? ""
     }
     
-    func onSelectMessage(_ cell: TUIMessageCell?) {
-        guard let cell = cell else { return }
-        if let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageClicked?(cell, messageCellData: cell.messageData), result == true {
+    // MARK: - TUIMessageCellDelegate
+    
+    func onSelectMessage(_ cell: TUIMessageCell) {
+        if let messageData = cell.messageData, let result = TUIChatConfig.shared.eventConfig.chatEventListener?.onMessageClicked(cell, messageCellData: messageData), result == true {
             return
         }
         
@@ -513,6 +518,7 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
             let mergeVc = TUIMergeMessageListController_Minimalist()
             mergeVc.mergerElem = mergeCell.mergeData?.mergerElem
             mergeVc.delegate = delegate
+            mergeVc.conversationData = conversationData
             let nav = UINavigationController(rootViewController: mergeVc)
             nav.modalPresentationStyle = .fullScreen
             present(nav, animated: false, completion: nil)
@@ -527,39 +533,23 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
             break
         }
         
-        delegate?.onSelectMessageContent?(nil, cell: cell)
+        delegate?.onSelectMessageContent(nil, cell: cell)
     }
-
-    func onLongPressMessage(_ cell: TUIMessageCell!) {}
-
-    func onRetryMessage(_ cell: TUIMessageCell!) {}
-
-    func onSelectMessageAvatar(_ cell: TUIMessageCell!) {}
-
-    func onLongSelectMessageAvatar(_ cell: TUIMessageCell!) {}
-
-    func onSelectReadReceipt(_ cell: TUIMessageCellData!) {}
-
-    func onJump(toRepliesDetailPage data: TUIMessageCellData!) {}
-
-    func onJump(toMessageInfoPage data: TUIMessageCellData!, select cell: TUIMessageCell!) {}
     
     // MARK: - V2TIMAdvancedMsgListener
 
-    func onRecvNewMessage(_ msg: V2TIMMessage?) {
-        guard let imMsg = msg else { return }
-        if imMsg.msgID == cellData?.msgID {
-            if let cellData = TUIMessageDataProvider.convertToCellData(from: imMsg) {
+    func onRecvNewMessage(msg: V2TIMMessage) {
+        if msg.msgID == cellData?.msgID {
+            if let cellData = TUIMessageDataProvider.convertToCellData(from: msg) {
                 self.cellData?.messageModifyReplies = cellData.messageModifyReplies
                 applyData()
             }
         }
     }
     
-    func onRecvMessageModified(_ msg: V2TIMMessage?) {
-        guard let imMsg = msg else { return }
-        if imMsg.msgID == cellData?.msgID {
-            if let cellData = TUIMessageDataProvider.convertToCellData(from: imMsg) {
+    func onRecvMessageModified(msg: V2TIMMessage) {
+        if msg.msgID == cellData?.msgID {
+            if let cellData = TUIMessageDataProvider.convertToCellData(from: msg) {
                 self.cellData?.messageModifyReplies = cellData.messageModifyReplies
                 applyData()
             }
@@ -582,10 +572,13 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
 
     func showImageMessage(_ cell: TUIImageMessageCell_Minimalist) {
         guard let cellData = cellData else { return }
+        guard let msg = cell.messageData?.innerMessage else { return }
+        guard let allMsg = cellData.innerMessage else { return }
+        
         let frame = cell.thumb.convert(cell.thumb.bounds, to: UIApplication.shared.delegate?.window ?? UIWindow())
         let mediaView = TUIMediaView_Minimalist(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: TUISwift.screen_Height()))
         mediaView.setThumb(cell.thumb, frame: frame)
-        mediaView.setCurMessage(cell.messageData.innerMessage, allMessages: [cellData.innerMessage])
+        mediaView.setCurMessage(msg, allMessages: [allMsg])
         TUITool.applicationKeywindow()?.addSubview(mediaView)
     }
     
@@ -603,10 +596,13 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
     
     func showVideoMessage(_ cell: TUIVideoMessageCell_Minimalist) {
         guard let cellData = cellData else { return }
+        guard let msg = cell.messageData?.innerMessage else { return }
+        guard let allMsg = cellData.innerMessage else { return }
+        
         let frame = cell.thumb.convert(cell.thumb.bounds, to: UIApplication.shared.delegate?.window ?? UIWindow())
         let mediaView = TUIMediaView_Minimalist(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: TUISwift.screen_Height()))
         mediaView.setThumb(cell.thumb, frame: frame)
-        mediaView.setCurMessage(cell.messageData.innerMessage, allMessages: [cellData.innerMessage])
+        mediaView.setCurMessage(msg, allMessages: [allMsg])
         mediaView.onClose = {
             self.tableView?.reloadData()
         }
@@ -657,11 +653,11 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
     // MARK: - TUINotificationProtocol
 
     func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
-        if key == TUICore_TUIPluginNotify && subKey == TUICore_TUIPluginNotify_DidChangePluginViewSubKey {
-            if let data = param?[TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data] as? TUIMessageCellData {
+        if key == "TUICore_TUIPluginNotify" && subKey == "TUICore_TUIPluginNotify_DidChangePluginViewSubKey" {
+            if let data = param?["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data"] as? TUIMessageCellData {
                 let section = data.msgID == cellData?.msgID ? 0 : 1
                 messageCellConfig.removeHeightCacheOfMessageCellData(data)
-                if let msgID = data.innerMessage.msgID {
+                if let msgID = data.innerMessage?.msgID {
                     reloadAndScrollToBottomOfMessage(msgID, section: section)
                 }
             }
@@ -703,7 +699,7 @@ class TUIRepliesDetailViewController_Minimalist: TUIChatFlexViewController,
         if section == 0 {
             return NSIndexPath(row: 0, section: section)
         } else {
-            return uiMsgs.firstIndex(where: { $0.innerMessage.msgID == messageID }).map { NSIndexPath(row: $0, section: section) }
+            return uiMsgs.firstIndex(where: { $0.innerMessage?.msgID == messageID }).map { NSIndexPath(row: $0, section: section) }
         }
     }
 }

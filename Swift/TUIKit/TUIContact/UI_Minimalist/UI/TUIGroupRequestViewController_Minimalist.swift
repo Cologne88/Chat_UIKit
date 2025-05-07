@@ -1,14 +1,16 @@
 // TUIGroupRequestViewController_Minimalist.swift
 // TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDataSource, UITableViewDelegate, TUIProfileCardDelegate, TUIFloatSubViewControllerProtocol {
+    var floatDataSourceChanged: (([Any]) -> Void)?
+    
     func didTap(onAvatar cell: TUIProfileCardCell) {
         // to do
     }
-    
+
     var groupInfo: V2TIMGroupInfo!
     private var tableView: UITableView!
     private var addMsgTextView: UITextView!
@@ -28,7 +30,7 @@ class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDat
         addMsgTextView.font = UIFont.systemFont(ofSize: 14)
         addMsgTextView.textAlignment = TUISwift.isRTL() ? .right : .left
         addMsgTextView.backgroundColor = UIColor.tui_color(withHex: "#F9F9F9")
-        
+
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 5
         paragraphStyle.firstLineHeadIndent = TUISwift.kScale390(12.5)
@@ -37,15 +39,15 @@ class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDat
             .font: UIFont.systemFont(ofSize: TUISwift.kScale390(16)),
             .paragraphStyle: paragraphStyle
         ]
-        
+
         if let loginUser = V2TIMManager.sharedInstance().getLoginUser() {
-            V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { infoList in
-                guard let infoList = infoList else { return }
+            V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { [weak self] infoList in
+                guard let self = self, let infoList = infoList else { return }
                 if let showName = infoList.first?.showName() {
                     let text = String(format: TUISwift.timCommonLocalizableString("GroupRequestJoinGroupFormat"), showName)
                     self.addMsgTextView.attributedText = NSAttributedString(string: text, attributes: attributes)
                 }
-            }, fail: { code, msg in
+            }, fail: { _, _ in
                 // Handle failure
             })
         }
@@ -53,9 +55,9 @@ class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDat
         let data = TUIProfileCardCellData_Minimalist()
         data.name = groupInfo.groupName ?? ""
         data.identifier = groupInfo.groupID ?? ""
-        data.signature = String(format: "%@: %@", TUISwift.timCommonLocalizableString("TUIKitCreatGroupType"), groupInfo.groupType ?? GroupType_Public)
+        data.signature = String(format: "%@: %@", TUISwift.timCommonLocalizableString("TUIKitCreatGroupType"), groupInfo.groupType ?? "Public")
         data.showSignature = true
-        data.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType ?? GroupType_Public)
+        data.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType ?? "Public")
         if let faceURL = groupInfo.faceURL {
             data.avatarUrl = URL(string: faceURL)!
         }
@@ -140,13 +142,13 @@ class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDat
         case 1:
             let cell = UITableViewCell(style: .default, reuseIdentifier: "AddWord")
             cell.contentView.addSubview(addMsgTextView)
-            addMsgTextView.mm_width()(TUISwift.screen_Width())!.mm_height()(TUISwift.kScale390(123))
+            addMsgTextView.mm_width(TUISwift.screen_Width()).mm_height(TUISwift.kScale390(123))
             return cell
         case 2:
             let cell = TUIGroupButtonCell_Minimalist(style: .default, reuseIdentifier: "send")
             let cellData = TUIGroupButtonCellData_Minimalist()
             cellData.title = TUISwift.timCommonLocalizableString("Send")
-            cellData.style = .ButtonBule
+            cellData.style = .blue
             cellData.cselector = #selector(onSend)
             cellData.textColor = UIColor.tui_color(withHex: "#147AFF")
             cell.fill(with: cellData)
@@ -166,17 +168,19 @@ class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDat
 
     @objc func onSend() {
         TUITool.makeToastActivity()
-        V2TIMManager.sharedInstance().joinGroup(groupInfo?.groupID ?? "", msg: addMsgTextView.text, succ: {
-            TUITool.hideToastActivity()
-            self.showHud(isSuccess: true, msgText: TUISwift.timCommonLocalizableString("send_success"))
-        }, fail: { code, desc in
-            TUITool.hideToastActivity()
-            let msg = TUITool.convertIMError(Int(code), msg: desc)
-            self.showHud(isSuccess: false, msgText: msg ?? "")
-            if code == ERR_SDK_INTERFACE_NOT_SUPPORT.rawValue {
-                TUITool.postUnsupportNotification(ofService: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunity"), serviceDesc: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunityDesc"), debugOnly: true)
-            }
-        })
+        if let groupInfo = groupInfo, let groupID = groupInfo.groupID {
+            V2TIMManager.sharedInstance().joinGroup(groupID: groupID, msg: addMsgTextView.text, succ: {
+                TUITool.hideToastActivity()
+                self.showHud(isSuccess: true, msgText: TUISwift.timCommonLocalizableString("send_success"))
+            }, fail: { code, desc in
+                TUITool.hideToastActivity()
+                let msg = TUITool.convertIMError(Int(code), msg: desc) ?? ""
+                self.showHud(isSuccess: false, msgText: msg)
+                if code == ERR_SDK_INTERFACE_NOT_SUPPORT.rawValue {
+                    TUITool.postUnsupportNotification(ofService: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunity"), serviceDesc: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunityDesc"), debugOnly: true)
+                }
+            })
+        }
     }
 
     func didTapOnAvatar(_ cell: TUIProfileCardCell_Minimalist) {
@@ -198,7 +202,7 @@ class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDat
 
         let icon = UIImageView()
         msgView.addSubview(icon)
-        icon.image = isSuccess ? UIImage(named: TUISwift.tuiContactImagePath_Minimalist("contact_add_success")) : UIImage(named: TUISwift.tuiContactImagePath_Minimalist("contact_add_failed"))
+        icon.image = isSuccess ? UIImage.safeImage(TUISwift.tuiContactImagePath_Minimalist("contact_add_success")) : UIImage.safeImage(TUISwift.tuiContactImagePath_Minimalist("contact_add_failed"))
 
         let descLabel = UILabel()
         msgView.addSubview(descLabel)
@@ -211,7 +215,7 @@ class TUIGroupRequestViewController_Minimalist: UIViewController, UITableViewDat
         msgView.frame = CGRect(x: 0, y: 0, width: descLabel.frame.origin.x + descLabel.frame.size.width + TUISwift.kScale390(12), height: TUISwift.kScale390(36))
         msgView.center = hudView.center
 
-        TUITool.applicationKeywindow()?.showToast(hudView, duration: 3.0, position: TUICSToastPositionCenter, completion: { didTap in
+        TUITool.applicationKeywindow()?.showToast(hudView, duration: 3.0, position: TUICSToastPositionCenter, completion: { _ in
             // Completion handler
         })
     }

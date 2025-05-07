@@ -8,24 +8,21 @@ target 'TUIKitDemo' do
   use_modular_headers!
   # Pods for Example
   pod 'TUICore', :path => "../TUIKit/TUICore"
-  pod 'TIMCommon', :path => "../TUIKit/TIMCommon"
-  pod 'TUIChat', :path => "../TUIKit/TUIChat"
-  pod 'TUIConversation', :path => "../TUIKit/TUIConversation"
-  pod 'TUIContact', :path => "../TUIKit/TUIContact"
-  pod 'TIMAppKit', :path => "../TUIKit/TIMAppKit"
-  pod 'TUITranslationPlugin', :path => "../TUIKit/TUITranslationPlugin"
-  pod 'TUIVoiceToTextPlugin', :path => "../TUIKit/TUIVoiceToTextPlugin"
-  pod 'TXIMSDK_Plus_iOS_XCFramework', '8.4.6667'
-  pod 'TUISearch', '8.4.6667'
+  pod 'TIMCommon_Swift', :path => "../TUIKit/TIMCommon"
+  pod 'TUIChat_Swift', :path => "../TUIKit/TUIChat"
+  pod 'TUIConversation_Swift', :path => "../TUIKit/TUIConversation"
+  pod 'TUIContact_Swift', :path => "../TUIKit/TUIContact"
+  pod 'TIMAppKit_Swift', :path => "../TUIKit/TIMAppKit"
+  pod 'TUITranslationPlugin_Swift', :path => "../TUIKit/TUITranslationPlugin"
+  pod 'TUIVoiceToTextPlugin_Swift', :path => "../TUIKit/TUIVoiceToTextPlugin"
+  pod 'TUISearch_Swift', :path => "../TUIKit/TUISearch"
+  pod 'TXIMSDK_Plus_iOS_XCFramework', '8.5.6870'
   pod 'TUICallKit_Swift/Professional'
-  pod 'TUIRoomKit/Professional'
   pod 'TXLiteAVSDK_Professional', '~> 12.2.16945'
-  pod 'Masonry', '1.1.0'
   pod 'MJExtension', '3.4.1'
   pod 'MJRefresh', '3.7.5'
   pod 'SnapKit', '5.7.1'
   pod 'SSZipArchive', '2.4.3'
-  pod 'ReactiveObjC', '3.1.1'
   pod 'SDWebImage', '5.18.11'
   
 end

@@ -49,7 +49,7 @@ class TUIFaceSegementScrollView: UIView, UIScrollViewDelegate {
 
         for (i, indexGroup) in items.enumerated() {
             let faceView = TUIFaceVerticalView(frame: CGRect(x: 0, y: 0, width: frame.size.width, height: pageScrollView.frame.size.height))
-            let recentGroup: TUIFaceGroup? = indexGroup.recent
+            let recentGroup: TUIFaceGroup? = indexGroup.recentGroup
             if let recent = recentGroup {
                 faceView.setData([recent, indexGroup])
             } else {
@@ -88,16 +88,16 @@ class TUIFaceSegementScrollView: UIView, UIScrollViewDelegate {
     }
 
     func updateRecentView() {
-        guard let service = TIMCommonMediator.share().getObject(TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol else { return }
+        guard let service = TIMCommonMediator.shared.getObject(for: TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol else { return }
         guard let faceView = viewArray.first else { return }
         guard let indexGroup = items.first else { return }
         if let recent = service.getChatPopMenuRecentQueue() as? TUIFaceGroup {
-            indexGroup.recent = recent
+            indexGroup.recentGroup = recent
         }
-        indexGroup.recent.rowCount = 1
-        indexGroup.recent.itemCountPerRow = 8
-        indexGroup.recent.groupName = TUISwift.timCommonLocalizableString("TUIChatFaceGroupRecentEmojiName")
-        let recentGroup: TUIFaceGroup? = indexGroup.recent
+        indexGroup.recentGroup?.rowCount = 1
+        indexGroup.recentGroup?.itemCountPerRow = 8
+        indexGroup.recentGroup?.groupName = TUISwift.timCommonLocalizableString("TUIChatFaceGroupRecentEmojiName")
+        let recentGroup: TUIFaceGroup? = indexGroup.recentGroup
         if indexGroup.isNeedAddInInputBar, let recent = recentGroup {
             faceView.setData([recent, indexGroup])
         } else {

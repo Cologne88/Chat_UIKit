@@ -1,11 +1,14 @@
 // TUIStartPageViewController.swift
 // TUIKitDemo
+//
+// Created by Tencent on 2023/8/1.
+// Copyright © 2023 Tencent. All rights reserved.
 
-import UIKit
 import SnapKit
-import TUICore
-import TIMCommon
 import TIMAppKit
+import TIMCommon
+import TUICore
+import UIKit
 
 class TUIStartPageViewController: UIViewController {
     private let containerLogoView: UIView = {
@@ -33,7 +36,7 @@ class TUIStartPageViewController: UIViewController {
         containerLogoView.addSubview(logoImageView)
         containerLogoView.addSubview(mainLabel)
         
-        logoImageView.image = TUISwift.timCommonDynamicImage("launch_page_logo_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("launch_page_logo")))
+        logoImageView.image = TUISwift.timCommonDynamicImage("launch_page_logo_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("launch_page_logo")))
         mainLabel.text = NSLocalizedString("TUIStartPageTitle", comment: "")
         
         containerLogoView.snp.makeConstraints { make in

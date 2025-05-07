@@ -6,7 +6,7 @@ class TUIGroupNoticeController_Minimalist: UIViewController {
     var groupID: String?
     var onNoticeChanged: (() -> Void)?
     private weak var rightButton: UIButton?
-    
+
     private lazy var textView: UITextView = {
         let textView = UITextView()
         textView.textAlignment = TUISwift.isRTL() ? .right : .left
@@ -15,11 +15,9 @@ class TUIGroupNoticeController_Minimalist: UIViewController {
         textView.font = UIFont.systemFont(ofSize: 17)
         return textView
     }()
-    
-    private lazy var dataProvider: TUIGroupNoticeDataProvider = {
-        return TUIGroupNoticeDataProvider()
-    }()
-    
+
+    private lazy var dataProvider: TUIGroupNoticeDataProvider = .init()
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -82,7 +80,7 @@ class TUIGroupNoticeController_Minimalist: UIViewController {
         dataProvider.updateNotice(textView.text) { [weak self] code, desc in
             guard let self = self else { return }
             if code != 0 {
-                TUITool.makeToastError(code, msg: desc)
+                TUITool.makeToastError(code, msg: desc ?? "")
                 return
             }
             self.onNoticeChanged?()

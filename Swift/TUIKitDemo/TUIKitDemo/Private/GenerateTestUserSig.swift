@@ -4,6 +4,10 @@ import TIMCommon
 import TUICore
 import zlib
 
+// SDKAppID and SecretKey definitions
+let SDKAPPID = GenerateTestUserSig.currentSDKAppid()
+let SECRETKEY = GenerateTestUserSig.currentSecretkey()
+
 /**
  * Chat SDKAppID, which uniquely identifies a Chat account.
  * You can get your SDKAppID after creating an application on the [Chat console](https://console.trtc.io/).

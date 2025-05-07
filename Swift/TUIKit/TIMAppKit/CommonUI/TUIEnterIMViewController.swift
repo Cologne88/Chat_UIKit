@@ -83,9 +83,10 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         let appBundleId = Bundle.main.bundleIdentifier
         isTencentRTCApp = (appBundleId == "com.tencent.rtc.app")
         TUIChatConfig.shared.enableWelcomeCustomMessage = !isTencentRTCApp
-        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIDemoTheme", key: TUIDemoBundle_Key_Class), themeModule: TUIThemeModule.demo)
+        TUISwift.tuiRegisterThemeResourcePath(TUISwift.tuiBundlePath("TUIDemoTheme", key: "TIMAppKit.TUIKit"), themeModule: TUIThemeModule.demo)
         TUIThemeSelectController.disableFollowSystemStyle()
         TUIThemeSelectController.applyLastTheme()
+        TUITool.configIMErrorMap()
 
         configIMNavigation()
         setupCustomSticker()
@@ -94,7 +95,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         setupView()
 
         V2TIMManager.sharedInstance().addConversationListener(listener: self)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateMarkUnreadCount(_:)), name: NSNotification.Name(rawValue: TUIKitNotification_onConversationMarkUnreadCountChanged), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateMarkUnreadCount(_:)), name: NSNotification.Name(rawValue: "TUIKitNotification_onConversationMarkUnreadCountChanged"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onDisplayCallsRecordForMinimalist(_:)), name: NSNotification.Name(rawValue: kEnableCallsRecord_mini), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onDisplayCallsRecordForClassic(_:)), name: NSNotification.Name(rawValue: kEnableCallsRecord), object: nil)
     }
@@ -157,17 +158,17 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             return
         }
         TUIEnterIMViewController.g_hasAddedCustomFace = true
-        let service = TIMCommonMediator.share().getObject(TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol
-        let bundlePath = TUISwift.tuiBundlePath("CustomFaceResource", key: TUIDemoBundle_Key_Class) ?? ""
+        let service = TIMCommonMediator.shared.getObject(for: TUIEmojiMeditorProtocol.self)
+        let bundlePath = TUISwift.tuiBundlePath("CustomFaceResource", key: "TIMAppKit.TUIKit")
         // 4350 group
-        var faces4350 = NSMutableArray()
+        var faces4350 = [TUIFaceCellData]()
         for i in 0...17 {
             let data = TUIFaceCellData()
             let name = String(format: "yz%02d", i)
             let path = String(format: "4350/%@", name)
             data.name = name
             data.path = bundlePath + "/" + path
-            faces4350.add(data)
+            faces4350.append(data)
         }
         if faces4350.count > 0 {
             let group4350 = TUIFaceGroup()
@@ -177,20 +178,20 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             group4350.rowCount = 2
             group4350.itemCountPerRow = 5
             group4350.menuPath = bundlePath + "/4350/menu"
-            service?.append(group4350)
+            service?.appendFaceGroup(group4350)
         }
         if isTencentRTCApp {
             return
         }
         // 4351 group
-        var faces4351 = NSMutableArray()
+        var faces4351 = [TUIFaceCellData]()
         for i in 0...15 {
             let data = TUIFaceCellData()
             let name = String(format: "ys%02d", i)
             let path = String(format: "4351/%@", name)
             data.name = name
             data.path = bundlePath + "/" + path
-            faces4351.add(data)
+            faces4351.append(data)
         }
         if faces4351.count > 0 {
             let group4351 = TUIFaceGroup()
@@ -200,18 +201,18 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             group4351.rowCount = 2
             group4351.itemCountPerRow = 5
             group4351.menuPath = bundlePath + "4351/menu"
-            service?.append(group4351)
+            service?.appendFaceGroup(group4351)
         }
 
         // 4352 group
-        var faces4352 = NSMutableArray()
+        var faces4352 = [TUIFaceCellData]()
         for i in 0...16 {
             let data = TUIFaceCellData()
             let name = String(format: "gcs%02d", i)
             let path = String(format: "4352/%@", name)
             data.name = name
             data.path = bundlePath + "/" + path
-            faces4352.add(data)
+            faces4352.append(data)
         }
         if faces4352.count > 0 {
             let group4352 = TUIFaceGroup()
@@ -221,7 +222,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             group4352.rowCount = 2
             group4352.itemCountPerRow = 5
             group4352.menuPath = bundlePath + "/4352/menu"
-            service?.append(group4352)
+            service?.appendFaceGroup(group4352)
         }
     }
 
@@ -265,25 +266,34 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
     }
 
     func setupChatSecurityWarningView() {
-        var tips = TUISwift.timCommonLocalizableString("TIMAppChatSecurityWarning") ?? ""
-        var buttonTitle = TUISwift.timCommonLocalizableString("TIMAppChatSecurityWarningReport") ?? ""
-        let gotButtonTitle = TUISwift.timCommonLocalizableString("TIMAppChatSecurityWarningGot") ?? ""
+        var tips = TUISwift.timCommonLocalizableString("TIMAppChatSecurityWarning")
+        var buttonTitle = TUISwift.timCommonLocalizableString("TIMAppChatSecurityWarningReport")
+        let gotButtonTitle = TUISwift.timCommonLocalizableString("TIMAppChatSecurityWarningGot")
         var buttonAction: (() -> Void)? = {
-            let url = URL(string: "https://cloud.tencent.com/act/event/report-platform")
-            TUITool.openLink(with: url)
+            if let url = URL(string: "https://cloud.tencent.com/act/event/report-platform") {
+                TUITool.openLink(with: url)
+            }
         }
+
         if isTencentRTCApp {
             tips = TUISwift.timCommonLocalizableString("TIMTencentRTCAppChatSecurityWarning")
             buttonAction = nil
             buttonTitle = ""
         }
 
-        var tipsView: TUIWarningView?
-        tipsView = TUIWarningView(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: 0), tips: tips, buttonTitle: buttonTitle, buttonAction: buttonAction!, gotButtonTitle: gotButtonTitle) {
-            tipsView?.frame = .zero
-            tipsView?.removeFromSuperview()
-            NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification), object: nil)
+        let tipsView = TUIWarningView(frame: CGRect(x: 0, y: 0, width: TUISwift.screen_Width(), height: 0),
+                                      tips: tips,
+                                      buttonTitle: buttonTitle,
+                                      buttonAction: buttonAction,
+                                      gotButtonTitle: gotButtonTitle,
+                                      gotButtonAction: nil)
+        tipsView.gotButtonAction = { [weak tipsView] in
+            guard let tipsView = tipsView else { return }
+            tipsView.frame = .zero
+            tipsView.removeFromSuperview()
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification"), object: nil)
         }
+
         if TUIStyleSelectViewController.isClassicEntrance() {
             TUIBaseChatViewController.customTopView = tipsView
         } else {
@@ -302,11 +312,11 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         view.backgroundColor = .white
 
         let imLogo = UIImageView(frame: CGRect(x: TUISwift.kScale390(24), y: 56, width: 62, height: 31))
-        imLogo.image = TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("im_logo")))
+        imLogo.image = TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("im_logo")))
         view.addSubview(imLogo)
 
         let cloudLogo = UIImageView(frame: CGRect(x: view.frame.width - 229, y: 6, width: 229, height: 215))
-        cloudLogo.image = TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("cloud_logo")))
+        cloudLogo.image = TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("cloud_logo")))
         view.addSubview(cloudLogo)
 
         let imLabel = UILabel(frame: CGRect(x: TUISwift.kScale390(24), y: imLogo.frame.maxY + 10, width: 100, height: 36))
@@ -323,7 +333,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
 
         let welcomeBtn = UIButton(type: .custom)
         welcomeBtn.frame = CGRect(x: welcomeLabel.frame.maxX + TUISwift.kScale390(10), y: welcomeLabel.frame.origin.y, width: 16, height: 16)
-        welcomeBtn.setImage(TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("im_welcome"))), for: .normal)
+        welcomeBtn.setImage(TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("im_welcome"))), for: .normal)
         welcomeBtn.addTarget(self, action: #selector(welcomeIM), for: .touchUpInside)
         view.addSubview(welcomeBtn)
 
@@ -417,7 +427,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
 
             dismissWindowBtn = Observable(UIButton(type: .custom))
             dismissWindowBtn?.value?.frame = CGRect(x: TUISwift.kScale390(15), y: TUISwift.statusBar_Height() + 6, width: 44, height: 32)
-            dismissWindowBtn?.value?.setImage(TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("dismiss_im_window"))), for: .normal)
+            dismissWindowBtn?.value?.setImage(TUISwift.tuiDemoDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("dismiss_im_window"))), for: .normal)
             dismissWindowBtn?.value?.addTarget(self, action: #selector(dismissIMWindow), for: .touchUpInside)
             TUIEnterIMViewController.gImWindow?.addSubview((dismissWindowBtn?.value)!)
         }
@@ -659,8 +669,8 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         let msgItem = TUITabBarItem()
         msgItem.title = TUISwift.timCommonLocalizableString("TIMAppTabBarItemMessageText")
         msgItem.identity = "msgItem"
-        msgItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_msg_selected_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("session_selected")))
-        msgItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_msg_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("session_normal")))
+        msgItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_msg_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("session_selected")))
+        msgItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_msg_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("session_normal")))
         let convVC = ConversationController()
         convVC.viewWillAppear = { [weak self] isAppear in
             guard let self = self else { return }
@@ -671,7 +681,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             self.dismissWindowBtn?.value?.isHidden = !isAppear
         }
         msgItem.controller = TUINavigationController(rootViewController: convVC)
-        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tControllerBackgroundColor(), dark: TUISwift.tControllerBackgroundColorDark())
+        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tController_Background_Color(), dark: TUISwift.tController_Background_Color_Dark())
         msgItem.badgeView = TUIBadgeView()
         msgItem.badgeView?.clearCallback = { [weak self] in
             self?.redpoint_clearUnreadMessage()
@@ -685,8 +695,8 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         let contactItem = TUITabBarItem()
         contactItem.title = TUISwift.timCommonLocalizableString("TIMAppTabBarItemContactText")
         contactItem.identity = "contactItem"
-        contactItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_contact_selected_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("contact_selected")))
-        contactItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_contact_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("contact_normal")))
+        contactItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_contact_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("contact_selected")))
+        contactItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_contact_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("contact_normal")))
         let contactVC = ContactsController()
         contactVC.viewWillAppear = { [weak self] isAppear in
             guard let self = self else { return }
@@ -697,15 +707,15 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             self.dismissWindowBtn?.value?.isHidden = !isAppear
         }
         contactItem.controller = TUINavigationController(rootViewController: contactVC)
-        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tControllerBackgroundColor(), dark: TUISwift.tControllerBackgroundColorDark())
+        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tController_Background_Color(), dark: TUISwift.tController_Background_Color_Dark())
         contactItem.badgeView = TUIBadgeView()
         items.append(contactItem)
 
         let setItem = TUITabBarItem()
         setItem.title = TUISwift.timCommonLocalizableString("TIMAppTabBarItemMeText")
         setItem.identity = "setItem"
-        setItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_me_selected_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("myself_selected")))
-        setItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_me_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("myself_normal")))
+        setItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_me_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("myself_selected")))
+        setItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_me_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("myself_normal")))
         let setVC = SettingController()
         setVC.showPersonalCell = false
         let appName = TUICore.callService("TUICore_ConfigureService", method: "TUICore_ConfigureService_getAppName", param: nil) as? String
@@ -728,7 +738,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             self?.updateIMWindow()
         }
         setItem.controller = TUINavigationController(rootViewController: setVC)
-        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tControllerBackgroundColor(), dark: TUISwift.tControllerBackgroundColorDark())
+        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: TUISwift.tController_Background_Color(), dark: TUISwift.tController_Background_Color_Dark())
         items.append(setItem)
         tbc?.setTabBarItems(items)
 
@@ -739,8 +749,6 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             tbc?.selectedIndex = items.firstIndex { $0.identity == "contactItem" } ?? 0
         case .setting:
             tbc?.selectedIndex = items.firstIndex { $0.identity == "setItem" } ?? 0
-        default:
-            break
         }
 
         return tbc!
@@ -752,8 +760,8 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         let msgItem = TUITabBarItem()
         msgItem.title = TUISwift.timCommonLocalizableString("TIMAppTabBarItemMessageText_mini")
         msgItem.identity = "msgItem"
-        msgItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_msg_selected_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("session_selected")))
-        msgItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_msg_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("session_normal")))
+        msgItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_msg_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("session_selected")))
+        msgItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_msg_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("session_normal")))
         convVC_Mini = ConversationController_Minimalist()
         convVC_Mini?.viewWillAppearClosure = { [weak self] isAppear in
             guard let self = self else { return }
@@ -764,7 +772,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             self.dismissWindowBtn?.value?.isHidden = !isAppear
         }
         msgItem.controller = TUINavigationController(rootViewController: convVC_Mini!)
-        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tControllerBackgroundColorDark())
+        msgItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tController_Background_Color_Dark())
         msgItem.badgeView = TUIBadgeView()
         msgItem.badgeView?.clearCallback = { [weak self] in
             self?.redpoint_clearUnreadMessage()
@@ -778,8 +786,8 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         let contactItem = TUITabBarItem()
         contactItem.title = TUISwift.timCommonLocalizableString("TIMAppTabBarItemContactText_mini")
         contactItem.identity = "contactItem"
-        contactItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_contact_selected_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("contact_selected")))
-        contactItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_contact_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("contact_normal")))
+        contactItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_contact_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("contact_selected")))
+        contactItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_contact_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("contact_normal")))
         contactsVC_Mini = ContactsController_Minimalist()
         contactsVC_Mini?.viewWillAppearClosure = { [weak self] isAppear in
             guard let self = self else { return }
@@ -790,15 +798,15 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             self.dismissWindowBtn?.value?.isHidden = !isAppear
         }
         contactItem.controller = TUINavigationController(rootViewController: contactsVC_Mini!)
-        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tControllerBackgroundColorDark())
+        contactItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tController_Background_Color_Dark())
         contactItem.badgeView = TUIBadgeView()
         items.append(contactItem)
 
         let setItem = TUITabBarItem()
         setItem.title = TUISwift.timCommonLocalizableString("TIMAppTabBarItemSettingText_mini")
         setItem.identity = "setItem"
-        setItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_me_selected_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("myself_selected")))
-        setItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_me_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("myself_normal")))
+        setItem.selectedImage = TUISwift.tuiDemoDynamicImage("tab_me_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("myself_selected")))
+        setItem.normalImage = TUISwift.tuiDemoDynamicImage("tab_me_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("myself_normal")))
         settingVC_Mini = SettingController_Minimalist()
         settingVC_Mini?.showPersonalCell = false
         let appName = TUICore.callService("TUICore_ConfigureService", method: "TUICore_ConfigureService_getAppName", param: nil) as? String
@@ -821,7 +829,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             self?.updateIMWindow()
         }
         setItem.controller = TUINavigationController(rootViewController: settingVC_Mini!)
-        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tControllerBackgroundColorDark())
+        setItem.controller?.view.backgroundColor = UIColor.d_color(withColorLight: .white, dark: TUISwift.tController_Background_Color_Dark())
         items.append(setItem)
         tbc?.setTabBarItems(items)
 
@@ -832,8 +840,6 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
             tbc?.selectedIndex = items.firstIndex(where: { $0.identity == "contactItem" }) ?? 0
         case .setting:
             tbc?.selectedIndex = items.firstIndex(where: { $0.identity == "setItem" }) ?? 0
-        default:
-            break
         }
 
         tbc?.tabBar.backgroundColor = .white
@@ -856,22 +862,22 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
 
     func redpoint_clearUnreadMessage() {
         print("[Redpoint] \(#function)")
-        V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount("", cleanTimestamp: 0, cleanSequence: 0, succ: { [weak self] in
+        V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount(conversationID: "", cleanTimestamp: 0, cleanSequence: 0, succ: { [weak self] in
             guard let self = self else { return }
             TUITool.makeToast(TUISwift.timCommonLocalizableString("TIMAppMarkAllMessageAsReadSucc"))
             self.onTotalUnreadCountChanged(0)
         }, fail: { [weak self] code, desc in
             guard let self = self else { return }
             TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TIMAppMarkAllMessageAsReadErrFormat"), code, desc ?? ""))
-            self.onTotalUnreadCountChanged(UInt64(self.unReadCount))
+            self.onTotalUnreadCountChanged(self.unReadCount)
         })
         let conversations = Array(markUnreadMap.keys)
         if !conversations.isEmpty {
-            V2TIMManager.sharedInstance().markConversation(conversations, markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: false, succ: nil, fail: nil)
+            V2TIMManager.sharedInstance().markConversation(conversationIDList: conversations, markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: false, succ: nil, fail: nil)
         }
     }
 
-    func onTotalUnreadCountChanged(_ totalUnreadCount: UInt64) {
+    func onTotalUnreadCountChanged(_ totalUnreadCount: UInt) {
         print("[Redpoint] \(#function), \(totalUnreadCount)")
         let total = totalUnreadCount
         let item = tbc?.tabBarItems.first
@@ -882,8 +888,8 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
     func redpoint_setupTotalUnreadCount() {
         print("[Redpoint] \(#function)")
         // Getting total unread count
-        V2TIMManager.sharedInstance().getTotalUnreadMessageCount({ [weak self] totalCount in
-            self?.onTotalUnreadCountChanged(totalCount)
+        V2TIMManager.sharedInstance().getTotalUnreadMessageCount(succ: { [weak self] totalCount in
+            self?.onTotalUnreadCountChanged(UInt(totalCount))
         }, fail: { _, _ in })
 
         // Getting the count of friends application
@@ -907,7 +913,7 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         contactItem?.badgeView?.title = applicationCount == 0 ? "" : "\(applicationCount)"
     }
 
-    func caculateRealResultAboutSDKTotalCount(_ totalCount: UInt64, markUnreadCount: Int, markHideUnreadCount: Int) -> Int {
+    func caculateRealResultAboutSDKTotalCount(_ totalCount: UInt, markUnreadCount: Int, markHideUnreadCount: Int) -> Int {
         var unreadCalculationResults = Int(totalCount) + markUnreadCount - markHideUnreadCount
         if unreadCalculationResults < 0 {
             // error protect
@@ -919,23 +925,23 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
     // MARK: - NSNotification
 
     @objc func updateMarkUnreadCount(_ note: Notification) {
-        guard let userInfo = note.userInfo as? [AnyHashable: Any] else { return }
-        let markUnreadCount = userInfo[TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadCount] as? Int ?? 0
-        let markHideUnreadCount = userInfo[TUIKitNotification_onConversationMarkUnreadCountChanged_MarkHideUnreadCount] as? Int ?? 0
+        guard let userInfo = note.userInfo else { return }
+        let markUnreadCount = userInfo["TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadCount"] as? Int ?? 0
+        let markHideUnreadCount = userInfo["TUIKitNotification_onConversationMarkUnreadCountChanged_MarkHideUnreadCount"] as? Int ?? 0
         self.markUnreadCount = UInt(markUnreadCount)
         self.markHideUnreadCount = UInt(markHideUnreadCount)
-        if let markUnreadMap = userInfo[TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadMap] as? [String: Any] {
+        if let markUnreadMap = userInfo["TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadMap"] as? [String: Any] {
             self.markUnreadMap = markUnreadMap
         }
-        V2TIMManager.sharedInstance().getTotalUnreadMessageCount({ [weak self] totalCount in
+        V2TIMManager.sharedInstance().getTotalUnreadMessageCount(succ: { [weak self] totalCount in
             guard let self = self else { return }
-            let unreadCalculationResults = self.caculateRealResultAboutSDKTotalCount(totalCount, markUnreadCount: markUnreadCount, markHideUnreadCount: markHideUnreadCount)
-            self.onTotalUnreadCountChanged(UInt64(unreadCalculationResults))
+            let unreadCalculationResults = self.caculateRealResultAboutSDKTotalCount(UInt(totalCount), markUnreadCount: markUnreadCount, markHideUnreadCount: markHideUnreadCount)
+            self.onTotalUnreadCountChanged(UInt(unreadCalculationResults))
         }, fail: { _, _ in })
     }
 
-    func onSetAPPUnreadCount() -> UInt32 {
-        return UInt32(unReadCount) // test
+    func onSetAPPUnreadCount() -> UInt {
+        return unReadCount // test
     }
 
     @objc func onDisplayCallsRecordForClassic(_ notice: Notification) {
@@ -977,8 +983,12 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
         }
         if showCallsRecord, let callingVC = callingVC {
             let title = isMinimalist ? TUISwift.timCommonLocalizableString("TIMAppTabBarItemCallsRecordText_mini") : TUISwift.timCommonLocalizableString("TIMAppTabBarItemCallsRecordText_mini")
-            let selected = isMinimalist ? TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.demo_Minimalist, defaultImg: UIImage(named: TUISwift.tuiDemoImagePath_Minimalist("tab_calls_selected"))) : TUISwift.tuiDemoDynamicImage("tab_calls_selected_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("tab_calls_selected")))
-            let normal = isMinimalist ? TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.demo_Minimalist, defaultImg: UIImage(named: TUISwift.tuiDemoImagePath_Minimalist("tab_calls_normal"))) : TUISwift.tuiDemoDynamicImage("tab_calls_normal_img", defaultImage: UIImage(named: TUISwift.tuiDemoImagePath("tab_calls_normal")))
+            let selected = isMinimalist ?
+                TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("tab_calls_selected"))) :
+                TUISwift.tuiDemoDynamicImage("tab_calls_selected_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("tab_calls_selected")))
+            let normal = isMinimalist ?
+                TUISwift.tuiDynamicImage("", themeModule: TUIThemeModule.demo_Minimalist, defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath_Minimalist("tab_calls_normal"))) :
+                TUISwift.tuiDemoDynamicImage("tab_calls_normal_img", defaultImage: UIImage.safeImage(TUISwift.tuiDemoImagePath("tab_calls_normal")))
             let callsItem = TUITabBarItem()
             callsItem.title = title
             callsItem.selectedImage = selected
@@ -992,9 +1002,9 @@ class TUIEnterIMViewController: UIViewController, TUIStyleSelectControllerDelega
 
     // MARK: V2TIMConversationListener
 
-    func onTotalUnreadMessageCountChanged(_ totalUnreadCount: UInt64) {
-        let unreadCalculationResults = caculateRealResultAboutSDKTotalCount(totalUnreadCount, markUnreadCount: Int(markUnreadCount), markHideUnreadCount: Int(markHideUnreadCount))
-        onTotalUnreadCountChanged(UInt64(unreadCalculationResults))
+    func onTotalUnreadMessageCountChanged(totalUnreadCount: UInt64) {
+        let unreadCalculationResults = caculateRealResultAboutSDKTotalCount(UInt(totalUnreadCount), markUnreadCount: Int(markUnreadCount), markHideUnreadCount: Int(markHideUnreadCount))
+        onTotalUnreadCountChanged(UInt(unreadCalculationResults))
     }
 
     // MARK: TUIStyleSelectControllerDelegate

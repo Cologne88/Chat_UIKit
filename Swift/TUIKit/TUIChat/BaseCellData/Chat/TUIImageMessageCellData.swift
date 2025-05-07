@@ -22,20 +22,20 @@ class TUIImageMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
     override init(direction: TMsgDirection) {
         super.init(direction: direction)
         self.uploadProgress = 100
-        self.cellLayout = direction == .MsgDirectionIncoming ? TUIMessageCellLayout.incommingImageMessage() : TUIMessageCellLayout.outgoingImageMessage()
+        self.cellLayout = direction == .incoming ? TUIMessageCellLayout.incomingImageMessageLayout : TUIMessageCellLayout.outgoingImageMessageLayout
     }
 
-    override class func getCellData(_ message: V2TIMMessage) -> TUIMessageCellData {
+    override class func getCellData(message: V2TIMMessage) -> TUIMessageCellData {
         guard let elem = message.imageElem else {
-            return TUIImageMessageCellData(direction: .MsgDirectionIncoming)
+            return TUIImageMessageCellData(direction: .incoming)
         }
 
-        let imageData = TUIImageMessageCellData(direction: message.isSelf ? .MsgDirectionOutgoing : .MsgDirectionIncoming)
-        imageData.path = elem.path.safeValue.safePath()
+        let imageData = TUIImageMessageCellData(direction: message.isSelf ? .outgoing : .incoming)
+        imageData.path = elem.path
 
         for item in elem.imageList {
             let itemData = TUIImageItem()
-            itemData.uuid = item.uuid.safeValue
+            itemData.uuid = item.uuid ?? ""
             itemData.size = CGSizeMake(CGFloat(item.width), CGFloat(item.height))
 
             switch item.type {
@@ -52,11 +52,11 @@ class TUIImageMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
             imageData.items.append(itemData)
         }
 
-        imageData.reuseId = TUISwift.tImageMessageCell_ReuseId()
+        imageData.reuseId = "TImageMessageCell"
         return imageData
     }
 
-    override class func getDisplayString(_ message: V2TIMMessage) -> String {
+    override class func getDisplayString(message: V2TIMMessage) -> String {
         return TUISwift.timCommonLocalizableString("TUIkitMessageTypeImage")
     }
 
@@ -73,10 +73,9 @@ class TUIImageMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
         var isDir = ObjCBool(false)
         isExist = false
 
-        if direction == .MsgDirectionOutgoing {
-            guard let path = path else { return nil }
-            let lastComp = URL(string: path)?.lastPathComponent
-            imagePath = "\(TUISwift.tuiKit_Image_Path() ?? "")\(lastComp ?? "")"
+        if direction == .outgoing {
+            let lastComp = URL(string: path ?? "")?.lastPathComponent
+            imagePath = "\(TUISwift.tuiKit_Image_Path())\(lastComp ?? "")"
             if FileManager.default.fileExists(atPath: imagePath, isDirectory: &isDir), !isDir.boolValue {
                 isExist = true
             }
@@ -84,7 +83,7 @@ class TUIImageMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
 
         if !isExist {
             if let tImageItem = getTImageItem(type: type) {
-                imagePath = "\(TUISwift.tuiKit_Image_Path() ?? "")\(tImageItem.uuid)_\(tImageItem.type.rawValue)"
+                imagePath = "\(TUISwift.tuiKit_Image_Path())\(tImageItem.uuid)_\(tImageItem.type.rawValue)"
                 if FileManager.default.fileExists(atPath: imagePath, isDirectory: &isDir), !isDir.boolValue {
                     isExist = true
                 }
@@ -114,19 +113,21 @@ class TUIImageMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
 
         guard let imImage = getIMImage(type: type) else { return }
 
-        imImage.downloadImage(path, progress: { [weak self] curSize, totalSize in
-            guard let self = self else { return }
-            let progress = curSize * 100 / totalSize
-            self.updateProgress(UInt(min(progress, 99)), withType: type)
-        }, succ: { [weak self] in
-            guard let self = self else { return }
-            self.isDownloading = false
-            self.updateProgress(100, withType: type)
-            self.decodeImage(type: type)
-        }, fail: { [weak self] _, _ in
-            self?.isDownloading = false
-            self?.decodeImage(type: type)
-        })
+        if let path = path {
+            imImage.downloadImage(path: path, progress: { [weak self] curSize, totalSize in
+                guard let self = self else { return }
+                let progress = curSize * 100 / totalSize
+                self.updateProgress(UInt(min(progress, 99)), withType: type)
+            }, succ: { [weak self] in
+                guard let self = self else { return }
+                self.isDownloading = false
+                self.updateProgress(100, withType: type)
+                self.decodeImage(type: type)
+            }, fail: { [weak self] _, _ in
+                self?.isDownloading = false
+                self?.decodeImage(type: type)
+            })
+        }
     }
 
     private func updateProgress(_ progress: UInt, withType type: TUIImageType) {
@@ -171,15 +172,18 @@ class TUIImageMessageCellData: TUIBubbleMessageCellData, TUIMessageCellDataFileU
         if let cacheImage = SDImageCache.shared.imageFromCache(forKey: cacheKey) {
             finishBlock(cacheImage)
         } else {
-            TUITool.asyncDecodeImage(path) { path, image in
-                guard let path = path else { return }
+            TUITool.asyncDecodeImage(path, complete: { path, image in
+                guard let path = path, let image = image else { return }
                 DispatchQueue.main.async {
-                    if !path.tui_contains(".gif") || image?.sd_imageFormat != .GIF {
-                        SDImageCache.shared.storeImage(toMemory: image, forKey: cacheKey)
+                    if !path.tui_contains(".gif") || image.sd_imageFormat != .GIF {
+                        // The gif image is too large to be cached in memory. Only cache images less than 1M
+                        if let imageData = image.sd_imageData(), imageData.count < 1 * 1024 * 1024 {
+                            SDImageCache.shared.storeImage(toMemory: image, forKey: cacheKey)
+                        }
                     }
-                    finishBlock(image ?? UIImage())
+                    finishBlock(image)
                 }
-            }
+            })
         }
     }
 

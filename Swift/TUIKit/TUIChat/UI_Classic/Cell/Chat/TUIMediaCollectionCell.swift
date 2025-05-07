@@ -28,6 +28,6 @@ class TUIMediaCollectionCell: UICollectionViewCell, V2TIMAdvancedMsgListener {
     // MARK: - V2TIMAdvancedMsgListener
 
     private func registerTUIKitNotification() {
-        V2TIMManager.sharedInstance().addAdvancedMsgListener(listener: self)
+       V2TIMManager.sharedInstance().addAdvancedMsgListener(listener: self)
     }
 }

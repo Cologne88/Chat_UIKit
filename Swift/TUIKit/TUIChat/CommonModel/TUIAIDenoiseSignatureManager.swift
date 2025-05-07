@@ -16,7 +16,7 @@ class TUIAIDenoiseSignatureManager {
             return
         }
         
-        V2TIMManager.sharedInstance()?.callExperimentalAPI(kAPIKey, param: nil, succ: { [weak self] result in
+       V2TIMManager.sharedInstance().callExperimentalAPI(api: kAPIKey, param: nil, succ: { [weak self] result in
             guard let self = self else { return }
             guard let dict = result as? [String: Any] else {
                 return
@@ -30,7 +30,7 @@ class TUIAIDenoiseSignatureManager {
                 self.expiredTime = expiredTime.doubleValue
             }
         }, fail: { code, desc in
-            print("getAIDenoiseSignature failed, code: \(code), desc: \(desc ?? "")")
+            print("getAIDenoiseSignature failed, code: \(code), desc: \(desc)")
         })
     }
     

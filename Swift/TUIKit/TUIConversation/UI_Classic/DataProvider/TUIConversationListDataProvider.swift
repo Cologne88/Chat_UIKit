@@ -2,10 +2,14 @@ import Foundation
 import TIMCommon
 import TUICore
 
-class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
+open class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
     var lastMessageDisplayMap: [String: String]?
 
-    override func getConversationCellClass() -> AnyClass {
+    override public init() {
+        super.init()
+    }
+
+    override public func getConversationCellClass() -> AnyClass {
         return TUIConversationCellData.self
     }
 
@@ -16,7 +20,7 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
 
         var messageList = [V2TIMMessage]()
         for cellData in allConversationList {
-            if let lastMessage = cellData.lastMessage, let _ = lastMessage.msgID {
+            if let lastMessage = cellData.lastMessage {
                 messageList.append(lastMessage)
             }
         }
@@ -25,8 +29,8 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
             return
         }
 
-        let param: [String: Any] = [TUICore_TUIChatService_AsyncGetDisplayStringMethod_MsgListKey: messageList]
-        TUICore.callService(TUICore_TUIChatService, method: TUICore_TUIChatService_AsyncGetDisplayStringMethod, param: param) { [weak self] errorCode, _, param in
+        let param: [String: Any] = ["TUICore_TUIChatService_AsyncGetDisplayStringMethod_MsgListKey": messageList]
+        TUICore.callService("TUICore_TUIChatService", method: "TUICore_TUIChatService_AsyncGetDisplayStringMethod", param: param) { [weak self] errorCode, _, param in
             guard let self = self else { return }
             guard errorCode == 0 else { return }
 
@@ -43,7 +47,7 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
             var needRefreshConvList = [TUIConversationCellData]()
             for cellData in allConversationList {
                 if let lastMessage = cellData.lastMessage,
-                   let msgID = lastMessage.msgID, param.contains(where: { $0.key as? String == msgID })
+                   param.contains(where: { $0.key as? String == lastMessage.msgID })
                 {
                     if let innerConversation = cellData.innerConversation {
                         cellData.subTitle = self.getLastDisplayString(innerConversation)
@@ -62,22 +66,22 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
         }
     }
 
-    override func getDisplayStringFromService(_ msg: V2TIMMessage) -> String {
-        guard let msgID = msg.msgID else { return "" }
+    override public func getDisplayStringFromService(_ msg: V2TIMMessage) -> String {
         // from cache
-        if let displayString = self.lastMessageDisplayMap?[msgID] {
-            return displayString
+        if let msgID = msg.msgID {
+            if let displayString = self.lastMessageDisplayMap?[msgID] {
+                return displayString
+            }
         }
-
         // from TUIChat
-        let param: [String: Any] = [TUICore_TUIChatService_GetDisplayStringMethod_MsgKey: msg]
-        if let result = TUICore.callService(TUICore_TUIChatService, method: TUICore_TUIChatService_GetDisplayStringMethod, param: param) as? String {
+        let param: [String: Any] = ["msg": msg]
+        if let result = TUICore.callService("TUICore_TUIChatService", method: "TUICore_TUIChatService_GetDisplayStringMethod", param: param) as? String {
             return result
         }
         return ""
     }
 
-    override func getLastDisplayString(_ conv: V2TIMConversation) -> NSMutableAttributedString {
+    override public func getLastDisplayString(_ conv: V2TIMConversation) -> NSMutableAttributedString {
         /**
          * If has group-at message, the group-at information will be displayed first
          */
@@ -90,8 +94,8 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
         /**
          * If there is a draft box, the draft box information will be displayed first
          */
-        if !conv.draftText.isNilOrEmpty {
-            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, green: 81, blue: 81)!])
+        if let draftText = conv.draftText, !draftText.isEmpty {
+            let draft = NSAttributedString(string: TUISwift.timCommonLocalizableString("TUIKitMessageTypeDraftFormat"), attributes: [.foregroundColor: TUISwift.rgb(250, g: 81, b: 81)])
             attributeString.append(draft)
 
             let draftContentStr = getDraftContent(conv)
@@ -106,9 +110,8 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
             /**
              * Attempt to get externally customized display information
              */
-            if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.getConversationDisplayString(_:))) {
-                lastMsgStr = delegate.getConversationDisplayString!(conv) ?? ""
-            }
+            lastMsgStr = delegate?.getConversationDisplayString(conv) ?? ""
+
             /**
              * If there is no external customization, get the lastMsg display information through the message module
              */
@@ -124,7 +127,7 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
             }
 
             if hasRiskContent && !isRevoked {
-                attributeString.append(NSAttributedString(string: lastMsgStr, attributes: [.foregroundColor: TUISwift.rgb(233, green: 68, blue: 68)!]))
+                attributeString.append(NSAttributedString(string: lastMsgStr, attributes: [.foregroundColor: TUISwift.rgb(233, g: 68, b: 68)]))
             } else {
                 attributeString.append(NSAttributedString(string: lastMsgStr))
             }
@@ -145,12 +148,12 @@ class TUIConversationListDataProvider: TUIConversationListBaseDataProvider {
          * If the status of the lastMsg of the conversation is sending or failed, display the sending status of the message (the draft box does not need to display
          * the sending status)
          */
-        if conv.draftText.isNilOrEmpty, let lastMessage = conv.lastMessage, (lastMessage.status == V2TIMMessageStatus.MSG_STATUS_SENDING || lastMessage.status == V2TIMMessageStatus.MSG_STATUS_SEND_FAIL || hasRiskContent) && !isRevoked {
+        if conv.draftText == nil || conv.draftText!.isEmpty, let lastMessage = conv.lastMessage, (lastMessage.status == .MSG_STATUS_SENDING || lastMessage.status == .MSG_STATUS_SEND_FAIL || hasRiskContent) && !isRevoked {
             let textFont = UIFont.systemFont(ofSize: 14)
             let spaceString = NSAttributedString(string: " ", attributes: [.font: textFont])
             let attchment = NSTextAttachment()
             let image: UIImage?
-            if lastMessage.status == V2TIMMessageStatus.MSG_STATUS_SENDING {
+            if lastMessage.status == .MSG_STATUS_SENDING {
                 image = TUISwift.tuiConversationCommonBundleImage("msg_sending_for_conv")
             } else {
                 image = TUISwift.tuiConversationCommonBundleImage("msg_error_for_conv")

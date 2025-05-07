@@ -207,9 +207,6 @@ typedef NS_ENUM(NSInteger, TUIThemeModule) {
 - (void)applyTheme:(NSString *)themeID forModule:(TUIThemeModule)module;
 - (void)unApplyThemeForModule:(TUIThemeModule)module;
 
-
-+ (UIColor *)conversationDynamicColor:(NSString *)colorKey hex:(NSString *)hex;
-
 @end
 
 NS_ASSUME_NONNULL_END

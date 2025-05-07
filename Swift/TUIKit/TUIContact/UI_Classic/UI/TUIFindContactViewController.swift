@@ -147,7 +147,7 @@ class TUIFindContactViewController: UIViewController, UISearchBarDelegate, UITab
 
     private func doSearch(withKeyword keyword: String?) {
         guard let keyword = keyword else { return }
-        if type == .c2c {
+        if type == .c2c{
             provider.findUser(userID: keyword) { [weak self] in
                 guard let self = self else { return }
                 self.tableView.reloadData()

@@ -20,7 +20,8 @@ class TUIMergeReplyQuoteViewData: TUIReplyQuoteViewData {
 
     override func contentSize(maxWidth: CGFloat) -> CGSize {
         let singleHeight = UIFont.systemFont(ofSize: 10.0).lineHeight
-        let titleAttributeString = title.getFormatEmojiString(with: UIFont.systemFont(ofSize: 10.0), emojiLocations: nil)
+        var locations: [[NSValue: NSAttributedString]]? = nil
+        let titleAttributeString = title.getFormatEmojiString(withFont: UIFont.systemFont(ofSize: 10.0), emojiLocations: &locations)
         let titleRect = titleAttributeString.boundingRect(
             with: CGSize(width: maxWidth, height: singleHeight),
             options: [.usesLineFragmentOrigin, .usesFontLeading],

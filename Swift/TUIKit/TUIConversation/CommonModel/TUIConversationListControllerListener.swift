@@ -7,9 +7,16 @@ enum TUISearchType: Int {
     case chatHistory = 2
 }
 
-@objc public protocol TUIConversationListControllerListener: NSObjectProtocol {
-    @objc optional func getConversationDisplayString(_ conversation: V2TIMConversation) -> String?
-    @objc optional func conversationListController(_ conversationController: UIViewController, didSelectConversation conversation: TUIConversationCellData)
-    @objc optional func onClearAllConversationUnreadCount()
-    @objc optional func onCloseConversationMultiChooseBoard()
+public protocol TUIConversationListControllerListener: AnyObject {
+    func getConversationDisplayString(_ conversation: V2TIMConversation) -> String?
+    func conversationListController(_ conversationController: UIViewController, didSelectConversation conversation: TUIConversationCellData) -> Bool
+    func onClearAllConversationUnreadCount()
+    func onCloseConversationMultiChooseBoard()
+}
+
+public extension TUIConversationListControllerListener {
+    func getConversationDisplayString(_ conversation: V2TIMConversation) -> String? { return nil }
+    func conversationListController(_ conversationController: UIViewController, didSelectConversation conversation: TUIConversationCellData) -> Bool { return false }
+    func onClearAllConversationUnreadCount() {}
+    func onCloseConversationMultiChooseBoard() {}
 }

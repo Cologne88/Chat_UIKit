@@ -1,8 +1,8 @@
 import UserNotifications
+
 import TIMPush
 
 class NotificationService: UNNotificationServiceExtension, @unchecked Sendable {
-
     var contentHandler: ((UNNotificationContent) -> Void)?
     var bestAttemptContent: UNMutableNotificationContent?
 
@@ -14,7 +14,7 @@ class NotificationService: UNNotificationServiceExtension, @unchecked Sendable {
         // Such as group.com.tencent.im.pushkey
         let appGroupID = kTIMPushAppGroupKey
 
-        TIMPushManager.handleNotificationServiceRequest(request: request, appGroupID: appGroupID) {[weak self] content in
+        TIMPushManager.handleNotificationServiceRequest(request: request, appGroupID: appGroupID) { [weak self] content in
             guard let self = self else { return }
             self.bestAttemptContent = content.mutableCopy() as? UNMutableNotificationContent
             // Modify the notification content here...
@@ -22,7 +22,7 @@ class NotificationService: UNNotificationServiceExtension, @unchecked Sendable {
 
             if let attachmentPath = self.bestAttemptContent?.userInfo["image"] as? String {
                 if let fileURL = URL(string: attachmentPath) {
-                    self.downloadAndSave(fileURL) {[weak self] localPath in
+                    self.downloadAndSave(fileURL) { [weak self] localPath in
                         guard let self = self else { return }
                         if let localPath = localPath {
                             if let attachment = try? UNNotificationAttachment(identifier: "myAttachment", url: URL(fileURLWithPath: localPath), options: nil) {
@@ -40,8 +40,8 @@ class NotificationService: UNNotificationServiceExtension, @unchecked Sendable {
 
     func downloadAndSave(_ fileURL: URL, handler: @escaping @Sendable (String?) -> Void) {
         let session = URLSession.shared
-        let completion: @Sendable (URL?, URLResponse?, (any Error)?) -> Void = {location, response, error in
-            var localPath: String? = nil
+        let completion: @Sendable (URL?, URLResponse?, (any Error)?) -> Void = { location, _, error in
+            var localPath: String?
             if error == nil, let location = location {
                 let localURL = "\(NSTemporaryDirectory())/\(fileURL.lastPathComponent)"
                 try? FileManager.default.moveItem(atPath: location.path, toPath: localURL)
@@ -49,7 +49,7 @@ class NotificationService: UNNotificationServiceExtension, @unchecked Sendable {
             }
             handler(localPath)
         }
-        
+
         let task = session.downloadTask(with: fileURL, completionHandler: completion)
         task.resume()
     }

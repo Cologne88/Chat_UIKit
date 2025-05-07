@@ -4,26 +4,25 @@
 // Created by annidyfeng on 2019/5/20.
 // Copyright © 2019 Tencent. All rights reserved.
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class SearchGroupSearchResultViewController: UIViewController {
     // Implementation will be provided in later segments
 }
 
 class TUISearchGroupViewController: UIViewController, UISearchControllerDelegate, UISearchBarDelegate {
-
     var searchController: UISearchController?
     var userView: AddGroupItemView?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
-        self.view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
-        
-        self.edgesForExtendedLayout = []
-        self.automaticallyAdjustsScrollViewInsets = false
-        self.definesPresentationContext = true
+        title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
+        view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
+
+        edgesForExtendedLayout = []
+        automaticallyAdjustsScrollViewInsets = false
+        definesPresentationContext = true
 
         searchController = UISearchController(searchResultsController: nil)
         searchController?.delegate = self
@@ -31,13 +30,13 @@ class TUISearchGroupViewController: UIViewController, UISearchControllerDelegate
         searchController?.searchBar.placeholder = "group ID"
         searchController?.searchBar.delegate = self
         if let searchBar = searchController?.searchBar {
-            self.view.addSubview(searchBar)
+            view.addSubview(searchBar)
         }
         setSearchIconCenter(center: true)
 
         userView = AddGroupItemView(frame: .zero)
         if let userView = userView {
-            self.view.addSubview(userView)
+            view.addSubview(userView)
             let singleFingerTap = UITapGestureRecognizer(target: self, action: #selector(handleUserTap(_:)))
             userView.addGestureRecognizer(singleFingerTap)
         }
@@ -54,12 +53,13 @@ class TUISearchGroupViewController: UIViewController, UISearchControllerDelegate
     }
 
     // MARK: - UISearchControllerDelegate
+
     func didPresentSearchController(_ searchController: UISearchController) {
         print("didPresentSearchController")
         if let searchBar = self.searchController?.searchBar {
-            self.view.addSubview(searchBar)
-            searchBar.mm_top()(safeAreaTopGap())
-            userView?.mm_top()(searchBar.mm_maxY)!.mm_height()(44)!.mm_width()(TUISwift.screen_Width())
+            view.addSubview(searchBar)
+            searchBar.mm_top(safeAreaTopGap())
+            userView?.mm_top(searchBar.mm_maxY).mm_height(44).mm_width(TUISwift.screen_Width())
         }
     }
 
@@ -81,7 +81,7 @@ class TUISearchGroupViewController: UIViewController, UISearchControllerDelegate
 
     func didDismissSearchController(_ searchController: UISearchController) {
         print("didDismissSearchController")
-        searchController.searchBar.mm_top()(0)
+        searchController.searchBar.mm_top(0)
         userView?.groupInfo = nil
     }
 
@@ -98,11 +98,12 @@ class TUISearchGroupViewController: UIViewController, UISearchControllerDelegate
         if let groupInfo = userView?.groupInfo {
             let frc = TUIGroupRequestViewController()
             frc.groupInfo = groupInfo
-            self.navigationController?.pushViewController(frc, animated: true)
+            navigationController?.pushViewController(frc, animated: true)
         }
     }
 
     // MARK: - UISearchBarDelegate
+
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard let inputStr = searchBar.text else { return }
         V2TIMManager.sharedInstance().getGroupsInfo([inputStr], succ: { groupResultList in
@@ -111,7 +112,7 @@ class TUISearchGroupViewController: UIViewController, UISearchControllerDelegate
             } else {
                 self.userView?.groupInfo = nil
             }
-        }, fail: { code, desc in
+        }, fail: { _, _ in
             self.userView?.groupInfo = nil
         })
     }
@@ -122,12 +123,12 @@ class AddGroupItemView: UIView {
         didSet {
             if let groupInfo = groupInfo {
                 if let groupName = groupInfo.groupName, !groupName.isEmpty {
-                    _idLabel.text = "\(groupName) (group id: \(groupInfo.groupID))"
+                    _idLabel.text = "\(groupName) (group id: \(groupInfo.groupID ?? ""))"
                 } else {
                     _idLabel.text = groupInfo.groupID
                 }
-                _idLabel.mm_sizeToFit()()!.tui_mm_center()()!.mm_left()(8)
-                _line.mm_height()(1)!.mm_width()(self.mm_w)!.mm_bottom()(0)
+                _idLabel.mm__sizeToFit().tui_mm__center().mm_left(8)
+                _line.mm_height(1).mm_width(mm_w).mm_bottom(0)
                 _line.isHidden = false
             } else {
                 _idLabel.text = ""
@@ -148,6 +149,7 @@ class AddGroupItemView: UIView {
         addSubview(_line)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

@@ -149,8 +149,8 @@ class TUIGroupTypeListController: UIViewController, UITableViewDataSource, UITab
     private func setupData() {
         // work
         let dataWork = TUIGroupTypeData()
-        dataWork.groupType = GroupType_Work
-        dataWork.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Work)
+        dataWork.groupType = "Work"
+        dataWork.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Work")
         dataWork.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work")
         dataWork.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
         dataWork.caculateCellHeight()
@@ -158,8 +158,8 @@ class TUIGroupTypeListController: UIViewController, UITableViewDataSource, UITab
 
         // Public
         let dataPublic = TUIGroupTypeData()
-        dataPublic.groupType = GroupType_Public
-        dataPublic.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Public)
+        dataPublic.groupType = "Public"
+        dataPublic.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Public")
         dataPublic.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public")
         dataPublic.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
         dataPublic.caculateCellHeight()
@@ -167,8 +167,8 @@ class TUIGroupTypeListController: UIViewController, UITableViewDataSource, UITab
 
         // Meeting
         let dataMeeting = TUIGroupTypeData()
-        dataMeeting.groupType = GroupType_Meeting
-        dataMeeting.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Meeting)
+        dataMeeting.groupType = "Meeting"
+        dataMeeting.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Meeting")
         dataMeeting.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting")
         dataMeeting.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
         dataMeeting.caculateCellHeight()
@@ -176,8 +176,8 @@ class TUIGroupTypeListController: UIViewController, UITableViewDataSource, UITab
 
         // Community
         let dataCommunity = TUIGroupTypeData()
-        dataCommunity.groupType = GroupType_Community
-        dataCommunity.image = TUISwift.defaultGroupAvatarImage(byGroupType: GroupType_Community)
+        dataCommunity.groupType = "Community"
+        dataCommunity.image = TUISwift.defaultGroupAvatarImage(byGroupType: "Community")
         dataCommunity.title = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community")
         dataCommunity.describeText = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community_Desc") ?? "")\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
         dataCommunity.caculateCellHeight()

@@ -9,7 +9,7 @@ import TUICore
     @objc optional func didRecordTimeChanged(_ recorder: TUIAudioRecorder, _ time: TimeInterval)
 }
 
-public typealias TUICallServiceResultCallback = (Int, String, [AnyHashable: Any]) -> Void
+// public typealias TUICallServiceResultCallback = (Int32, String, [AnyHashable: Any]?) -> Void
 
 class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtocol {
     public weak var delegate: TUIAudioRecorderDelegate?
@@ -30,7 +30,7 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
     }
     
     private func configNotify() {
-        TUICore.registerEvent(TUICore_RecordAudioMessageNotify, subKey: TUICore_RecordAudioMessageNotify_RecordAudioVoiceVolumeSubKey, object: self)
+        TUICore.registerEvent("TUICore_RecordAudioMessageNotify", subKey: "TUICore_RecordAudioMessageNotify_RecordAudioVoiceVolumeSubKey", object: self)
     }
     
     // MARK: - Public Methods
@@ -187,7 +187,7 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
     // MARK: - Record audio using TUICallKit framework
 
     private func startCallKitRecording() -> Bool {
-        guard TUICore.getService(TUICore_TUIAudioMessageRecordService) != nil else {
+        guard TUICore.getService("TUIAudioMessageRecordService") != nil else {
             print("TUICallKit audio recording service does not exist")
             return false
         }
@@ -198,19 +198,19 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
         }
         
         var audioRecordParam: [String: Any] = [:]
-        audioRecordParam[TUICore_TUIAudioMessageRecordService_StartRecordAudioMessageMethod_SignatureKey] = signature
-        audioRecordParam[TUICore_TUIAudioMessageRecordService_StartRecordAudioMessageMethod_SdkappidKey] = TUILogin.getSdkAppID()
-        audioRecordParam[TUICore_TUIAudioMessageRecordService_StartRecordAudioMessageMethod_PathKey] = recordedFilePath
+        audioRecordParam["signature"] = signature
+        audioRecordParam["sdkappid"] = TUILogin.getSdkAppID()
+        audioRecordParam["path"] = recordedFilePath
         
         let startCallBack: TUICallServiceResultCallback = { [weak self] errorCode, _, param in
             guard let self = self else { return }
-            if let method = param["method"] as? String, method == TUICore_RecordAudioMessageNotify_StartRecordAudioMessageSubKey {
+            if let method = param["method"] as? String, method == "TUICore_RecordAudioMessageNotify_StartRecordAudioMessageSubKey" {
                 self.onTUICallKitRecordStarted(Int32(errorCode))
             }
         }
         
-        TUICore.callService(TUICore_TUIAudioMessageRecordService,
-                            method: TUICore_TUIAudioMessageRecordService_StartRecordAudioMessageMethod,
+        TUICore.callService("TUIAudioMessageRecordService",
+                            method: "TUICore_TUIAudioMessageRecordService_StartRecordAudioMessageMethod",
                             param: audioRecordParam,
                             resultCallback: startCallBack)
         
@@ -222,13 +222,13 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
     private func stopCallKitRecording() {
         let stopCallBack: TUICallServiceResultCallback = { [weak self] errorCode, _, param in
             guard let self = self else { return }
-            if let method = param["method"] as? String, method == TUICore_RecordAudioMessageNotify_StopRecordAudioMessageSubKey {
+            if let method = param["method"] as? String, method == "TUICore_RecordAudioMessageNotify_StopRecordAudioMessageSubKey" {
                 self.onTUICallKitRecordCompleted(Int32(errorCode))
             }
         }
         
-        TUICore.callService(TUICore_TUIAudioMessageRecordService,
-                            method: TUICore_TUIAudioMessageRecordService_StopRecordAudioMessageMethod,
+        TUICore.callService("TUIAudioMessageRecordService",
+                            method: "TUICore_TUIAudioMessageRecordService_StopRecordAudioMessageMethod",
                             param: nil,
                             resultCallback: stopCallBack)
         
@@ -238,12 +238,12 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
     // MARK: - TUINotificationProtocol
     
     func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
-        guard key == TUICore_RecordAudioMessageNotify, let param = param else {
+        guard key == "TUICore_RecordAudioMessageNotify", let param = param else {
             print("TUICallKit notify param is invalid")
             return
         }
         
-        if subKey == TUICore_RecordAudioMessageNotify_RecordAudioVoiceVolumeSubKey {
+        if subKey == "TUICore_RecordAudioMessageNotify_RecordAudioVoiceVolumeSubKey" {
             if let volume = param["volume"] as? UInt {
                 onTUICallKitVolumeChanged(volume)
             }

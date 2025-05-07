@@ -40,7 +40,7 @@ class TUIMoreView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
         moreFlowLayout.sectionInset = UIEdgeInsets(top: 0, left: CGFloat(TMoreView_Section_Padding), bottom: 0, right: CGFloat(TMoreView_Section_Padding))
         
         moreCollectionView = UICollectionView(frame: .zero, collectionViewLayout: moreFlowLayout)
-        moreCollectionView.register(TUIInputMoreCell.self, forCellWithReuseIdentifier: TMoreCell_ReuseId)
+        moreCollectionView.register(TUIInputMoreCell.self, forCellWithReuseIdentifier: "TMoreCell")
         moreCollectionView.isPagingEnabled = true
         moreCollectionView.delegate = self
         moreCollectionView.dataSource = self
@@ -63,10 +63,10 @@ class TUIMoreView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
     private func defaultLayout() {
         let cellSize = TUIInputMoreCell.getSize()
         let cellHeight = cellSize.height * CGFloat(rowCount)
-        let cellMargin = CGFloat(TMoreView_Margin * Int32(rowCount - 1))
+        let cellMargin = CGFloat(TMoreView_Margin) * CGFloat(rowCount - 1)
         let collectionHeight = cellHeight + cellMargin
         
-        lineView.frame = CGRect(x: 0, y: 0, width: self.frame.size.width, height: TLine_Heigh)
+        lineView.frame = CGRect(x: 0, y: 0, width: self.frame.size.width, height: TUISwift.tLine_Height())
         moreCollectionView.frame = CGRect(x: 0, y: lineView.frame.origin.y + lineView.frame.size.height + CGFloat(TMoreView_Margin), width: self.frame.size.width, height: collectionHeight)
         
         if sectionCount > 1 {
@@ -132,7 +132,7 @@ class TUIMoreView: UIView, UICollectionViewDelegate, UICollectionViewDataSource,
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TMoreCell_ReuseId, for: indexPath) as! TUIInputMoreCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TMoreCell", for: indexPath) as! TUIInputMoreCell
         let index = itemIndexs[indexPath] ?? 0
         let data = index >= self.data.count ? nil : self.data[index]
         cell.fill(with: data)

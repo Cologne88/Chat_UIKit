@@ -20,7 +20,7 @@ class TUIImageReplyQuoteViewData: TUIReplyQuoteViewData {
 
         let myData = TUIImageReplyQuoteViewData()
         var thumb: V2TIMImage?
-        for image in originCellData.innerMessage.imageElem?.imageList ?? [] {
+        for image in originCellData.innerMessage?.imageElem?.imageList ?? [] {
             if image.type == .IMAGE_TYPE_THUMB {
                 thumb = image
                 break

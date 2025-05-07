@@ -89,7 +89,7 @@ class TUIChatPopContextExtensionView: UIView {
         subviews.forEach { $0.removeFromSuperview() }
         for (i, item) in items.enumerated() {
             let itemView = TUIChatPopContextExtensionItemView()
-            itemView.frame = CGRect(x: 0, y: (TUISwift.kScale390(40)) * CGFloat(i) + topBottomMargin, width: TUISwift.kScale390(180), height: TUISwift.kScale390(40))
+            itemView.frame = CGRect(x: 0, y: TUISwift.kScale390(40) * CGFloat(i) + topBottomMargin, width: TUISwift.kScale390(180), height: TUISwift.kScale390(40))
             itemView.configBaseUI(with: item)
             addSubview(itemView)
         }

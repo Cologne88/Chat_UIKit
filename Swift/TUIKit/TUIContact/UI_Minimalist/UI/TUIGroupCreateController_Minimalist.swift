@@ -17,7 +17,7 @@ class TUIGroupPortraitSelectAvatarCollectionCell_Minimalist: UICollectionViewCel
 
     lazy var selectedView: UIImageView = {
         let selectedView = UIImageView(frame: .zero)
-        selectedView.image = UIImage(named: TUISwift.timCommonImagePath("icon_avatar_selected"))
+        selectedView.image = UIImage.safeImage(TUISwift.timCommonImagePath("icon_avatar_selected"))
         return selectedView
     }()
 
@@ -75,7 +75,7 @@ class TUIGroupPortraitSelectAvatarCollectionCell_Minimalist: UICollectionViewCel
         if cardItem.isGroupGridAvatar {
             updateNormalGroupGridAvatar()
         } else {
-            imageView.sd_setImage(with: URL(string: cardItem.posterUrlStr),
+            imageView.sd_setImage(with: URL(string: cardItem.posterUrlStr ?? ""),
                                   placeholderImage: TUISwift.timCommonBundleThemeImage("default_c2c_head_img", defaultImage: "default_c2c_head_img"))
         }
     }
@@ -287,6 +287,8 @@ class TUIGroupCreatePortrait_Minimalist: UIView, UICollectionViewDelegate, UICol
 }
 
 class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSource, UITableViewDelegate, UITextFieldDelegate, TUIFloatSubViewControllerProtocol {
+    var floatDataSourceChanged: (([Any]) -> Void)?
+    
     var createGroupInfo: V2TIMGroupInfo?
     var createContactArray: [TUICommonContactSelectCellData]?
     var submitCallback: ((Bool, V2TIMGroupInfo?, UIImage?) -> Void)?
@@ -327,7 +329,7 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        tableView.mm_width()(view.mm_w)!.mm_flexToBottom()(0)
+        tableView.mm_width(view.mm_w).mm_flexToBottom(0)
     }
 
     override func viewDidLoad() {
@@ -424,7 +426,8 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
         ]
         let attributedString = NSMutableAttributedString(string: descStr, attributes: dictionary)
         attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: NSRange(location: 0, length: descStr.count))
-        if let inviteTipstring = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Desc_Highlight") {
+        let inviteTipstring = TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Desc_Highlight")
+        if inviteTipstring.count > 0 {
             attributedString.addAttribute(.link, value: "https://cloud.tencent.com/product/im", range: (descStr as NSString).range(of: inviteTipstring))
         }
         describeTextView.attributedText = attributedString
@@ -454,10 +457,10 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
 
         if section == 1 {
             view.addSubview(describeTextView)
-            describeTextView.mm_width()(describeTextViewRect.size.width)?
-                .mm_height()(describeTextViewRect.size.height)?
-                .mm_top()(TUISwift.kScale390(12))?
-                .mm_left()(TUISwift.kScale390(13))
+            describeTextView.mm_width(describeTextViewRect.size.width)
+                .mm_height(describeTextViewRect.size.height)
+                .mm_top(TUISwift.kScale390(12))
+                .mm_left(TUISwift.kScale390(13))
         }
         return view
     }
@@ -501,10 +504,6 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if section == 0 {
-            if createGroupInfo?.groupType == "Community" {
-                groupIDTextField.text = ""
-                return 1
-            }
             return 2
         }
         return 1
@@ -566,8 +565,7 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
             }
             createPortraitView.onClick = { [weak self] data in
                 guard let self = self else { return }
-                let urlStr = data.posterUrlStr
-                if !urlStr.isEmpty {
+                if let urlStr = data.posterUrlStr {
                     self.createGroupInfo?.faceURL = urlStr
                 } else {
                     self.createGroupInfo?.faceURL = nil
@@ -604,7 +602,7 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
             vc.title = ""
             let floatVC = TUIFloatViewController()
             floatVC.appendChildViewController(vc, topMargin: TUISwift.kScale390(87.5))
-            floatVC.topGestureView.setTitleText(TUISwift.timCommonLocalizableString("TUIKitGroupProfileType"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
+            floatVC.topGestureView.setTitleText(mainText: TUISwift.timCommonLocalizableString("TUIKitGroupProfileType"), subTitleText: "", leftBtnText: TUISwift.timCommonLocalizableString("TUIKitCreateCancel"), rightBtnText: "")
             floatVC.topGestureView.rightButton.isHidden = true
             floatVC.topGestureView.subTitleLabel.isHidden = true
             present(floatVC, animated: true, completion: nil)
@@ -617,7 +615,7 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
                 self.tableView.reloadData()
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    floatVC.floatDismiss(animated: true, completion: {})
+                    floatVC.floatDismissViewControllerAnimated(true, completion: {})
                 }
             }
         } else if indexPath.section == 2 {
@@ -640,18 +638,10 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
     }
 
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        // Check for total length
         if textField == groupIDTextField {
-            let lengthOfString = string.count
-            for character in string {
-                if character < "0" || (character > "9" && character < "A") || (character > "Z" && character < "a") || character > "z" {
-                    return false
-                }
-            }
-            // Check for total length
             let currentText = textField.text ?? ""
-            let proposedNewLength = currentText.count - range.length + lengthOfString
-            if proposedNewLength > 10 {
+            let proposedNewLength = currentText.count - range.length + string.count
+            if proposedNewLength > 16 {
                 return false
             }
             return true
@@ -669,16 +659,16 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
         var desc = ""
         switch groupType {
         case "Work":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Work"), desc)
         case "Public":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Public"), desc)
         case "Meeting":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Meeting"), desc)
         case "Community":
-            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community_Desc") ?? "")\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc") ?? "")"
+            desc = "\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community_Desc"))\n\(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_See_Doc"))"
             completion(TUISwift.timCommonLocalizableString("TUIKitCreatGroupType_Community"), desc)
         default:
             completion(groupType, groupType)
@@ -690,7 +680,7 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
     private func didTapToChooseAvatar() {
         let vc = TUISelectAvatarController()
         vc.selectAvatarType = .groupAvatar
-        vc.createGroupType = createGroupInfo?.groupType ?? GroupType_Public
+        vc.createGroupType = createGroupInfo?.groupType ?? "Public"
         vc.cacheGroupGridAvatarImage = cacheGroupGridAvatarImage ?? UIImage()
         vc.profilFaceURL = createGroupInfo?.faceURL ?? ""
         navigationController?.pushViewController(vc, animated: true)
@@ -738,7 +728,7 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
 
         let showName = TUILogin.getNickName() ?? TUILogin.getUserID()
 
-        V2TIMManager.sharedInstance().createGroup(info, memberList: members, succ: { [weak self] groupID in
+        V2TIMManager.sharedInstance().createGroup(info: info, memberList: members, succ: { [weak self] groupID in
             guard let self = self else { return }
             var content = TUISwift.timCommonLocalizableString("TUIGroupCreateTipsMessage")
             if info.groupType == "Community" {
@@ -746,14 +736,16 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
             }
             let dic: [String: Any] = [
                 "version": GroupCreate_Version,
-                BussinessID: BussinessID_GroupCreate,
+                "businessID": "group_create",
                 "opUser": showName ?? "",
-                "content": content ?? "",
+                "content": content,
                 "cmd": info.groupType == "Community" ? 1 : 0
             ]
-            let data = try? JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted)
-            let msg = V2TIMManager.sharedInstance().createCustomMessage(data)
-            V2TIMManager.sharedInstance().send(msg, receiver: nil, groupID: groupID, priority: .PRIORITY_DEFAULT, onlineUserOnly: false, offlinePushInfo: nil, progress: nil, succ: nil, fail: nil)
+            if let data = try? JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted),
+               let msg = V2TIMManager.sharedInstance().createCustomMessage(data: data)
+            {
+                _ = V2TIMManager.sharedInstance().sendMessage(message: msg, receiver: nil, groupID: groupID, priority: .PRIORITY_DEFAULT, onlineUserOnly: false, offlinePushInfo: nil, progress: nil, succ: nil, fail: nil)
+            }
             self.createGroupInfo?.groupID = groupID
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 self.submitCallback?(true, self.createGroupInfo, self.submitShowImage)
@@ -764,8 +756,8 @@ class TUIGroupCreateController_Minimalist: UIViewController, UITableViewDataSour
             if code == ERR_SDK_INTERFACE_NOT_SUPPORT.rawValue {
                 TUITool.postUnsupportNotification(ofService: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunity"), serviceDesc: TUISwift.timCommonLocalizableString("TUIKitErrorUnsupportIntefaceCommunityDesc"), debugOnly: true)
             } else {
-                var toastMsg = TUITool.convertIMError(Int(code), msg: msg)
-                if toastMsg?.count == 0 {
+                var toastMsg = TUITool.convertIMError(Int(code), msg: msg) ?? ""
+                if toastMsg.count == 0 {
                     toastMsg = "\(code)"
                 }
                 TUITool.hideToastActivity()

@@ -102,10 +102,12 @@ class TUIUserProfileController_Minimalist: UITableViewController, TUIContactProf
 
         dataList = list
 
-        if actionType == .PCA_ADD_FRIEND_MINI {
-            V2TIMManager.sharedInstance().checkFriend([userFullInfo?.userID ?? ""], check: .FRIEND_TYPE_BOTH, succ: { resultList in
-                guard let resultList = resultList else { return }
-                guard let result = resultList.first else { return }
+        if actionType == .PCA_ADD_FRIEND_MINI,
+           let userFullInfo = userFullInfo,
+           let userID = userFullInfo.userID
+        {
+            V2TIMManager.sharedInstance().checkFriend(userIDList: [userID], checkType: .FRIEND_TYPE_BOTH, succ: { resultList in
+                guard let result = resultList?.first else { return }
                 if result.relationType == .FRIEND_RELATION_TYPE_IN_MY_FRIEND_LIST || result.relationType == .FRIEND_RELATION_TYPE_BOTH_WAY {
                     return
                 }
@@ -115,7 +117,7 @@ class TUIUserProfileController_Minimalist: UITableViewController, TUIContactProf
                         inlist.append({
                             let data = TUIContactButtonCellData_Minimalist()
                             data.title = TUISwift.timCommonLocalizableString("FriendAddTitle")
-                            data.style = .ButtonBule
+                            data.style = .blue
                             data.textColor = UIColor.tui_color(withHex: "#147AFF")
                             data.cbuttonSelector = #selector(self.onAddFriend)
                             data.reuseId = "ButtonCell"
@@ -160,7 +162,7 @@ class TUIUserProfileController_Minimalist: UITableViewController, TUIContactProf
                 inlist.append({
                     let data = TUIContactButtonCellData_Minimalist()
                     data.title = TUISwift.timCommonLocalizableString("Accept")
-                    data.style = .ButtonWhite
+                    data.style = .white
                     data.textColor = TUISwift.timCommonDynamicColor("primary_theme_color", defaultColor: "#147AFF")
                     data.cbuttonSelector = #selector(self.onAgreeGroup)
                     data.reuseId = "ButtonCell"
@@ -169,7 +171,7 @@ class TUIUserProfileController_Minimalist: UITableViewController, TUIContactProf
                 inlist.append({
                     let data = TUIContactButtonCellData_Minimalist()
                     data.title = TUISwift.timCommonLocalizableString("Decline")
-                    data.style = .ButtonRedText
+                    data.style = .redText
                     data.cbuttonSelector = #selector(self.onRejectGroup)
                     data.reuseId = "ButtonCell"
                     return data

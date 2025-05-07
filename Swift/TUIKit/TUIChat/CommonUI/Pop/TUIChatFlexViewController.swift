@@ -1,4 +1,5 @@
 import TIMCommon
+import TUICore
 import UIKit
 
 enum FLEXLocation: UInt {
@@ -6,7 +7,7 @@ enum FLEXLocation: UInt {
     case bottom
 }
 
-class TUIChatFlexViewController: UIViewController {
+open class TUIChatFlexViewController: UIViewController {
     var topImgView: UIImageView!
     private var singleTap: UITapGestureRecognizer!
     private let topMargin: CGFloat = TUISwift.navBar_Height() + 30
@@ -22,14 +23,14 @@ class TUIChatFlexViewController: UIViewController {
         }
     }
 
-    lazy var containerView: UIView = {
+    public lazy var containerView: UIView = {
         let view = UIView()
         view.layer.cornerRadius = TUISwift.kScale390(12)
         self.view.addSubview(view)
         return view
     }()
 
-    lazy var topGestureView: UIView = {
+    public lazy var topGestureView: UIView = {
         let view = UIView()
         view.addGestureRecognizer(panCover)
         containerView.addSubview(view)
@@ -41,22 +42,22 @@ class TUIChatFlexViewController: UIViewController {
         return pan
     }()
 
-    init() {
+    public init() {
         super.init(nibName: nil, bundle: nil)
     }
 
     @available(*, unavailable)
-    required init?(coder aDecoder: NSCoder) {
+    public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func viewDidLoad() {
+    override open func viewDidLoad() {
         super.viewDidLoad()
 
-        view.backgroundColor = TUISwift.rgb(0, green: 0, blue: 0, alpha: 0.5)
+        view.backgroundColor = TUISwift.rgba(0, g: 0, b: 0, a: 0.5)
         containerView.backgroundColor = .white
 
-        topImgView = UIImageView(image: UIImage(named: TUISwift.tuiChatImagePath_Minimalist("icon_flex_arrow")))
+        topImgView = UIImageView(image: UIImage.safeImage(TUISwift.tuiChatImagePath_Minimalist("icon_flex_arrow")))
         topGestureView.addSubview(topImgView)
 
         addSingleTapGesture()
@@ -85,17 +86,8 @@ class TUIChatFlexViewController: UIViewController {
         currentLocation = .top
     }
 
-    func setNormalBottom() {
+    public func setNormalBottom() {
         currentLocation = .bottom
-    }
-
-    private func setCurrentLocation(_ location: FLEXLocation) {
-        currentLocation = location
-        if location == .top {
-            containerView.frame = CGRect(x: 0, y: topMargin, width: view.frame.size.width, height: view.frame.size.height - topMargin)
-        } else if location == .bottom {
-            containerView.frame = CGRect(x: 0, y: view.frame.size.height - TUISwift.kScale390(393), width: view.frame.size.width, height: TUISwift.kScale390(393))
-        }
     }
 
     // MARK: - Lazy Loading
@@ -144,7 +136,7 @@ class TUIChatFlexViewController: UIViewController {
         }
     }
 
-    func updateSubContainerView() {
+    open func updateSubContainerView() {
         topGestureView.frame = CGRect(x: 0, y: 0, width: containerView.frame.size.width, height: TUISwift.kScale390(40))
         topImgView.frame = CGRect(x: (topGestureView.frame.size.width - TUISwift.kScale390(24)) * 0.5, y: TUISwift.kScale390(22), width: TUISwift.kScale390(24), height: TUISwift.kScale390(6))
     }

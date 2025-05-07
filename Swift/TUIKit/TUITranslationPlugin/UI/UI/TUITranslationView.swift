@@ -21,7 +21,11 @@ class TUITranslationView: UIView {
         self.init(frame: CGRect.zero)
         self.cellData = data
         
-        let shouldShow = TUITranslationDataProvider.shouldShowTranslation(data.innerMessage)
+        var shouldShow = false
+        if let msg = data.innerMessage {
+            shouldShow = TUITranslationDataProvider.shouldShowTranslation(msg)
+        }
+        
         if shouldShow {
             refresh(with: data)
         } else {
@@ -46,15 +50,18 @@ class TUITranslationView: UIView {
     }
     
     private func refresh(with cellData: TUIMessageCellData) {
-        text = TUITranslationDataProvider.getTranslationText(cellData.innerMessage)
-        let status = TUITranslationDataProvider.getTranslationStatus(cellData.innerMessage)
+        var status = TUITranslationViewStatus.unknown
+        if let msg = cellData.innerMessage {
+            text = TUITranslationDataProvider.getTranslationText(msg)
+            status = TUITranslationDataProvider.getTranslationStatus(msg)
+        }
         
         let size = calcSize(of: status)
         if !cellData.bottomContainerSize.equalTo(size) {
             notifyTranslationChanged()
         }
         cellData.bottomContainerSize = size
-        mm_top()(0)?.mm_left()(0)?.mm_width()(size.width)?.mm_height()(size.height)
+        mm_top(0).mm_left(0).mm_width(size.width).mm_height(size.height)
 //        snp.makeConstraints { make in
 //            make.top.left.equalTo(0)
 //            make.width.equalTo(size.width)
@@ -83,8 +90,8 @@ class TUITranslationView: UIView {
         if status == .loading {
             return CGSize(width: 80, height: oneLineTextHeight + commonMargins)
         }
-        
-        let attrStr = text?.getAdvancedFormatEmojiString(with: UIFont.systemFont(ofSize: 16), textColor: .gray, emojiLocations: nil) ?? NSAttributedString()
+        var locations: [[NSValue: NSAttributedString]]? = nil
+        let attrStr = text?.getAdvancedFormatEmojiString(withFont: UIFont.systemFont(ofSize: 16), textColor: .gray, emojiLocations: &locations) ?? NSAttributedString()
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineBreakMode = .byWordWrapping
         paragraphStyle.alignment = .left
@@ -134,7 +141,7 @@ class TUITranslationView: UIView {
         addSubview(tipsLabel)
         tipsLabel.isHidden = true
         
-        retryView.image = UIImage(named: TUISwift.tuiChatImagePath("msg_error"))
+        retryView.image = UIImage.safeImage(TUISwift.tuiChatImagePath("msg_error"))
         retryView.isHidden = true
         addSubview(retryView)
     }
@@ -159,7 +166,7 @@ class TUITranslationView: UIView {
             }
         } else {
             retryView.snp.remakeConstraints { make in
-                if cellData?.direction == .MsgDirectionOutgoing {
+                if cellData?.direction == .outgoing {
                     make.leading.equalToSuperview().offset(-27)
                 } else {
                     make.trailing.equalToSuperview().offset(27)
@@ -192,15 +199,16 @@ class TUITranslationView: UIView {
         var textColor = TUISwift.tuiTranslationDynamicColor("translation_view_text_color", defaultColor: "#000000")
         var bgColor = TUISwift.tuiTranslationDynamicColor("translation_view_bg_color", defaultColor: "#F2F7FF")
         if status == .securityStrike {
-            bgColor = UIColor.tui_color(withHex: "#FA5151", alpha: 0.16)
+            bgColor = UIColor.tui_color(withHex: "#FA5151", alpha: 0.16) ?? UIColor()
             textColor = TUISwift.tuiTranslationDynamicColor("", defaultColor: "#DA2222")
         }
         self.bgColor = bgColor
         backgroundColor = bgColor
         
         if isTranslated {
-            let originAttributedText = text?.getAdvancedFormatEmojiString(with: UIFont.systemFont(ofSize: 16), textColor: textColor!, emojiLocations: nil) ?? NSAttributedString()
-            textView.attributedText = TUISwift.isRTL() ? rtlAttributeString(originAttributedText, .right) : originAttributedText
+            var locations: [[NSValue: NSAttributedString]]? = nil
+            let originAttributedText = text?.getAdvancedFormatEmojiString(withFont: UIFont.systemFont(ofSize: 16), textColor: textColor, emojiLocations: &locations) ?? NSAttributedString()
+            textView.attributedText = TUISwift.isRTL() ? rtlAttributeString(originAttributedText, textAlignment: .right) : originAttributedText
         }
         textView.isHidden = !isTranslated
         tipsIcon.isHidden = !isTranslated
@@ -237,9 +245,12 @@ class TUITranslationView: UIView {
         }
         
         let popMenu = TUIChatPopMenu()
-        let status = TUITranslationDataProvider.getTranslationStatus(cellData.innerMessage)
-        let hasRiskContent = (status == .securityStrike)
-        
+        var hasRiskContent = false
+        if let msg = cellData.innerMessage {
+            let status = TUITranslationDataProvider.getTranslationStatus(msg)
+            hasRiskContent = (status == .securityStrike)
+        }
+
         let copy = TUIChatPopMenuAction(title: TUISwift.timCommonLocalizableString("Copy"), image: TUISwift.tuiTranslationBundleThemeImage("translation_view_pop_menu_copy_img", defaultImage: "icon_copy"), weight: 1) { [weak self] in
             self?.onCopy(self?.text)
         }
@@ -296,13 +307,13 @@ class TUITranslationView: UIView {
     }
     
     private func notifyTranslationForward(_ text: String?) {
-        let param: [String: Any] = [TUICore_TUIPluginNotify_WillForwardTextSubKey_Text: text ?? ""]
-        TUICore.notifyEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_WillForwardTextSubKey, object: nil, param: param)
+        let param: [String: Any] = ["TUICore_TUIPluginNotify_WillForwardTextSubKey_Text": text ?? ""]
+        TUICore.notifyEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_WillForwardTextSubKey", object: nil, param: param)
     }
     
     private func notifyTranslationChanged() {
-        let param: [String: Any] = [TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data: cellData as Any, TUICore_TUIPluginNotify_DidChangePluginViewSubKey_VC: self]
-        TUICore.notifyEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_DidChangePluginViewSubKey, object: nil, param: param)
+        let param: [String: Any] = ["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data": cellData as Any, "TUICore_TUIPluginNotify_DidChangePluginViewSubKey_VC": self]
+        TUICore.notifyEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_DidChangePluginViewSubKey", object: nil, param: param)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.setNeedsUpdateConstraints()
             self.updateConstraintsIfNeeded()

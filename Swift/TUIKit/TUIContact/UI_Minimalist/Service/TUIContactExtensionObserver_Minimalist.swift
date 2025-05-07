@@ -2,11 +2,10 @@
 //  TUIContact
 
 import Foundation
-import UIKit
 import TIMCommon
+import UIKit
 
 public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProtocol, TUINotificationProtocol {
-    
     var tag: Int = 0
     var pushVC: UINavigationController?
     var groupId: String?
@@ -14,8 +13,8 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
     var membersData: [TUIGroupMemberCellData_Minimalist] = []
     
     @objc public class func swiftLoad() {
-        TUICore.registerExtension(TUICore_TUIChatExtension_GroupProfileMemberListExtension_MinimalistExtensionID, object: sharedInstance)
-        TUICore.registerExtension(TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_MinimalistExtensionID, object: sharedInstance)
+        TUICore.registerExtension("TUICore_TUIChatExtension_GroupProfileMemberListExtension_MinimalistExtensionID", object: sharedInstance)
+        TUICore.registerExtension("TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_MinimalistExtensionID", object: sharedInstance)
         TUICore.registerExtension(TUICore_TUIChatExtension_GroupProfileBottomItemExtension_MinimalistExtensionID, object: sharedInstance)
     }
     
@@ -30,27 +29,30 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
     }
     
     func configNotify() {
-        TUICore.registerEvent(TUICore_TUIContactNotify, subKey: TUICore_TUIContactNotify_OnAddMemebersClickSubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIContactNotify", subKey: "TUICore_TUIContactNotify_OnAddMemebersClickSubKey", object: self)
     }
     
     // MARK: - TUINotificationProtocol
+
     public func onNotifyEvent(_ key: String, subKey: String, object: Any?, param: [AnyHashable: Any]?) {
-        if key == TUICore_TUIContactNotify && subKey == TUICore_TUIContactNotify_OnAddMemebersClickSubKey {
+        if key == "TUICore_TUIContactNotify" && subKey == "TUICore_TUIContactNotify_OnAddMemebersClickSubKey" {
             didAddMemebers()
         }
     }
     
     // MARK: - TUIExtensionProtocol
+
     public func onRaiseExtension(_ extensionID: String, parentView: UIView, param: [AnyHashable: Any]?) -> Bool {
-        if extensionID == TUICore_TUIChatExtension_GroupProfileMemberListExtension_MinimalistExtensionID {
+        if extensionID == "TUICore_TUIChatExtension_GroupProfileMemberListExtension_MinimalistExtensionID" {
             guard let data = param?["data"] as? TUIGroupMemberCellData_Minimalist,
                   let groupID = param?["groupID"] as? String,
                   let pushVC = param?["pushVC"] as? UINavigationController,
-                  let membersData = param?["membersData"] as? [TUIGroupMemberCellData_Minimalist] else {
+                  let membersData = param?["membersData"] as? [TUIGroupMemberCellData_Minimalist]
+            else {
                 return false
             }
             
-            self.groupId = groupID
+            groupId = groupID
             self.pushVC = pushVC
             self.membersData = membersData
             
@@ -74,7 +76,7 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
         if extensionID.isEmpty {
             return nil
         }
-        if extensionID == TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_MinimalistExtensionID {
+        if extensionID == "TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_MinimalistExtensionID" {
             return getGroupProfileSettingsItemExtensionForMinimalistChat(param)
         } else if extensionID == TUICore_TUIChatExtension_GroupProfileBottomItemExtension_MinimalistExtensionID {
             return getGroupProfileBottomItemExtensionForMinimalist(param)
@@ -86,7 +88,8 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
     func getGroupProfileSettingsItemExtensionForMinimalistChat(_ param: [AnyHashable: Any]?) -> [TUIExtensionInfo]? {
         guard let param = param as? [String: Any],
               let groupID = param["groupID"] as? String, !groupID.isEmpty,
-              let pushVC = param["pushVC"] as? UINavigationController else {
+              let pushVC = param["pushVC"] as? UINavigationController
+        else {
             return nil
         }
         
@@ -94,7 +97,7 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
         info.icon = nil
         info.weight = 100
         info.text = TUISwift.timCommonLocalizableString("TUIKitGroupProfileManage")
-        info.onClicked = { clickParam in
+        info.onClicked = { _ in
             let vc = TUIGroupManageController_Minimalist()
             vc.groupID = groupID
             pushVC.pushViewController(vc, animated: true)
@@ -106,7 +109,8 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
         guard let param = param as? [String: Any],
               let groupID = param["groupID"] as? String, !groupID.isEmpty,
               let updateGroupInfoCallback = param["updateGroupInfoCallback"] as? (() -> Void),
-              let pushVC = param["pushVC"] as? UINavigationController else {
+              let pushVC = param["pushVC"] as? UINavigationController
+        else {
             return nil
         }
         
@@ -114,7 +118,7 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
         info.icon = nil
         info.weight = 100
         info.text = TUISwift.timCommonLocalizableString("TUIKitGroupTransferOwner")
-        info.onClicked = { clickParam in
+        info.onClicked = { _ in
             let vc = TUISelectGroupMemberViewController_Minimalist()
             vc.optionalStyle = .transferOwner
             vc.groupId = groupID
@@ -135,7 +139,7 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
     }
     
     func transferGroupOwner(_ groupID: String, member: String, succ: @escaping () -> Void, fail: @escaping (Int, String) -> Void) {
-        V2TIMManager.sharedInstance().transferGroupOwner(groupID, member: member, succ: {
+        V2TIMManager.sharedInstance().transferGroupOwner(groupID: groupID, memberUserID: member, succ: {
             succ()
         }, fail: { code, desc in
             fail(Int(code), desc ?? "")
@@ -143,13 +147,14 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
     }
     
     // MARK: Click
+
     func didAddMemebers() {
         var ids: [String] = []
         var displayNames: [String: String] = [:]
         for cd in membersData {
-            if cd.identifier != V2TIMManager.sharedInstance().getLoginUser() {
-                ids.append(cd.identifier)
-                displayNames[cd.identifier] = cd.name ?? ""
+            if let identifier = cd.identifier, identifier != V2TIMManager.sharedInstance().getLoginUser() {
+                ids.append(identifier)
+                displayNames[identifier] = cd.name ?? ""
             }
         }
         
@@ -172,12 +177,12 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
         }
         
         var param: [String: Any] = [:]
-        param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey] = TUISwift.timCommonLocalizableString("GroupAddFirend")
-        param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey] = ids
-        param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey] = displayNames
-        param[TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey] = selectContactCompletion
+        param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey"] = TUISwift.timCommonLocalizableString("GroupAddFirend")
+        param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey"] = ids
+        param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisplayNamesKey"] = displayNames
+        param["TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey"] = selectContactCompletion
         
-        if let vc = TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController {
+        if let vc = TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController {
             pushVC?.pushViewController(vc, animated: true)
         }
         tag = 1
@@ -188,32 +193,33 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
         var ids: [String] = []
         var displayNames: [String: String] = [:]
         for cd in membersData {
-            if cd.identifier != V2TIMManager.sharedInstance().getLoginUser() {
-                ids.append(cd.identifier)
-                displayNames[cd.identifier] = cd.name ?? ""
+            if let identifier = cd.identifier, identifier != V2TIMManager.sharedInstance().getLoginUser() {
+                ids.append(identifier)
+                displayNames[identifier] = cd.name ?? ""
             }
         }
         
-        let userID = mem.identifier
-        getUserOrFriendProfileVCWithUserID(userID, succ: { vc in
-            self.pushVC?.pushViewController(vc, animated: true)
-        }, fail: { code, desc in
-            // Handle failure
-        })
+        if let userID = mem.identifier {
+            getUserOrFriendProfileVCWithUserID(userID, succ: { vc in
+                self.pushVC?.pushViewController(vc, animated: true)
+            }, fail: { _, _ in
+                // Handle failure
+            })
+        }
     }
     
     func getUserOrFriendProfileVCWithUserID(_ userID: String, succ: @escaping (UIViewController) -> Void, fail: @escaping (Int, String) -> Void) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succ,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: fail
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succ,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": fail
         ]
-        TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
     
     func addGroupId(_ groupId: String?, members: [String]) {
         guard let groupId = groupId else { return }
-        V2TIMManager.sharedInstance().inviteUser(toGroup: groupId, userList: members, succ: { resultList in
+        V2TIMManager.sharedInstance().inviteUserToGroup(groupID: groupId, userList: members, succ: { _ in
             TUITool.makeToast(TUISwift.timCommonLocalizableString("add_success"))
         }, fail: { code, desc in
             TUITool.makeToastError(Int(code), msg: desc)
@@ -222,7 +228,7 @@ public class TUIContactExtensionObserver_Minimalist: NSObject, TUIExtensionProto
     
     func deleteGroupId(_ groupId: String?, members: [String]) {
         guard let groupId = groupId else { return }
-        V2TIMManager.sharedInstance().kickGroupMember(groupId, memberList: members, reason: "", succ: { resultList in
+        V2TIMManager.sharedInstance().kickGroupMember(groupId, memberList: members, reason: "", succ: { _ in
             TUITool.makeToast(TUISwift.timCommonLocalizableString("delete_success"))
         }, fail: { code, desc in
             TUITool.makeToastError(Int(code), msg: desc)

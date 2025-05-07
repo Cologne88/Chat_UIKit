@@ -30,6 +30,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
     private(set) var profileCellData: TUIProfileCardCellData?
     private(set) var selfInfo: V2TIMGroupMemberFullInfo?
     private var groupID: String
+    private var firstLoadData: Bool = false
 
     init(groupID: String) {
         self.groupID = groupID
@@ -39,24 +40,24 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
     // MARK: - V2TIMGroupListener
 
-    func onMemberEnter(_ groupID: String, memberList: [V2TIMGroupMemberInfo]) {
+    func onMemberEnter(groupID: String?, memberList: [V2TIMGroupMemberInfo]) {
         loadData()
     }
 
-    func onMemberLeave(_ groupID: String, member: V2TIMGroupMemberInfo) {
+    func onMemberLeave(groupID: String?, member: V2TIMGroupMemberInfo) {
         loadData()
     }
 
-    func onMemberInvited(_ groupID: String, opUser: V2TIMGroupMemberInfo, memberList: [V2TIMGroupMemberInfo]) {
+    func onMemberInvited(groupID: String?, opUser: V2TIMGroupMemberInfo, memberList: [V2TIMGroupMemberInfo]) {
         loadData()
     }
 
-    func onMemberKicked(_ groupID: String, opUser: V2TIMGroupMemberInfo, memberList: [V2TIMGroupMemberInfo]) {
+    func onMemberKicked(groupID: String?, opUser: V2TIMGroupMemberInfo, memberList: [V2TIMGroupMemberInfo]) {
         loadData()
     }
 
-    func onGroupInfoChanged(_ groupID: String, changeInfoList: [V2TIMGroupChangeInfo]) {
-        guard groupID == self.groupID else { return }
+    func onGroupInfoChanged(groupID: String?, changeInfoList: [V2TIMGroupChangeInfo]) {
+        guard groupID == groupID else { return }
         loadData()
     }
 
@@ -65,6 +66,8 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
             TUITool.makeToastError(Int(ERR_INVALID_PARAMETERS.rawValue), msg: "invalid groupID")
             return
         }
+
+        firstLoadData = true
 
         let group = DispatchGroup()
         group.enter()
@@ -90,57 +93,70 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
     func updateGroupInfo() {
         V2TIMManager.sharedInstance().getGroupsInfo([groupID]) { [weak self] groupResultList in
-            guard let self = self, groupResultList?.count == 1 else { return }
-            self.groupInfo = groupResultList?[0].info
+            guard let self = self,
+                  let groupResultList = groupResultList, groupResultList.count == 1 else { return }
+            self.groupInfo = groupResultList[0].info
             self.setupData()
-        } fail: { code, msg in
-            TUITool.makeToastError(Int(code), msg: msg)
+        } fail: { [weak self] code, msg in
+            guard let self else { return }
+            self.makeToastError(Int(code), msg: msg ?? "")
+        }
+    }
+
+    func makeToastError(_ code: Int, msg: String) {
+        if !firstLoadData {
+            TUITool.makeToastError(code, msg: msg)
         }
     }
 
     func transferGroupOwner(_ groupID: String, member: String, succ: @escaping V2TIMSucc, fail: @escaping V2TIMFail) {
-        V2TIMManager.sharedInstance().transferGroupOwner(groupID, member: member, succ: succ, fail: fail)
+        V2TIMManager.sharedInstance().transferGroupOwner(groupID: groupID, memberUserID: member, succ: succ, fail: fail)
     }
 
     func updateGroupAvatar(_ url: String, succ: @escaping V2TIMSucc, fail: @escaping V2TIMFail) {
         let info = V2TIMGroupInfo()
         info.groupID = groupID
         info.faceURL = url
-        V2TIMManager.sharedInstance().setGroupInfo(info, succ: succ, fail: fail)
+        V2TIMManager.sharedInstance().setGroupInfo(info: info, succ: succ, fail: fail)
     }
 
     private func getGroupInfo(callback: @escaping () -> Void) {
         V2TIMManager.sharedInstance().getGroupsInfo([groupID]) { [weak self] groupResultList in
-            self?.groupInfo = groupResultList?.first?.info
+            guard let self, let groupResultList = groupResultList else { return }
+            self.groupInfo = groupResultList.first?.info
             callback()
-        } fail: { code, msg in
+        } fail: { [weak self] code, msg in
+            guard let self else { return }
             callback()
-            TUITool.makeToastError(Int(code), msg: msg)
+            self.makeToastError(Int(code), msg: msg ?? "")
         }
     }
 
     private func getGroupMembers(callback: @escaping () -> Void) {
         V2TIMManager.sharedInstance().getGroupMemberList(groupID, filter: UInt32(V2TIMGroupMemberFilter.GROUP_MEMBER_FILTER_ALL.rawValue), nextSeq: 0) { [weak self] _, memberList in
-            guard let self, let memberList = memberList else { return }
+            guard let self = self else { return }
+            guard let memberList = memberList else { return }
             var members: [TUIGroupMemberCellData] = []
             for fullInfo in memberList {
                 let data = TUIGroupMemberCellData()
-                data.identifier = fullInfo.userID.safeValue
-                data.name = fullInfo.userID.safeValue
-                data.avatarUrl = fullInfo.faceURL.safeValue
-                if !fullInfo.nameCard.isNilOrEmpty {
-                    data.name = fullInfo.nameCard.safeValue
-                } else if !fullInfo.friendRemark.isNilOrEmpty {
-                    data.name = fullInfo.friendRemark.safeValue
-                } else if !fullInfo.nickName.isNilOrEmpty {
-                    data.name = fullInfo.nickName.safeValue
+                data.identifier = fullInfo.userID ?? ""
+                data.name = fullInfo.userID ?? ""
+                data.avatarUrl = fullInfo.faceURL ?? ""
+                if let nameCard = fullInfo.nameCard, !nameCard.isEmpty {
+                    data.name = nameCard
+                } else if let friendMark = fullInfo.friendRemark, !friendMark.isEmpty {
+                    data.name = friendMark
+                } else if let nickName = fullInfo.nickName, !nickName.isEmpty {
+                    data.name = nickName
                 }
                 members.append(data)
             }
             self.membersData = members
             callback()
-        } fail: { code, msg in
-            TUITool.makeToastError(Int(code), msg: msg)
+        } fail: { [weak self] code, msg in
+            guard let self else { return }
+            self.membersData = []
+            self.makeToastError(Int(code), msg: msg ?? "")
             callback()
         }
     }
@@ -150,12 +166,13 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
             callback()
             return
         }
-        V2TIMManager.sharedInstance().getGroupMembersInfo(groupID, memberList: [loginUserID]) { [weak self] memberList in
-            guard let self else { return }
-            self.selfInfo = memberList?.first(where: { $0.userID == loginUserID })
+        V2TIMManager.sharedInstance().getGroupMembersInfo(groupID: groupID, memberList: [loginUserID]) { [weak self] memberList in
+            guard let self, let memberList = memberList else { return }
+            self.selfInfo = memberList.first(where: { $0.userID == loginUserID })
             callback()
-        } fail: { code, desc in
-            TUITool.makeToastError(Int(code), msg: desc)
+        } fail: { [weak self] code, desc in
+            guard let self else { return }
+            self.makeToastError(Int(code), msg: desc ?? "")
             callback()
         }
     }
@@ -165,11 +182,11 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
         if let groupInfo = groupInfo {
             var commonArray: [TUIProfileCardCellData] = []
             let commonData = TUIProfileCardCellData()
-            commonData.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType.safeValue)
-            commonData.avatarUrl = URL(string: groupInfo.faceURL.safeValue) ?? URL(fileURLWithPath: "")
-            commonData.name = groupInfo.groupName.safeValue
-            commonData.identifier = groupInfo.groupID.safeValue
-            commonData.signature = groupInfo.notification.safeValue
+            commonData.avatarImage = TUISwift.defaultGroupAvatarImage(byGroupType: groupInfo.groupType)
+            commonData.avatarUrl = URL(string: groupInfo.faceURL ?? "") ?? URL(fileURLWithPath: "")
+            commonData.name = groupInfo.groupName
+            commonData.identifier = groupInfo.groupID
+            commonData.signature = groupInfo.notification
 
             if TUIGroupInfoDataProvider.isMeOwner(groupInfo) || groupInfo.isPrivate() {
                 commonData.cselector = #selector(didSelectCommon)
@@ -192,7 +209,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
                 let tmpArray = getShowMembers(membersData)
                 let cellData = TUIGroupMembersCellData()
-                cellData.members = NSMutableArray(array: tmpArray)
+                cellData.members = tmpArray
                 memberArray.append(cellData)
                 groupMembersCellData = cellData
                 dataList.append(memberArray)
@@ -215,7 +232,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
                     "pushVC": delegate?.pushNavigationController() as Any,
                     "groupID": groupID
                 ]
-                let extensionList = TUICore.getExtensionList(TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_ClassicExtensionID, param: param)
+                let extensionList = TUICore.getExtensionList("TUICore_TUIChatExtension_GroupProfileSettingsItemExtension_ClassicExtensionID", param: param)
                 for info in extensionList {
                     if let text = info.text, let onClicked = info.onClicked {
                         let manageData = TUICommonTextCellData()
@@ -244,17 +261,12 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
                 let addOptionData = TUICommonTextCellData()
                 addOptionData.key = TUISwift.timCommonLocalizableString("TUIKitGroupProfileJoinType")
 
-                if groupInfo.groupType == "Work" {
-                    addOptionData.value = TUISwift.timCommonLocalizableString("TUIKitGroupProfileInviteJoin")
-                } else if groupInfo.groupType == "Meeting" {
-                    addOptionData.value = TUISwift.timCommonLocalizableString("TUIKitGroupProfileAutoApproval")
-                } else {
-                    if TUIGroupInfoDataProvider.isMeOwner(groupInfo) {
-                        addOptionData.cselector = #selector(didSelectAddOption(_:))
-                        addOptionData.showAccessory = true
-                    }
-                    addOptionData.value = TUIGroupInfoDataProvider.getAddOption(groupInfo)
+                if TUIGroupInfoDataProvider.isMeOwner(groupInfo) {
+                    addOptionData.cselector = #selector(didSelectAddOption(_:))
+                    addOptionData.showAccessory = true
                 }
+                addOptionData.value = TUIGroupInfoDataProvider.getAddOption(groupInfo)
+
                 groupInfoArray.append(addOptionData)
                 self.addOptionData = addOptionData
 
@@ -288,7 +300,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
                 let messageSwitchData = TUICommonSwitchCellData()
                 if groupInfo.groupType != "Meeting" {
-                    messageSwitchData.isOn = (groupInfo.recvOpt.rawValue == V2TIMReceiveMessageOpt.RECEIVE_NOT_NOTIFY_MESSAGE.rawValue)
+                    messageSwitchData.isOn = (groupInfo.recvOpt == .RECEIVE_NOT_NOTIFY_MESSAGE)
                     messageSwitchData.title = TUISwift.timCommonLocalizableString("TUIKitGroupProfileMessageDoNotDisturb")
                     messageSwitchData.cswitchSelector = #selector(didSelectOnNotDisturb(_:))
                     personalArray.append(messageSwitchData)
@@ -319,7 +331,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
             if !TUIGroupConfig.shared.isItemHiddenInGroupConfig(.clearChatHistory) {
                 let clearHistory = TUIButtonCellData()
                 clearHistory.title = TUISwift.timCommonLocalizableString("TUIKitClearAllChatHistory")
-                clearHistory.style = .ButtonRedText
+                clearHistory.style = .redText
                 clearHistory.cbuttonSelector = #selector(didClearAllHistory(_:))
                 buttonArray.append(clearHistory)
             }
@@ -327,7 +339,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
             if !TUIGroupConfig.shared.isItemHiddenInGroupConfig(.deleteAndLeave) {
                 let quitButton = TUIButtonCellData()
                 quitButton.title = TUISwift.timCommonLocalizableString("TUIKitGroupProfileDeleteAndExit")
-                quitButton.style = .ButtonRedText
+                quitButton.style = .redText
                 quitButton.cbuttonSelector = #selector(didDeleteGroup(_:))
                 buttonArray.append(quitButton)
             }
@@ -340,12 +352,12 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
                     self?.updateGroupInfo()
                 }
                 param["updateGroupInfoCallback"] = updateGroupInfoCallback
-                let extensionList = TUICore.getExtensionList(TUICore_TUIChatExtension_GroupProfileBottomItemExtension_ClassicExtensionID, param: param)
+                let extensionList = TUICore.getExtensionList("TUICore_TUIChatExtension_GroupProfileBottomItemExtension_ClassicExtensionID", param: param)
                 for info in extensionList {
                     if let text = info.text, let onClicked = info.onClicked {
                         let transferButton = TUIButtonCellData()
                         transferButton.title = text
-                        transferButton.style = .ButtonRedText
+                        transferButton.style = .redText
                         transferButton.tui_extValueObj = info
                         transferButton.cbuttonSelector = #selector(groupProfileExtensionButtonClick(_:))
                         buttonArray.append(transferButton)
@@ -356,7 +368,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
             if groupInfo.canDismissGroup() && !TUIGroupConfig.shared.isItemHiddenInGroupConfig(.dismiss) {
                 let deleteButton = TUIButtonCellData()
                 deleteButton.title = TUISwift.timCommonLocalizableString("TUIKitGroupProfileDissolve")
-                deleteButton.style = .ButtonRedText
+                deleteButton.style = .redText
                 deleteButton.cbuttonSelector = #selector(didDeleteGroup(_:))
                 buttonArray.append(deleteButton)
             }
@@ -364,7 +376,7 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
             if !TUIGroupConfig.shared.isItemHiddenInGroupConfig(.report) {
                 let reportButton = TUIButtonCellData()
                 reportButton.title = TUISwift.timCommonLocalizableString("TUIKitGroupProfileReport")
-                reportButton.style = .ButtonRedText
+                reportButton.style = .redText
                 reportButton.cbuttonSelector = #selector(didReportGroup(_:))
                 buttonArray.append(reportButton)
             }
@@ -375,11 +387,11 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
             dataList.append(buttonArray)
 
-            V2TIMManager.sharedInstance().getConversation("group_\(groupID)") { [weak self] conv in
-                guard let self = self else { return }
-                markFold.isOn = Self.isMarkedByFoldType(conv?.markList ?? [])
+            V2TIMManager.sharedInstance().getConversation(conversationID: "group_\(groupID)") { [weak self] conv in
+                guard let self = self, let conv = conv else { return }
+                markFold.isOn = Self.isMarkedByFoldType(conv.markList ?? [])
                 switchData.cswitchSelector = #selector(self.didSelectOnTop(_:))
-                switchData.isOn = conv?.isPinned ?? false
+                switchData.isOn = conv.isPinned
                 if markFold.isOn {
                     switchData.isOn = false
                     switchData.disableChecked = true
@@ -478,12 +490,13 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
         info.groupID = groupID
         info.groupAddOpt = opt
 
-        V2TIMManager.sharedInstance().setGroupInfo(info) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupInfo(info: info) { [weak self] in
             guard let self else { return }
             self.groupInfo?.groupAddOpt = opt
             self.addOptionData?.value = TUIGroupInfoDataProvider.getAddOptionWithV2AddOpt(opt)
-        } fail: { code, desc in
-            TUITool.makeToastError(Int(code), msg: desc)
+        } fail: { [weak self] code, desc in
+            guard let self else { return }
+            self.makeToastError(Int(code), msg: desc ?? "")
         }
     }
 
@@ -492,19 +505,20 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
         info.groupID = groupID
         info.groupApproveOpt = opt
 
-        V2TIMManager.sharedInstance().setGroupInfo(info) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupInfo(info: info) { [weak self] in
             guard let self else { return }
             self.groupInfo?.groupApproveOpt = opt
             if let groupInfo = groupInfo {
                 self.inviteOptionData?.value = TUIGroupInfoDataProvider.getApproveOption(groupInfo)
             }
-        } fail: { code, desc in
-            TUITool.makeToastError(Int(code), msg: desc)
+        } fail: { [weak self] code, desc in
+            guard let self else { return }
+            self.makeToastError(Int(code), msg: desc ?? "")
         }
     }
 
     func setGroupReceiveMessageOpt(_ opt: V2TIMReceiveMessageOpt, succ: @escaping V2TIMSucc, fail: @escaping V2TIMFail) {
-        V2TIMManager.sharedInstance().setGroupReceiveMessageOpt(groupID, opt: opt, succ: succ, fail: fail)
+        V2TIMManager.sharedInstance().setGroupReceiveMessageOpt(groupID: groupID, opt: opt, succ: succ, fail: fail)
     }
 
     func setGroupName(_ groupName: String) {
@@ -512,11 +526,12 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
         info.groupID = groupID
         info.groupName = groupName
 
-        V2TIMManager.sharedInstance().setGroupInfo(info) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupInfo(info: info) { [weak self] in
             guard let self else { return }
             self.profileCellData?.name = groupName
-        } fail: { code, msg in
-            TUITool.makeToastError(Int(code), msg: msg)
+        } fail: { [weak self] code, msg in
+            guard let self else { return }
+            self.makeToastError(Int(code), msg: msg ?? "")
         }
     }
 
@@ -525,11 +540,12 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
         info.groupID = groupID
         info.notification = notification
 
-        V2TIMManager.sharedInstance().setGroupInfo(info) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupInfo(info: info) { [weak self] in
             guard let self else { return }
             self.profileCellData?.signature = notification
-        } fail: { code, msg in
-            TUITool.makeToastError(Int(code), msg: msg)
+        } fail: { [weak self] code, msg in
+            guard let self else { return }
+            self.makeToastError(Int(code), msg: msg ?? "")
         }
     }
 
@@ -539,25 +555,26 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
         info.userID = userID
         info.nameCard = nameCard
 
-        V2TIMManager.sharedInstance().setGroupMemberInfo(groupID, info: info) { [weak self] in
+        V2TIMManager.sharedInstance().setGroupMemberInfo(groupID: groupID, info: info) { [weak self] in
             guard let self else { return }
             self.groupNickNameCellData?.value = nameCard
             self.selfInfo?.nameCard = nameCard
-        } fail: { code, msg in
-            TUITool.makeToastError(Int(code), msg: msg)
+        } fail: { [weak self] code, msg in
+            guard let self else { return }
+            self.makeToastError(Int(code), msg: msg ?? "")
         }
     }
 
     func dismissGroup(succ: @escaping V2TIMSucc, fail: @escaping V2TIMFail) {
-        V2TIMManager.sharedInstance().dismissGroup(groupID, succ: succ, fail: fail)
+        V2TIMManager.sharedInstance().dismissGroup(groupID: groupID, succ: succ, fail: fail)
     }
 
     func quitGroup(succ: @escaping V2TIMSucc, fail: @escaping V2TIMFail) {
-        V2TIMManager.sharedInstance().quitGroup(groupID, succ: succ, fail: fail)
+        V2TIMManager.sharedInstance().quitGroup(groupID: groupID, succ: succ, fail: fail)
     }
 
     func clearAllHistory(succ: @escaping V2TIMSucc, fail: @escaping V2TIMFail) {
-        V2TIMManager.sharedInstance().clearGroupHistoryMessage(groupID, succ: succ, fail: fail)
+        V2TIMManager.sharedInstance().clearGroupHistoryMessage(groupID: groupID, succ: succ, fail: fail)
     }
 
     // MARK: - Static Methods
@@ -579,11 +596,11 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
     static func getAddOption(_ groupInfo: V2TIMGroupInfo) -> String {
         switch groupInfo.groupAddOpt {
-        case V2TIMGroupAddOpt.GROUP_ADD_FORBID:
+        case .GROUP_ADD_FORBID:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileJoinDisable")
-        case V2TIMGroupAddOpt.GROUP_ADD_AUTH:
+        case .GROUP_ADD_AUTH:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdminApprove")
-        case V2TIMGroupAddOpt.GROUP_ADD_ANY:
+        case .GROUP_ADD_ANY:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileAutoApproval")
         default:
             return ""
@@ -592,11 +609,11 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
     static func getAddOptionWithV2AddOpt(_ opt: V2TIMGroupAddOpt) -> String {
         switch opt {
-        case V2TIMGroupAddOpt.GROUP_ADD_FORBID:
+        case .GROUP_ADD_FORBID:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileJoinDisable")
-        case V2TIMGroupAddOpt.GROUP_ADD_AUTH:
+        case .GROUP_ADD_AUTH:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdminApprove")
-        case V2TIMGroupAddOpt.GROUP_ADD_ANY:
+        case .GROUP_ADD_ANY:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileAutoApproval")
         default:
             return ""
@@ -605,11 +622,11 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
 
     static func getApproveOption(_ groupInfo: V2TIMGroupInfo) -> String {
         switch groupInfo.groupApproveOpt {
-        case V2TIMGroupAddOpt.GROUP_ADD_FORBID:
+        case .GROUP_ADD_FORBID:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileInviteDisable")
-        case V2TIMGroupAddOpt.GROUP_ADD_AUTH:
+        case .GROUP_ADD_AUTH:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileAdminApprove")
-        case V2TIMGroupAddOpt.GROUP_ADD_ANY:
+        case .GROUP_ADD_ANY:
             return TUISwift.timCommonLocalizableString("TUIKitGroupProfileAutoApproval")
         default:
             return ""
@@ -617,11 +634,11 @@ class TUIGroupInfoDataProvider: NSObject, V2TIMGroupListener {
     }
 
     static func isMarkedByFoldType(_ markList: [NSNumber]) -> Bool {
-        return markList.contains { $0.uintValue == V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue }
+        return markList.contains { $0.intValue == V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_FOLD.rawValue }
     }
 
     static func isMarkedByHideType(_ markList: [NSNumber]) -> Bool {
-        return markList.contains { $0.uintValue == V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_HIDE.rawValue }
+        return markList.contains { $0.intValue == V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_HIDE.rawValue }
     }
 
     static func isMeOwner(_ groupInfo: V2TIMGroupInfo) -> Bool {

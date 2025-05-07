@@ -1,11 +1,10 @@
 // TUISettingAdminController_Minimalist.swift
 // TUIContact
 
-import UIKit
 import TIMCommon
+import UIKit
 
 class TUISettingAdminController_Minimalist: UIViewController {
-
     var groupID: String?
     var settingAdminDissmissCallBack: (() -> Void)?
 
@@ -19,9 +18,7 @@ class TUISettingAdminController_Minimalist: UIViewController {
         return tableView
     }()
 
-    private lazy var dataProvider: TUISettingAdminDataProvider = {
-        return TUISettingAdminDataProvider()
-    }()
+    private lazy var dataProvider: TUISettingAdminDataProvider = .init()
 
     deinit {
         settingAdminDissmissCallBack?()
@@ -35,7 +32,7 @@ class TUISettingAdminController_Minimalist: UIViewController {
         dataProvider.loadData { [weak self] code, error in
             self?.tableView.reloadData()
             if code != 0 {
-                self?.view.makeToast(error)
+                self?.view.makeToast(error ?? "")
             }
         }
     }
@@ -57,7 +54,7 @@ extension TUISettingAdminController_Minimalist: UITableViewDataSource, UITableVi
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let subArray = dataProvider.datas[section] as! NSArray
+        let subArray = dataProvider.datas[section]
         return subArray.count
     }
 
@@ -67,9 +64,9 @@ extension TUISettingAdminController_Minimalist: UITableViewDataSource, UITableVi
         }
         cell.selectionStyle = .none
 
-        let subArray = dataProvider.datas[indexPath.section] as! NSArray
+        let subArray = dataProvider.datas[indexPath.section]
         let cellData = subArray[indexPath.row]
-        cell.data = cellData as! TUIMemberInfoCellData
+        cell.data = cellData
         return cell
     }
 
@@ -83,7 +80,7 @@ extension TUISettingAdminController_Minimalist: UITableViewDataSource, UITableVi
             vc.selectedFinished = { [weak self] modelList in
                 self?.dataProvider.settingAdmins(userModels: modelList) { code, errorMsg in
                     if code != 0 {
-                        self?.view.makeToast(errorMsg)
+                        self?.view.makeToast(errorMsg ?? "")
                     }
                     self?.tableView.reloadData()
                 }
@@ -102,11 +99,12 @@ extension TUISettingAdminController_Minimalist: UITableViewDataSource, UITableVi
 
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let subArray = dataProvider.datas[indexPath.section] as! NSArray
-            if let cellData = subArray[indexPath.row] as? TUIMemberInfoCellData, let identifier = cellData.identifier {
+            let subArray = dataProvider.datas[indexPath.section]
+            let cellData = subArray[indexPath.row]
+            if let identifier = cellData.identifier {
                 dataProvider.removeAdmin(userID: identifier) { [weak self] code, err in
                     if code != 0 {
-                        self?.view.makeToast(err)
+                        self?.view.makeToast(err ?? "")
                     }
                     self?.tableView.reloadData()
                 }

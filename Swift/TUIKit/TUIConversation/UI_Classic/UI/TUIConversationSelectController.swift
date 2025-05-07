@@ -12,7 +12,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
     var enableMultiple: Bool = false
     weak var showContactSelectVC: UIViewController?
 
-    let dataListObserver = Observer()
+    private var dataListObservation: NSKeyValueObservation?
 
     lazy var currentSelectedList: [TUIConversationCellData] = {
         let currentSelectedList = [TUIConversationCellData]()
@@ -20,7 +20,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
     }()
 
     lazy var dataProvider: TUIConversationSelectDataProvider = {
-        dataProvider = TUIConversationSelectDataProvider()
+        let dataProvider = TUIConversationSelectDataProvider()
         dataProvider.loadConversations()
         return dataProvider
     }()
@@ -36,8 +36,8 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
     }
 
     deinit {
-        dataProvider.dataList.removeObserver(dataListObserver)
-        print("\(String(describing: self)) dealloc")
+        dataListObservation?.invalidate()
+        dataListObservation = nil
     }
 
     class func showIn(_ presentVC: UIViewController?) -> TUIConversationSelectController {
@@ -46,7 +46,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
         nav.modalPresentationStyle = .fullScreen
         var pVc = presentVC
         if pVc == nil {
-            pVc = UIApplication.shared.keyWindow?.rootViewController
+            pVc = TUITool.applicationKeywindow()?.rootViewController
         }
         if let pVc = pVc {
             pVc.present(nav, animated: true, completion: nil)
@@ -92,7 +92,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
         dataProvider = TUIConversationSelectDataProvider()
         dataProvider.loadConversations()
 
-        dataProvider.dataList.addObserver(dataListObserver) { [weak self] _, _ in
+        dataListObservation = dataProvider.observe(\.dataList, options: [.new, .initial]) { [weak self] _, _ in
             guard let self = self else { return }
             self.tableView.reloadData()
         }
@@ -121,11 +121,11 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
         var arrayM = [TUICommonContactSelectCellData]()
         for convCellData in currentSelectedList {
             let data = TUICommonContactSelectCellData()
-            if let url = URL(string: convCellData.faceUrl.value) {
+            if let faceUrl = convCellData.faceUrl, let url = URL(string: faceUrl) {
                 data.avatarUrl = url
             }
             data.avatarImage = convCellData.avatarImage ?? UIImage()
-            data.title = convCellData.title.value
+            data.title = convCellData.title ?? ""
             data.identifier = convCellData.conversationID ?? ""
             arrayM.append(data)
         }
@@ -136,7 +136,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
         if enableMultiple {
             enableMultiple = false
 
-            for cellData in dataProvider.dataList.value {
+            for cellData in dataProvider.dataList {
                 cellData.selected = false
             }
 
@@ -171,9 +171,9 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
             self.dealSelectBlock(array)
         }
 
-        let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: [
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey: ids,
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey: selectContactCompletion
+        let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: [
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_DisableIdsKey": ids,
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey": selectContactCompletion
         ])
 
         if let viewController = vc as? UIViewController {
@@ -198,7 +198,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
                     conv.userID = contact.identifier
                     conv.groupID = ""
                     conv.avatarImage = contact.avatarImage
-                    conv.faceUrl.value = contact.avatarUrl?.absoluteString ?? ""
+                    conv.faceUrl = contact.avatarUrl?.absoluteString
                     currentSelectedList.append(conv)
                 }
             }
@@ -213,7 +213,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
                     conv.userID = contact.identifier
                     conv.groupID = ""
                     conv.avatarImage = contact.avatarImage
-                    conv.faceUrl.value = contact.avatarUrl?.absoluteString ?? ""
+                    conv.faceUrl = contact.avatarUrl?.absoluteString
                     currentSelectedList = [conv]
                     tryFinishSelected { [weak self] finished in
                         guard let self = self else { return }
@@ -249,7 +249,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
     }
 
     func findItemInDataListArray(_ identifier: String) -> TUIConversationCellData? {
-        for cellData in dataProvider.dataList.value {
+        for cellData in dataProvider.dataList {
             if let userID = cellData.userID, userID == identifier {
                 return cellData
             }
@@ -282,15 +282,13 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
         var temMArr = [NSDictionary]()
         for cellData in currentSelectedList {
             temMArr.append([
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID: cellData.conversationID ?? "",
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title: cellData.title.value,
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID: cellData.userID ?? "",
-                TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID: cellData.groupID ?? ""
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID": cellData.conversationID ?? "",
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title": cellData.title ?? "",
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID": cellData.userID ?? "",
+                "TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID": cellData.groupID ?? ""
             ])
         }
-        if navigateValueCallback != nil {
-            navigateValueCallback!([TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList: temMArr])
-        }
+        navigateValueCallback?(["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList": temMArr])
     }
 
     func createGroupWithContacts(_ contacts: [TUICommonContactSelectCellData], completion: @escaping (Bool) -> Void) {
@@ -303,34 +301,34 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
             }
             let cellData = TUIConversationCellData()
             cellData.groupID = groupID ?? ""
-            cellData.title.value = groupName ?? ""
+            cellData.title = groupName ?? ""
             self.currentSelectedList = [cellData]
             notifyFinishSelecting()
             completion(true)
         }
         let param: [String: Any] = [
-            TUICore_TUIContactService_CreateGroupMethod_GroupTypeKey: GroupType_Meeting,
-            TUICore_TUIContactService_CreateGroupMethod_OptionKey: V2TIMGroupAddOpt.GROUP_ADD_ANY,
-            TUICore_TUIContactService_CreateGroupMethod_ContactsKey: contacts,
-            TUICore_TUIContactService_CreateGroupMethod_CompletionKey: createGroupCompletion
+            "TUICore_TUIContactService_CreateGroupMethod_GroupTypeKey": "Meeting",
+            "TUICore_TUIContactService_CreateGroupMethod_OptionKey": V2TIMGroupAddOpt.GROUP_ADD_ANY.rawValue,
+            "TUICore_TUIContactService_CreateGroupMethod_ContactsKey": contacts,
+            "TUICore_TUIContactService_CreateGroupMethod_CompletionKey": createGroupCompletion
         ]
-        TUICore.callService(TUICore_TUIContactService, method: TUICore_TUIContactService_CreateGroupMethod, param: param)
+        _ = TUICore.callService("TUICore_TUIContactService", method: "TUICore_TUIContactService_CreateGroupMethod", param: param)
     }
 
     // MARK: - UITableViewDelegate, UITableViewDataSource
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return dataProvider.dataList.value.count
+        return dataProvider.dataList.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "con", for: indexPath) as? TUIConversationCell else {
             return UITableViewCell()
         }
-        guard indexPath.row >= 0 && indexPath.row < dataProvider.dataList.value.count else {
+        guard indexPath.row >= 0 && indexPath.row < dataProvider.dataList.count else {
             return cell
         }
-        let cellData = dataProvider.dataList.value[indexPath.row]
+        let cellData = dataProvider.dataList[indexPath.row]
         cellData.showCheckBox = enableMultiple
         cell.fill(with: cellData)
         return cell
@@ -338,7 +336,7 @@ class TUIConversationSelectController: UIViewController, UITableViewDelegate, UI
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: false)
-        let cellData = dataProvider.dataList.value[indexPath.row]
+        let cellData = dataProvider.dataList[indexPath.row]
         cellData.selected = !cellData.selected
         if !enableMultiple {
             currentSelectedList = [cellData]

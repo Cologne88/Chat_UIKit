@@ -78,7 +78,7 @@ public class ContactsController_Minimalist: UIViewController, TUIPopViewDelegate
         navigationItem.leftBarButtonItems = showLeftBarButtonItems.value
 
         let moreButton = UIButton(type: .custom)
-        moreButton.setImage(UIImage(named: TUISwift.tuiConversationImagePath_Minimalist("nav_add")), for: .normal)
+        moreButton.setImage(UIImage.safeImage(TUISwift.tuiConversationImagePath_Minimalist("nav_add")), for: .normal)
         moreButton.addTarget(self, action: #selector(onRightItem(_:)), for: .touchUpInside)
         moreButton.imageView?.contentMode = .scaleAspectFit
         moreButton.frame = CGRect(x: 0, y: 0, width: 26, height: 26)
@@ -89,16 +89,16 @@ public class ContactsController_Minimalist: UIViewController, TUIPopViewDelegate
     }
 
     @objc private func onRightItem(_ rightBarButton: UIButton) {
-        var menus = NSMutableArray()
+        var menus = [TUIPopCellData]()
         let friend = TUIPopCellData()
-        friend.image = TUISwift.tuiContactDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_friend")))
+        friend.image = TUISwift.tuiContactDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_friend")))
         friend.title = TUISwift.timCommonLocalizableString("ContactsAddFriends")
-        menus.add(friend)
+        menus.append(friend)
 
         let group = TUIPopCellData()
-        group.image = TUISwift.tuiContactDynamicImage("pop_icon_add_group_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_group")))
+        group.image = TUISwift.tuiContactDynamicImage("pop_icon_add_group_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_group")))
         group.title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
-        menus.add(group)
+        menus.append(group)
 
         let height = TUIPopCell.getHeight() * CGFloat(menus.count) + TUISwift.tuiPopView_Arrow_Size().height
         let orginY = TUISwift.statusBar_Height() + TUISwift.navBar_Height()
@@ -112,7 +112,9 @@ public class ContactsController_Minimalist: UIViewController, TUIPopViewDelegate
         }
         popView.delegate = self
         popView.setData(menus)
-        popView.show(in: view.window!)
+        if let window = view.window {
+            popView.showInWindow(window)
+        }
     }
 
     public func popView(_ popView: TUIPopView, didSelectRowAt index: Int) {

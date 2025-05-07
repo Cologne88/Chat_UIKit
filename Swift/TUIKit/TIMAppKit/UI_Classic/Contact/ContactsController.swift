@@ -8,6 +8,7 @@
 
 import TIMCommon
 import TUIContact
+import TUICore
 import UIKit
 
 public class ContactsController: UIViewController, TUIPopViewDelegate {
@@ -29,7 +30,7 @@ public class ContactsController: UIViewController, TUIPopViewDelegate {
         super.viewDidLoad()
 
         let moreButton = UIButton(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
-        moreButton.setImage(TUISwift.tuiCoreDynamicImage("nav_more_img", defaultImage: UIImage(named: TUISwift.tuiCoreImagePath("more"))), for: .normal)
+        moreButton.setImage(TUISwift.tuiCoreDynamicImage("nav_more_img", defaultImage: UIImage.safeImage(TUISwift.tuiCoreImagePath("more"))), for: .normal)
         moreButton.addTarget(self, action: #selector(onRightItem(_:)), for: .touchUpInside)
         moreButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
         moreButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
@@ -49,16 +50,16 @@ public class ContactsController: UIViewController, TUIPopViewDelegate {
     }
 
     @objc func onRightItem(_ rightBarButton: UIButton) {
-        var menus = NSMutableArray()
+        var menus = [TUIPopCellData]()
         let friend = TUIPopCellData()
-        friend.image = TUISwift.tuiContactDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_friend")))
+        friend.image = TUISwift.tuiContactDynamicImage("pop_icon_add_friend_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_friend")))
         friend.title = TUISwift.timCommonLocalizableString("ContactsAddFriends")
-        menus.add(friend)
+        menus.append(friend)
 
         let group = TUIPopCellData()
-        group.image = TUISwift.tuiContactDynamicImage("pop_icon_add_group_img", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_group")))
+        group.image = TUISwift.tuiContactDynamicImage("pop_icon_add_group_img", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_group")))
         group.title = TUISwift.timCommonLocalizableString("ContactsJoinGroup")
-        menus.add(group)
+        menus.append(group)
 
         let height = TUIPopCell.getHeight() * CGFloat(menus.count) + TUISwift.tuiPopView_Arrow_Size().height
         let orginY = TUISwift.statusBar_Height() + TUISwift.navBar_Height()
@@ -72,7 +73,9 @@ public class ContactsController: UIViewController, TUIPopViewDelegate {
         }
         popView.delegate = self
         popView.setData(menus)
-        popView.show(in: view.window!)
+        if let window = view.window {
+            popView.showInWindow(window)
+        }
     }
 
     public func popView(_ popView: TUIPopView, didSelectRowAt index: Int) {

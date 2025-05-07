@@ -8,15 +8,19 @@ class TUIVideoCollectionCellScrollView: UIScrollView, UIScrollViewDelegate {
     var videoView: UIView!
     var videoViewNormalWidth: CGFloat = 0 {
         didSet {
-            videoView.frame = CGRect(x: 0, y: 0, width: videoViewNormalWidth, height: videoViewNormalHeight)
-            videoView.center = CGPoint(x: frame.size.width / 2, y: frame.size.height / 2)
+            if oldValue != videoViewNormalWidth {
+                videoView.frame = CGRect(x: 0, y: 0, width: videoViewNormalWidth, height: videoViewNormalHeight)
+                videoView.center = CGPoint(x: frame.size.width / 2, y: frame.size.height / 2)
+            }
         }
     }
 
     var videoViewNormalHeight: CGFloat = 0 {
         didSet {
-            videoView.frame = CGRect(x: 0, y: 0, width: videoViewNormalWidth, height: videoViewNormalHeight)
-            videoView.center = CGPoint(x: frame.size.width / 2, y: frame.size.height / 2)
+            if oldValue != videoViewNormalHeight {
+                videoView.frame = CGRect(x: 0, y: 0, width: videoViewNormalWidth, height: videoViewNormalHeight)
+                videoView.center = CGPoint(x: frame.size.width / 2, y: frame.size.height / 2)
+            }
         }
     }
 
@@ -39,7 +43,7 @@ class TUIVideoCollectionCellScrollView: UIScrollView, UIScrollViewDelegate {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func pictureZoomWithScale(_ zoomScale: CGFloat) {
+    func pictureZoom(withScale zoomScale: CGFloat) {
         let imageScaleWidth = zoomScale * videoViewNormalWidth
         let imageScaleHeight = zoomScale * videoViewNormalHeight
         var imageX: CGFloat = 0
@@ -53,6 +57,8 @@ class TUIVideoCollectionCellScrollView: UIScrollView, UIScrollViewDelegate {
         videoView.frame = CGRect(x: imageX, y: imageY, width: imageScaleWidth, height: imageScaleHeight)
         contentSize = CGSize(width: imageScaleWidth, height: imageScaleHeight)
     }
+
+    // MARK: - UIScrollViewDelegate
 
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return videoView
@@ -207,8 +213,8 @@ class TUIVideoCollectionCell: TUIMediaCollectionCell {
         imageView.layer.masksToBounds = true
         imageView.contentMode = .scaleAspectFit
         imageView.backgroundColor = .clear
-        addSubview(imageView)
-        imageView.mm_fill()
+        scrollView.videoView.addSubview(imageView)
+        imageView.mm__fill()
         imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         addSubview(mainPlayBtn)
@@ -234,7 +240,7 @@ class TUIVideoCollectionCell: TUIMediaCollectionCell {
         videoData = data
         isSaveVideo = false
 
-        let hasRiskContent = data.innerMessage.hasRiskContent
+        let hasRiskContent = data.innerMessage?.hasRiskContent ?? false
         if hasRiskContent {
             imageView.image = TUISwift.timCommonBundleThemeImage("", defaultImage: "icon_security_strike")
             for subview in subviews {
@@ -254,8 +260,8 @@ class TUIVideoCollectionCell: TUIMediaCollectionCell {
         }
 
         thumbImageObservation = data.observe(\.thumbImage, options: [.new, .initial]) { [weak self] _, change in
-            guard let self = self, let thumbImage = change.newValue else { return }
-            self.imageView.image = thumbImage
+            guard let self = self, let image = change.newValue, image != nil else { return }
+            self.imageView.image = image
         }
 
         if !(videoData?.isVideoExist() ?? false) {
@@ -292,7 +298,7 @@ class TUIVideoCollectionCell: TUIMediaCollectionCell {
         }
 
         videoPathObservation = videoData?.observe(\.videoPath, options: [.new, .initial]) { [weak self] _, change in
-            guard let self = self, let path = change.newValue, path.count > 0 else { return }
+            guard let self = self, let path = change.newValue, (path?.count ?? 0) > 0 else { return }
 
             // To match "take: 1"
             self.videoPathObservation?.invalidate()
@@ -303,70 +309,28 @@ class TUIVideoCollectionCell: TUIMediaCollectionCell {
                 self.saveVideo()
             }
             animateCircleView.isHidden = true
-            self.addPlayer(URL(fileURLWithPath: path))
+            self.addPlayer(URL(fileURLWithPath: path!))
         }
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-
         mainDownloadBtn.sizeToFit()
-        mainDownloadBtn.snp.makeConstraints { make in
-            make.width.height.equalTo(65)
-            make.center.equalToSuperview()
-        }
-        mainDownloadBtn.layer.cornerRadius = 32.5 // Half of 65
 
-        animateCircleView.snp.remakeConstraints { make in
-            make.height.width.equalTo(TUISwift.kScale390(40))
-            make.center.equalToSuperview()
-        }
+        mainDownloadBtn.mm_width(65).mm_height(65).mm__centerX(mm_w / 2).mm__centerY(mm_h / 2)
+        mainDownloadBtn.layer.cornerRadius = (mainDownloadBtn.mm_h * 0.5)
+        animateCircleView.tui_mm_center()
 
-        mainPlayBtn.snp.remakeConstraints { make in
-            make.width.height.equalTo(65)
-            make.center.equalTo(self)
-        }
-        closeBtn.snp.remakeConstraints { make in
-            make.width.height.equalTo(31)
-            make.left.equalToSuperview().offset(16)
-            make.bottom.equalToSuperview().offset(-48)
-        }
-        downloadBtn.snp.makeConstraints { make in
-            make.width.height.equalTo(31)
-            make.right.equalToSuperview().offset(-16)
-            make.bottom.equalToSuperview().offset(-48)
-        }
-        playBtn.snp.remakeConstraints { make in
-            make.width.height.equalTo(30)
-            make.left.equalToSuperview().offset(16)
-            make.bottom.equalToSuperview().offset(-108)
-        }
-        playTimeLabel.snp.remakeConstraints { make in
-            make.width.equalTo(40)
-            make.height.equalTo(21)
-            make.left.equalTo(playBtn.snp.right).offset(12)
-            make.centerY.equalTo(playBtn)
-        }
-        durationLabel.snp.remakeConstraints { make in
-            make.width.equalTo(40)
-            make.height.equalTo(21)
-            make.right.equalToSuperview().offset(-16)
-            make.centerY.equalTo(playBtn)
-        }
-        playProcessSlider.sizeToFit()
-        playProcessSlider.snp.remakeConstraints { make in
-            make.left.equalTo(playTimeLabel.snp.right).offset(10)
-            make.right.equalTo(durationLabel.snp.left).offset(-10)
-            make.centerY.equalTo(playBtn)
-        }
-
-        scrollView.snp.makeConstraints { make in
-            make.width.height.centerX.centerY.equalToSuperview()
-        }
-
-        scrollView.videoViewNormalWidth = frame.width
-        scrollView.videoViewNormalHeight = frame.height
-
+        mainPlayBtn.mm_width(65).mm_height(65).mm__centerX(mm_w / 2).mm__centerY(mm_h / 2)
+        closeBtn.mm_width(31).mm_height(31).mm_left(16).mm_bottom(47)
+        downloadBtn.mm_width(31).mm_height(31).mm_right(16).mm_bottom(48)
+        playBtn.mm_width(30).mm_height(30).mm_left(32).mm_bottom(108)
+        playTimeLabel.mm_width(40).mm_height(21).mm_left(playBtn.mm_maxX + 12).mm__centerY(playBtn.mm_centerY)
+        durationLabel.mm_width(40).mm_height(21).mm_right(15).mm__centerY(playBtn.mm_centerY)
+        playProcessSlider.mm__sizeToFit().mm_left(playTimeLabel.mm_maxX + 10).mm_flexToRight(durationLabel.mm_r + durationLabel.mm_w + 10).mm__centerY(playBtn.mm_centerY)
+        scrollView.mm_width(mm_w).mm_height(mm_h).mm__centerX(mm_w / 2).mm__centerY(mm_h / 2)
+        scrollView.videoViewNormalWidth = mm_w
+        scrollView.videoViewNormalHeight = mm_h
         playerLayer?.frame = scrollView.bounds
         scrollView.videoView.layer.layoutIfNeeded()
     }
@@ -455,7 +419,7 @@ class TUIVideoCollectionCell: TUIMediaCollectionCell {
     }
 
     func stopPlay() {
-        let hasRiskContent = videoData?.innerMessage.hasRiskContent ?? false
+        let hasRiskContent = videoData?.innerMessage?.hasRiskContent ?? false
         isPlay = false
         player?.pause()
         imageView.isHidden = false
@@ -528,15 +492,15 @@ class TUIVideoCollectionCell: TUIMediaCollectionCell {
         if msgID != videoData?.msgID {
             return
         }
-        if videoData?.direction == .MsgDirectionOutgoing {
+        if videoData?.direction == .outgoing {
             videoData?.uploadProgress = UInt(progress)
         }
     }
 
     // MARK: - V2TIMAdvancedMsgListener
 
-    func onRecvMessageModified(_ msg: V2TIMMessage) {
-        if videoData?.innerMessage.msgID == msg.msgID {
+    func onRecvMessageModified(msg: V2TIMMessage) {
+        if videoData?.innerMessage?.msgID == msg.msgID {
             let hasRiskContent = msg.hasRiskContent
             if hasRiskContent {
                 videoData?.innerMessage = msg

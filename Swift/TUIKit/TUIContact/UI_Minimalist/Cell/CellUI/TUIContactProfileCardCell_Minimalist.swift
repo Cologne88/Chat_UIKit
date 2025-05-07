@@ -1,9 +1,13 @@
 //  TUIContactProfileCardCell_Minimalist.swift
 //  TUIContact
 
-import UIKit
 import TIMCommon
 import TUICore
+import UIKit
+
+protocol TUIContactProfileCardCellDelegate_Minimalist: AnyObject {
+    func didTapOnAvatar(_ cell: TUIContactProfileCardCell_Minimalist)
+}
 
 class TUIContactProfileCardCell_Minimalist: TUICommonTableViewCell {
     let avatar = UIImageView()
@@ -12,8 +16,8 @@ class TUIContactProfileCardCell_Minimalist: TUICommonTableViewCell {
     let signature = UILabel()
     let genderIcon = UIImageView()
     var cardData: TUIContactProfileCardCellData_Minimalist?
-    weak var delegate: TUIProfileCardDelegate?
-    
+    weak var delegate: TUIContactProfileCardCellDelegate_Minimalist?
+
     var textValueObservation: NSKeyValueObservation?
     var identifierObservation: NSKeyValueObservation?
     var nameObservation: NSKeyValueObservation?
@@ -25,6 +29,7 @@ class TUIContactProfileCardCell_Minimalist: TUICommonTableViewCell {
         setupViews()
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -75,27 +80,28 @@ class TUIContactProfileCardCell_Minimalist: TUICommonTableViewCell {
         signature.isHidden = !data.showSignature
 
         // set data
-        textValueObservation = signature.observe(\.text, options: [.new, .initial]) { [weak self] (data, change) in
-            guard let _ = self, let _ = change.newValue else { return }
-        }
-        
-        identifierObservation = data.observe(\.identifier, options: [.new, .initial]) { [weak self] (data, change) in
+        textValueObservation = data.observe(\.signature, options: [.new, .initial]) { [weak self] _, change in
             guard let self = self, let value = change.newValue else { return }
-            self.identifier.text = "ID: \(value)"
+            signature.text = value ?? ""
         }
-        
-        nameObservation = data.observe(\.name, options: [.new, .initial]) { [weak self] (data, change) in
+
+        identifierObservation = data.observe(\.identifier, options: [.new, .initial]) { [weak self] _, change in
+            guard let self = self, let value = change.newValue, value != nil else { return }
+            self.identifier.text = "ID: \(value!)"
+        }
+
+        nameObservation = data.observe(\.name, options: [.new, .initial]) { [weak self] _, change in
             guard let self = self, let value = change.newValue else { return }
             self.name.text = value
             self.name.sizeToFit()
         }
-        
-        avatarUrlObservation = data.observe(\.avatarUrl, options: [.new, .initial]) { [weak self] (data, change) in
+
+        avatarUrlObservation = data.observe(\.avatarUrl, options: [.new, .initial]) { [weak self] _, change in
             guard let self = self else { return }
-            self.avatar.sd_setImage(with: change.newValue, placeholderImage: self.cardData?.avatarImage)
+            self.avatar.sd_setImage(with: change.newValue as? URL, placeholderImage: self.cardData?.avatarImage)
         }
 
-        genderStringObservation = data.observe(\.genderString, options: [.new, .initial]) { [weak self] (data, change) in
+        genderStringObservation = data.observe(\.genderString, options: [.new, .initial]) { [weak self] _, change in
             guard let self = self, let value = change.newValue else { return }
             if value == TUISwift.timCommonLocalizableString("Male") {
                 self.genderIcon.image = TUISwift.tuiContactCommonBundleImage("male")
@@ -180,8 +186,6 @@ class TUIContactProfileCardCell_Minimalist: TUICommonTableViewCell {
     }
 
     @objc private func onTapAvatar() {
-        if let profileCardCell = self as? TUIProfileCardCell {
-            delegate?.didTap(onAvatar: profileCardCell)
-        }
+        delegate?.didTapOnAvatar(self)
     }
 }

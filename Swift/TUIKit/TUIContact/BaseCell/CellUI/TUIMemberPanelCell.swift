@@ -23,7 +23,7 @@ class TUIMemberPanelCell: UICollectionViewCell {
     func fillWithData(_ model: TUIUserModel?) {
         guard let model = model else { return }
         if let imageView = imageView {
-            imageView.sd_setImage(with: URL(string: model.avatar), placeholderImage: UIImage(named: TUISwift.timCommonImagePath("default_c2c_head")), options: .highPriority)
+            imageView.sd_setImage(with: URL(string: model.avatar ?? ""), placeholderImage: UIImage.safeImage(TUISwift.timCommonImagePath("default_c2c_head")), options: .highPriority)
         }
     }
 }

@@ -60,9 +60,9 @@ class TUIReplyPreviewBar: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        self.closeButton.mm_width()(16)!.mm_height()(16)
+        self.closeButton.mm_width(16).mm_height(16)
         self.closeButton.mm_centerY = self.mm_centerY
-        self.closeButton.mm_right()(16.0)
+        self.closeButton.mm_right(16.0)
 
         self.titleLabel.mm_x = 16.0
         self.titleLabel.mm_y = 10
@@ -79,7 +79,7 @@ class TUIReferencePreviewBar: TUIReplyPreviewBar {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        closeButton.mm_right()(16.0)
+        closeButton.mm_right(16.0)
         closeButton.frame = CGRectMake(closeButton.frame.origin.x, (frame.size.height - 16) * 0.5, 16, 16)
 
         titleLabel.mm_x = 16.0

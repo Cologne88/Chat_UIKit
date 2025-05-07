@@ -1,5 +1,4 @@
 import ImSDK_Plus
-import ReactiveObjC
 import TIMCommon
 import TUICore
 import UIKit
@@ -46,7 +45,7 @@ class TUIFileMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, V2TIMSDKLi
     lazy var lengthLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 12)
-        label.textColor = TUISwift.rgb(122, green: 122, blue: 122, alpha: 1)
+        label.textColor = TUISwift.rgba(122, g: 122, b: 122, a: 1)
         return label
     }()
 
@@ -66,9 +65,9 @@ class TUIFileMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, V2TIMSDKLi
         setupViews()
     }
 
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupViews()
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     private func setupViews() {
@@ -79,20 +78,16 @@ class TUIFileMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, V2TIMSDKLi
         bubbleView.addSubview(lengthLabel)
         contentView.addSubview(downloadImageView)
 
-        V2TIMManager.sharedInstance().add(self)
+       V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
         TUIMessageProgressManager.shared.addDelegate(self)
     }
 
     @objc private func downloadClick() {
         downloadImageView.frame = .zero
-        if let delegate = delegate, delegate.responds(to: #selector(TUIMessageCellDelegate.onSelectMessage(_:))) {
-            delegate.onSelectMessage(self)
-        } else {
-            print("Delegate does not implement onSelectMessage")
-        }
+        delegate?.onSelectMessage(self)
     }
 
-    override func fill(with data: TUIBubbleMessageCellData) {
+    override func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         guard let data = data as? TUIFileMessageCellData else { return }
 
@@ -101,10 +96,11 @@ class TUIFileMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, V2TIMSDKLi
         lengthLabel.text = formatLength(Int(data.length))
 
         DispatchQueue.main.async {
-            let uploadProgress = TUIMessageProgressManager.shared.uploadProgress(forMessage: data.msgID)
-            let downloadProgress = TUIMessageProgressManager.shared.downloadProgress(forMessage: data.msgID)
-            self.onUploadProgress(msgID: data.msgID, progress: uploadProgress)
-            self.onDownloadProgress(msgID: data.msgID, progress: downloadProgress)
+            guard let msgID = data.msgID else { return }
+            let uploadProgress = TUIMessageProgressManager.shared.uploadProgress(forMessage: msgID)
+            let downloadProgress = TUIMessageProgressManager.shared.downloadProgress(forMessage: msgID)
+            self.onUploadProgress(msgID: msgID, progress: uploadProgress)
+            self.onDownloadProgress(msgID: msgID, progress: downloadProgress)
         }
 
         setNeedsUpdateConstraints()
@@ -153,7 +149,7 @@ class TUIFileMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, V2TIMSDKLi
         if !(fileData?.isLocalExist() ?? false) && !(fileData?.isDownloading ?? false) {
             let downloadSize: CGFloat = 16
             downloadImageView.snp.remakeConstraints { make in
-                if fileData?.direction == .MsgDirectionIncoming {
+                if fileData?.direction == .incoming {
                     make.leading.equalTo(bubbleView.snp.trailing).offset(TUISwift.kScale390(8))
                 } else {
                     make.trailing.equalTo(bubbleView.snp.leading).offset(-TUISwift.kScale390(8))
@@ -251,13 +247,13 @@ class TUIFileMessageCell_Minimalist: TUIBubbleMessageCell_Minimalist, V2TIMSDKLi
         }
         let str = String(format: "%4.2f%@", len, array[factor])
 
-        if (fileData?.isDownloading ?? false) || (length == 0 && (fileData?.status == .Msg_Status_Sending || fileData?.status == .Msg_Status_Sending_2)) {
-            return String(format: "%zd%%", fileData?.direction == .MsgDirectionIncoming ? fileData?.downladProgress ?? 0 : fileData?.uploadProgress ?? 0)
+        if (fileData?.isDownloading ?? false) || (length == 0 && (fileData?.status == .sending || fileData?.status == .sending2)) {
+            return String(format: "%zd%%", fileData?.direction == .incoming ? fileData?.downladProgress ?? 0 : fileData?.uploadProgress ?? 0)
         }
         return str
     }
 
-    override func highlight(whenMatchKeyword keyword: String?) {
+    override open func highlightWhenMatchKeyword(_ keyword: String?) {
         if let _ = keyword {
             if highlightAnimating {
                 return

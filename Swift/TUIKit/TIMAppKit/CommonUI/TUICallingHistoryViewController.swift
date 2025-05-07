@@ -12,12 +12,12 @@ public class TUICallingHistoryViewController: UIViewController {
     public static func createCallingHistoryViewController(isMimimalist: Bool) -> TUICallingHistoryViewController? {
         var param: [String: Any] = [:]
         if isMimimalist {
-            param[TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle] = TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle_Minimalist
+            param["TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle"] = "TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle_Minimalist"
         } else {
-            param[TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle] = TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle_Classic
+            param["TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle"] = "TUICore_TUICallingObjectFactory_RecordCallsVC_UIStyle_Classic"
         }
         
-        if let settingCallsVc = TUICore.createObject(TUICore_TUICallingObjectFactory, key: TUICore_TUICallingObjectFactory_RecordCallsVC, param: param) as? UIViewController {
+        if let settingCallsVc = TUICore.createObject("TUICore_TUICallingObjectFactory", key: "TUICore_TUICallingObjectFactory_RecordCallsVC", param: param) as? UIViewController {
             return TUICallingHistoryViewController(callsVC: settingCallsVc, isMimimalist: isMimimalist)
         } else {
             return nil

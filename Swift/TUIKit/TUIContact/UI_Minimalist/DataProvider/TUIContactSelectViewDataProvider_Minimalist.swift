@@ -50,13 +50,10 @@ class TUIContactSelectViewDataProvider_Minimalist: NSObject {
         isLoadFinished = false
 
         V2TIMManager.sharedInstance().getFriendList { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+            guard let self = self, let infoList = infoList else { return }
             var arr: [V2TIMUserFullInfo] = []
             for friend in infoList {
-                if let info = friend.userFullInfo {
-                    arr.append(info)
-                }
+                arr.append(friend.userFullInfo)
             }
             self.fillList(profiles: arr, displayNames: nil)
         } fail: { _, _ in
@@ -70,8 +67,7 @@ class TUIContactSelectViewDataProvider_Minimalist: NSObject {
 
     func setSourceIds(_ ids: [String], displayNames: [String: String]?) {
         V2TIMManager.sharedInstance().getUsersInfo(ids) { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+            guard let self = self, let infoList = infoList else { return }
             self.fillList(profiles: infoList, displayNames: displayNames)
         } fail: { _, _ in
             // Handle error
@@ -85,12 +81,15 @@ class TUIContactSelectViewDataProvider_Minimalist: NSObject {
 
         for profile in profiles {
             let data = TUICommonContactSelectCellData_Minimalist()
-            let showName = displayNames?[profile.userID.safeValue] ?? profile.showName()
-            data.title = showName
+            if let userID = profile.userID {
+                let showName = displayNames?[userID] ?? profile.showName()
+                data.title = showName
+                data.identifier = userID
+            }
+
             if let faceURL = profile.faceURL, !faceURL.isEmpty {
                 data.avatarUrl = URL(string: faceURL)!
             }
-            data.identifier = profile.userID.safeValue
 
             if let avaliableFilter = avaliableFilter, !avaliableFilter(data) {
                 continue

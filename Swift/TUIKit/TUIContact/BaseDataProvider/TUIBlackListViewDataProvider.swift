@@ -11,9 +11,8 @@ class TUIBlackListViewDataProvider: NSObject {
         isLoading = true
         isLoadFinished = false
 
-        V2TIMManager.sharedInstance().getBlackList { [weak self] infoList in
-            guard let self = self else { return }
-            guard let infoList = infoList else { return }
+       V2TIMManager.sharedInstance().getBlackList { [weak self] infoList in
+           guard let self = self, let infoList = infoList else { return }
             var list: [TUICommonContactCellData] = []
             for fd in infoList {
                 let data = TUICommonContactCellData(friend: fd)

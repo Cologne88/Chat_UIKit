@@ -81,7 +81,7 @@ class TUIFoldListViewController_Minimalist: UIViewController, TUINavigationContr
         let needRemoveFromCacheMapArray = foldProvider.needRemoveConversationList
         let conversationList = conv.dataProvider.conversationList
         if !conversationList.isEmpty {
-            let sortArray = conversationList.sorted { $0.orderKey < $1.orderKey }
+            let sortArray = conversationList.sorted { $0.orderKey > $1.orderKey }
             guard let lastItem = sortArray.first else { return }
             foldSubTitle = lastItem.foldSubTitle ?? NSMutableAttributedString()
             dismissCallback(foldSubTitle, sortArray, needRemoveFromCacheMapArray as [Any])
@@ -100,7 +100,7 @@ class TUIFoldListViewController_Minimalist: UIViewController, TUINavigationContr
         guard let msg = conversation.lastMessage, let customElem = msg.customElem, let data = customElem.data else { return nil }
         guard let param = TUITool.jsonData2Dictionary(data) as? [String: Any] else { return nil }
         guard let businessID = param["businessID"] as? String else { return nil }
-        if businessID == BussinessID_TextLink || (param["text"] as? String)?.count ?? 0 > 0 && (param["link"] as? String)?.count ?? 0 > 0 {
+        if businessID == "text_link" || (param["text"] as? String)?.count ?? 0 > 0 && (param["link"] as? String)?.count ?? 0 > 0 {
             guard let desc = param["text"] as? String else { return nil }
             if msg.status == V2TIMMessageStatus.MSG_STATUS_LOCAL_REVOKED {
                 if msg.hasRiskContent {
@@ -109,9 +109,9 @@ class TUIFoldListViewController_Minimalist: UIViewController, TUINavigationContr
                     return String(format: TUISwift.timCommonLocalizableString("TUIKitMessageTipsRecallMessageFormat"), userName)
                 } else if msg.isSelf {
                     return TUISwift.timCommonLocalizableString("TUIKitMessageTipsYouRecallMessage")
-                } else if !msg.userID.isNilOrEmpty {
+                } else if let userID = msg.userID, !userID.isEmpty {
                     return TUISwift.timCommonLocalizableString("TUIKitMessageTipsOthersRecallMessage")
-                } else if !msg.groupID.isNilOrEmpty {
+                } else if let groupID = msg.groupID, !groupID.isEmpty {
                     return String(format: TUISwift.timCommonLocalizableString("TUIKitMessageTipsRecallMessageFormat"), msg.nameCard ?? msg.nickName ?? msg.sender ?? "")
                 }
             }
@@ -120,18 +120,19 @@ class TUIFoldListViewController_Minimalist: UIViewController, TUINavigationContr
         return nil
     }
 
-    func conversationListController(_ conversationController: TUIConversationListController_Minimalist, didSelectConversation conversation: TUIConversationCellData) {
+    func conversationListController(_ conversationController: UIViewController, didSelectConversation conversation: TUIConversationCellData) -> Bool {
         let param: [String: Any] = [
-            TUICore_TUIChatObjectFactory_ChatViewController_ConversationID: conversation.conversationID ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_UserID: conversation.userID ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_GroupID: conversation.groupID ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_Title: conversation.title,
-            TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: conversation.faceUrl,
-            TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: conversation.avatarImage ?? UIImage(),
-            TUICore_TUIChatObjectFactory_ChatViewController_Draft: conversation.draftText ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr: conversation.atTipsStr ?? "",
-            TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs: conversation.atMsgSeqs ?? []
+            "TUICore_TUIChatObjectFactory_ChatViewController_ConversationID": conversation.conversationID ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_UserID": conversation.userID ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": conversation.groupID ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_Title": conversation.title ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": conversation.faceUrl ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": conversation.avatarImage ?? UIImage(),
+            "TUICore_TUIChatObjectFactory_ChatViewController_Draft": conversation.draftText ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr": conversation.atTipsStr ?? "",
+            "TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs": conversation.atMsgSeqs ?? []
         ]
-        navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Minimalist, param: param, forResult: nil)
+        navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Minimalist", param: param, forResult: nil)
+        return true
     }
 }

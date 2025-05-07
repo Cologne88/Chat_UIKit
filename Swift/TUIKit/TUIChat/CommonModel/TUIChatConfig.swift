@@ -112,7 +112,7 @@ public class TUIChatConfig: NSObject {
     }
 
     public func chatContextEmojiDetailGroups() -> [TUIFaceGroup]? {
-        guard let service = TIMCommonMediator.share().getObject(TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol,
+        guard let service = TIMCommonMediator.shared.getObject(for: TUIEmojiMeditorProtocol.self) as? TUIEmojiMeditorProtocol,
               let groups = service.getChatContextEmojiDetailGroups() as? [TUIFaceGroup]
         else {
             return nil
@@ -121,11 +121,18 @@ public class TUIChatConfig: NSObject {
     }
 }
 
-@objc public protocol TUIChatEventListener: AnyObject {
-    @objc optional func onUserIconClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
-    @objc optional func onUserIconLongClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
-    @objc optional func onMessageClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
-    @objc optional func onMessageLongClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
+public protocol TUIChatEventListener: AnyObject {
+    func onUserIconClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
+    func onUserIconLongClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
+    func onMessageClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
+    func onMessageLongClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool
+}
+
+extension TUIChatEventListener {
+    func onUserIconClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool { return false }
+    func onUserIconLongClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool { return false }
+    func onMessageClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool { return false }
+    func onMessageLongClicked(_ view: UIView, messageCellData: TUIMessageCellData) -> Bool { return false }
 }
 
 public class TUIChatEventConfig: NSObject {
@@ -144,14 +151,14 @@ extension TUIChatConfig {
         }
         let serviceName: String
         if styleType == .classic {
-            serviceName = TUICore_TUIChatService
+            serviceName = "TUICore_TUIChatService"
         } else {
-            serviceName = TUICore_TUIChatService_Minimalist
+            serviceName = "TUICore_TUIChatService_Minimalist"
         }
-        TUICore.callService(serviceName, method: TUICore_TUIChatService_AppendCustomMessageMethod, param: [
-            BussinessID: businessID,
-            TMessageCell_Name: cellName,
-            TMessageCell_Data_Name: cellDataName
+        TUICore.callService(serviceName, method: "TUICore_TUIChatService_AppendCustomMessageMethod", param: [
+            "businessID": businessID,
+            "TMessageCell_Name": cellName,
+            "TMessageCell_Data_Name": cellDataName
         ])
     }
 }

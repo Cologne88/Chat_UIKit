@@ -67,7 +67,7 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
             loadMembers()
         }
         setupViews()
-        TUICore.registerEvent(TUICore_TUIPluginNotify, subKey: TUICore_TUIPluginNotify_DidChangePluginViewSubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIPluginNotify", subKey: "TUICore_TUIPluginNotify_DidChangePluginViewSubKey", object: self)
     }
 
     override func viewWillLayoutSubviews() {
@@ -107,7 +107,7 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
         guard let navigationController = navigationController else { return }
         let backViewTop = navigationController.navigationBar.mm_maxY
         messageBackView?.frame = CGRect(x: 0, y: 0, width: view.bounds.size.width, height: TUISwift.kScale390(17) + TUISwift.kScale390(24) + TUISwift.kScale390(4))
-        tableView.mm_top()(backViewTop)?.mm_left()(0)?.mm_width()(view.mm_w)?.mm_height()(view.mm_h - tableView.mm_y)
+        tableView.mm_top(backViewTop).mm_left(0).mm_width(view.mm_w).mm_height(view.mm_h - tableView.mm_y)
     }
 
     func setupTitleView() {
@@ -130,7 +130,7 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
         messageBackView?.addSubview(dateLabel)
         let formatter = DateFormatter()
         formatter.dateFormat = "MM-dd HH:mm"
-        let dateString = formatter.string(from: cellData?.innerMessage.timestamp ?? Date())
+        let dateString = formatter.string(from: cellData?.innerMessage?.timestamp ?? Date())
         dateLabel.text = dateString
         dateLabel.font = UIFont.systemFont(ofSize: TUISwift.kScale390(14))
         dateLabel.textAlignment = TUISwift.isRTL() ? .right : .left
@@ -185,13 +185,13 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
         })
     }
 
-    func getUserOrFriendProfileVCWithUserID(_ userID: String?, succ: @escaping (UIViewController) -> Void, fail: @escaping (Int, String) -> Void) {
+    func getUserOrFriendProfileVCWithUserID(_ userID: String?, succ: @escaping (UIViewController) -> Void, fail: @escaping (Int32, String?) -> Void) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID ?? "",
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succ,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: fail
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID ?? "",
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succ,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": fail
         ]
-        TUICore.createObject(TUICore_TUIContactObjectFactory_Minimalist, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory_Minimalist", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
 
     var members: [Any] {
@@ -204,8 +204,10 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
                 dataArray.append(describeCellData)
 
                 for member in readMembers {
-                    let data = TUIMemberCellData(userID: member.userID.safeValue, nickName: member.nickName, friendRemark: member.friendRemark, nameCard: member.nameCard, avatarUrl: member.faceURL.safeValue, detail: nil)
-                    dataArray.append(data)
+                    if let userID = member.userID {
+                        let data = TUIMemberCellData(userID: userID, nickName: member.nickName, friendRemark: member.friendRemark, nameCard: member.nameCard, avatarUrl: member.faceURL ?? "", detail: nil)
+                        dataArray.append(data)
+                    }
                 }
             }
 
@@ -216,16 +218,18 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
                 dataArray.append(describeCellData)
 
                 for member in unreadMembers {
-                    let data = TUIMemberCellData(userID: member.userID.safeValue, nickName: member.nickName, friendRemark: member.friendRemark, nameCard: member.nameCard, avatarUrl: member.faceURL.safeValue, detail: nil)
-                    dataArray.append(data)
+                    if let userID = member.userID {
+                        let data = TUIMemberCellData(userID: userID, nickName: member.nickName, friendRemark: member.friendRemark, nameCard: member.nameCard, avatarUrl: member.faceURL ?? "", detail: nil)
+                        dataArray.append(data)
+                    }
                 }
             }
         } else {
-            if cellData?.direction == .MsgDirectionIncoming {
+            if cellData?.direction == .incoming {
                 return dataArray
             }
             let detail: String? = nil
-            let isPeerRead = cellData?.messageReceipt.isPeerRead ?? false
+            let isPeerRead = cellData?.messageReceipt?.isPeerRead ?? false
 
             let describeCellData = TUIMemberDescribeCellData()
             if isPeerRead {
@@ -236,7 +240,7 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
                 describeCellData.icon = TUIImageCache.sharedInstance().getResourceFromCache(TUISwift.tuiChatImagePath_Minimalist("msg_status_some_people_read"))
             }
 
-            let data = TUIMemberCellData(userID: cellData?.innerMessage.userID ?? "", nickName: nil, friendRemark: c2cReceiverName ?? "", nameCard: nil, avatarUrl: c2cReceiverAvatarUrl ?? "", detail: detail)
+            let data = TUIMemberCellData(userID: cellData?.innerMessage?.userID ?? "", nickName: nil, friendRemark: c2cReceiverName ?? "", nameCard: nil, avatarUrl: c2cReceiverAvatarUrl ?? "", detail: detail)
             dataArray.append(describeCellData)
             dataArray.append(data)
         }
@@ -245,7 +249,7 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
 
     func isGroupMessageRead() -> Bool {
         guard let cellData = cellData else { return false }
-        return cellData.innerMessage.groupID.safeValue.count > 0
+        return (cellData.innerMessage?.groupID?.count ?? 0) > 0
     }
 
     func dataProvider(_ dataProvider: TUIMessageBaseDataProvider, onRemoveHeightCache cellData: TUIMessageCellData?) {
@@ -271,7 +275,7 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
                     self.navigationController?.pushViewController(vc, animated: true)
                 }, fail: { _, _ in })
             } else {
-                getUserOrFriendProfileVCWithUserID(cellData?.innerMessage.userID) { [weak self] vc in
+                getUserOrFriendProfileVCWithUserID(cellData?.innerMessage?.userID) { [weak self] vc in
                     guard let self else { return }
                     self.navigationController?.pushViewController(vc, animated: true)
                 } fail: { _, _ in }
@@ -293,7 +297,7 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.section == 0 {
             guard let data = alertViewCellData else { return UITableViewCell() }
-            var cell = tableView.dequeueReusableCell(withIdentifier: data.reuseId, for: indexPath) as? TUIMessageCell
+            let cell = tableView.dequeueReusableCell(withIdentifier: data.reuseId, for: indexPath) as? TUIMessageCell
             cell!.delegate = self
             cell!.fill(with: data)
             cell!.notifyBottomContainerReady(of: nil)
@@ -318,15 +322,15 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
             let margin: CGFloat = cellData?.sameToNextMsgSender == true ? 10 : 0
             return (messageCellConfig?.getHeightFromMessageCellData(cellData) ?? 0) + margin
         }
-        guard let data = members[indexPath.row] as? TUICommonCellData else { return 0 }
+        guard members[indexPath.row] is TUICommonCellData else { return 0 }
         return TUISwift.kScale390(57)
     }
 
     // MARK: - TUINotificationProtocol
 
     func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
-        if key == TUICore_TUIPluginNotify, subKey == TUICore_TUIPluginNotify_DidChangePluginViewSubKey {
-            guard let data = param?[TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data] as? TUIMessageCellData else { return }
+        if key == "TUICore_TUIPluginNotify", subKey == "TUICore_TUIPluginNotify_DidChangePluginViewSubKey" {
+            guard let data = param?["TUICore_TUIPluginNotify_DidChangePluginViewSubKey_Data"] as? TUIMessageCellData else { return }
             clearAndReloadCell(ofData: data)
         }
     }
@@ -335,22 +339,4 @@ class TUIMessageReadViewController_Minimalist: UIViewController, UITableViewDele
         messageCellConfig?.removeHeightCacheOfMessageCellData(data)
         tableView.reloadData()
     }
-
-    // MARK: - TUIMessageCellDelegate
-
-    func onLongPressMessage(_ cell: TUIMessageCell!) {}
-
-    func onRetryMessage(_ cell: TUIMessageCell!) {}
-
-    func onSelectMessage(_ cell: TUIMessageCell!) {}
-
-    func onSelectMessageAvatar(_ cell: TUIMessageCell!) {}
-
-    func onLongSelectMessageAvatar(_ cell: TUIMessageCell!) {}
-
-    func onSelectReadReceipt(_ cell: TUIMessageCellData!) {}
-
-    func onJump(toRepliesDetailPage data: TUIMessageCellData!) {}
-
-    func onJump(toMessageInfoPage data: TUIMessageCellData!, select cell: TUIMessageCell!) {}
 }

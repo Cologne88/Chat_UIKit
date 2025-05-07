@@ -6,50 +6,61 @@
 #import <TUICore/TUIThemeManager.h>
 #import <TUICore/TUICore.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface TUISwift : NSObject
 
 #pragma mark - Color
 + (UIColor *)tuiDemoDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
 + (UIColor *)tuiConversationDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
++ (UIColor *)tuiConversationGroupDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
 + (UIColor *)timCommonDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
-+ (UIColor *)tuiDynamicColor:(NSString *)colorKey module:(TUIThemeModule)module defaultColor:(NSString *)defaultColor;
++ (UIColor *)tuiDynamicColor:(NSString *)colorKey themeModule:(TUIThemeModule)themeModule defaultColor:(NSString *)defaultColor;
 + (UIColor *)tuiChatDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
 + (UIColor *)tuiContactDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
-+ (UIColor *)RGB:(CGFloat)r green:(CGFloat)g blue:(CGFloat)b;
-+ (UIColor *)RGB:(CGFloat)r green:(CGFloat)g blue:(CGFloat)b alpha:(CGFloat)a;
++ (UIColor *)rgb:(CGFloat)r g:(CGFloat)g b:(CGFloat)b;
++ (UIColor *)rgba:(CGFloat)r g:(CGFloat)g b:(CGFloat)b a:(CGFloat)a;
 + (UIColor *)tImageMessageCell_Progress_Color;
 + (UIColor *)tVideoMessageCell_Progress_Color;
-+ (UIColor *)tControllerBackgroundColor;
-+ (UIColor *)tControllerBackgroundColorDark;
++ (UIColor *)tController_Background_Color;
++ (UIColor *)tController_Background_Color_Dark;
 + (UIColor *)tuiTranslationDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
 + (UIColor *)tuiVoiceToTextDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
++ (UIColor *)tuiGroupNoteDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
++ (UIColor *)tuiPollDynamicColor:(NSString *)colorKey defaultColor:(NSString *)defaultColor;
 
 #pragma mark - Image
-+ (UIImage *)defaultGroupAvatarImageByGroupType:(NSString *)groupType;
++ (UIImage *)defaultGroupAvatarImageByGroupType:(NSString * _Nullable)groupType;
 + (UIImage *)defaultAvatarImage;
 + (UIImage *)tuiDemoDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
 + (UIImage *)tuiCoreDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
 + (UIImage *)timCommonDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
 + (UIImage *)tuiContactDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
 + (UIImage *)tuiConversationDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
-+ (UIImage *)tuiDynamicImage:(NSString *)imageKey themeModule:(TUIThemeModule)themeModule defaultImg:(UIImage *)defaultImage;
++ (UIImage *)tuiConversationGroupDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
++ (UIImage *)tuiConversationMarkDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
++ (UIImage *)tuiDynamicImage:(NSString *)imageKey themeModule:(TUIThemeModule)themeModule defaultImage:(UIImage *)defaultImage;
 + (UIImage *)timCommonBundleImage:(NSString *)key;
 + (UIImage *)tuiConversationCommonBundleImage:(NSString *)key;
-+ (UIImage *)tuiCoreBundleThemeImage:(NSString *)imageKey defaultImageName:(NSString *)defaultImageName;
++ (UIImage *)tuiCoreBundleThemeImage:(NSString *)imageKey defaultImage:(NSString *)defaultImage;
 + (UIImage *)tuiChatBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage;
 + (UIImage *)tuiChatCommonBundleImage:(NSString *)imageName;
-+ (UIImage *)tuiConversationBundleThemeImage:(NSString *)imageKey defaultImageName:(NSString *)defaultImageName;
++ (UIImage *)tuiConversationBundleThemeImage:(NSString *)imageKey defaultImage:(NSString *)defaultImage;
 + (UIImage *)tuiChatDynamicImage:(NSString *)imageKey defaultImage:(UIImage *)defaultImage;
 + (UIImage *)tuiTranslationBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage;
 + (UIImage *)tuiVoiceToTextBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage;
 + (UIImage *)timCommonBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage;
 + (UIImage *)tuiContactCommonBundleImage:(NSString *)imageName;
++ (UIImage *)tuiSearchBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage;
++ (UIImage *)tuiGroupNoteBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage;
++ (UIImage *)tuiPollBundleThemeImage:(NSString *)imageName defaultImage:(NSString *)defaultImage;
 
 #pragma mark - String
 + (NSString *)timCommonLocalizableString:(NSString *)key;
 + (NSString *)tuiChatLocalizableString:(NSString *)key;
 + (NSString *)tuiKitLocalizableString:(NSString *)key;
 + (NSString *)tuiChatFaceImagePath:(NSString *)imageName;
++ (NSString *)tuiConversationGroupImagePath:(NSString *)imageName;
 + (NSString *)tFileMessageCell_ReuseId;
 + (NSString *)tImageMessageCell_ReuseId;
 
@@ -75,6 +86,13 @@
 + (NSString *)tuiTranslationThemePath;
 + (NSString *)tuiVoiceToTextThemePath;
 + (NSString *)tuiChatThemePath;
++ (NSString *)tuiConversationGroupThemePath;
++ (NSString *)tuiConversationMarkImagePath:(NSString *)imageName;
++ (NSString *)tuiSearchThemePath;
++ (NSString *)tuiSearchImagePath:(NSString *)imageName;
++ (NSString *)tuiGroupNoteThemePath;
++ (NSString *)tuiPollThemePath;
++ (NSString *)timCommonThemePath;
 
 #pragma mark - Size and primitive value
 + (CGSize)tuiPopView_Arrow_Size;
@@ -85,6 +103,7 @@
 + (CGSize)tTextView_Button_Size;
 + (CGSize)tPersonalCommonCell_Image_Size;
 + (CGSize)tGroupMemberCell_Head_Size;
++ (CGSize)kTIMDefaultEmoji_Size;
 
 + (CGFloat)kScale375:(CGFloat)x;
 + (CGFloat)kScale390:(CGFloat)x;
@@ -121,10 +140,6 @@
 + (BOOL)isRTL;
 + (BOOL)is_IPhoneX;
 
-
-#pragma mark - RAC
-+ (void)racObserveTUIConfig_displayOnlineStatusIcon:(UITableViewCell *)cell subscribeNext:(void(^)(id))subscribeNext;
-
-
 @end
 
+NS_ASSUME_NONNULL_END

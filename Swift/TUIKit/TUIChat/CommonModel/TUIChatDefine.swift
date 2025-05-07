@@ -5,6 +5,7 @@ let TUITencentCloudHomePageCN = "https://cloud.tencent.com/document/product/269/
 let TUITencentCloudHomePageEN = "https://www.tencentcloud.com/document/product/1047/45913"
 let TUIChatSendMessageNotification = "TUIChatSendMessageNotification"
 let TUIChatSendMessageWithoutUpdateUINotification = "TUIChatSendMessageWithoutUpdateUINotification"
+let TUIChatInsertMessageWithoutUpdateUINotification = "TUIChatInsertMessageWithoutUpdateUINotification"
 
 typealias TUIImageMessageDownloadCallback = () -> Void
 typealias TUIVideoMessageDownloadCallback = () -> Void

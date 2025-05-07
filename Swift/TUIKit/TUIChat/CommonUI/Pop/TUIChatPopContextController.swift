@@ -8,11 +8,11 @@ enum BlurEffectStyle: UInt {
     case darkEffect
 }
 
-class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
+public class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
     let defaultEmojiSize = CGSize(width: 23, height: 23)
 
     var alertCellClass: TUIMessageCell.Type?
-    var alertViewCellData: TUIMessageCellData?
+    public var alertViewCellData: TUIMessageCellData?
     var originFrame: CGRect = .zero
     var viewWillShowHandler: ((TUIMessageCell) -> Void)?
     var viewDidShowHandler: ((TUIMessageCell) -> Void)?
@@ -78,12 +78,12 @@ class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
 
         backgroundColor = .clear
         backgoundTapDismissEnable = true
-        V2TIMManager.sharedInstance()?.addAdvancedMsgListener(listener: self)
+        V2TIMManager.sharedInstance().addAdvancedMsgListener(listener: self)
     }
 
     // MARK: - Life cycle
 
-    override func viewDidLoad() {
+    override public func viewDidLoad() {
         super.viewDidLoad()
 
         view.backgroundColor = .clear
@@ -98,12 +98,12 @@ class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
         showHapticFeedback()
     }
 
-    override func viewWillAppear(_ animated: Bool) {
+    override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         viewWillShowHandler?(alertView ?? TUIMessageCell())
     }
 
-    override func viewDidAppear(_ animated: Bool) {
+    override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         viewDidShowHandler?(alertView ?? TUIMessageCell())
         adjustViewPositions()
@@ -111,7 +111,7 @@ class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
 
     // MARK: - V2TIMAdvancedMsgListener
 
-    func onRecvMessageRevoked(_ msgID: String, operateUser: V2TIMUserFullInfo, reason: String) {
+    public func onRecvMessageRevoked(msgID: String, operateUser: V2TIMUserFullInfo, reason: String?) {
         if msgID == alertViewCellData?.msgID {
             var controller: UIViewController = self
             while let presentingViewController = controller.presentingViewController {
@@ -165,7 +165,10 @@ class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
             alertView!.isUserInteractionEnabled = false
         }
 
-        alertView!.fill(with: alertViewCellData)
+        if let cellData = alertViewCellData {
+            alertView!.fill(with: cellData)
+        }
+
         alertView!.layoutIfNeeded()
 
         alertContainerView!.frame = CGRect(x: 0, y: originFrame.origin.y, width: view.frame.size.width, height: originFrame.size.height)
@@ -196,9 +199,9 @@ class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
             height: TUISwift.kScale390(40)
         )
 
-        let param: [String: Any] = [TUICore_TUIChatExtension_ChatPopMenuReactRecentView_Delegate: self]
+        let param: [String: Any] = ["TUICore_TUIChatExtension_ChatPopMenuReactRecentView_Delegate": self]
         TUICore.raiseExtension(
-            TUICore_TUIChatExtension_ChatPopMenuReactRecentView_MinimalistExtensionID,
+            "TUICore_TUIChatExtension_ChatPopMenuReactRecentView_MinimalistExtensionID",
             parentView: recentView,
             param: param
         )
@@ -410,7 +413,7 @@ class TUIChatPopContextController: UIViewController, V2TIMAdvancedMsgListener {
         }
     }
 
-    func blurDismissViewController(animated: Bool, completion: ((Bool) -> Void)?) {
+    public func blurDismissViewController(animated: Bool, completion: ((Bool) -> Void)?) {
         dismiss(animated: animated, completion: nil)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

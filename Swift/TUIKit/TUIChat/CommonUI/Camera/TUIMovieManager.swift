@@ -16,7 +16,7 @@ class TUIMovieManager {
     
     var referenceOrientation: AVCaptureVideoOrientation = .portrait
     var currentOrientation: AVCaptureVideoOrientation = .portrait
-    var currentDevice: AVCaptureDevice = AVCaptureDevice.default(for: .video)!
+    var currentDevice: AVCaptureDevice = .default(for: .video)!
     
     init() {
         movieURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("TUICaptureTempMovie.mp4")

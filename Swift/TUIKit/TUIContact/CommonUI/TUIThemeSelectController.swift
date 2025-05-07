@@ -24,8 +24,8 @@ class TUIThemeSelectCollectionViewCell: UICollectionViewCell {
 
     lazy var chooseButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.setImage(TUISwift.tuiContactDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_unselect"))), for: .normal)
-        button.setImage(TUISwift.tuiContactDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("add_selected"))), for: .selected)
+        button.setImage(TUISwift.tuiContactDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_unselect"))), for: .normal)
+        button.setImage(TUISwift.tuiContactDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("add_selected"))), for: .selected)
         button.isUserInteractionEnabled = false
         return button
     }()
@@ -211,7 +211,7 @@ public class TUIThemeSelectController: UIViewController, UICollectionViewDelegat
         super.viewDidLoad()
         setupViews()
         prepareData()
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name(rawValue: TUIDidApplyingThemeChangedNotfication), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name(rawValue: "TUIDidApplyingThemeChangedNotfication"), object: nil)
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -255,9 +255,9 @@ public class TUIThemeSelectController: UIViewController, UICollectionViewDelegat
         navigationItem.titleView = titleView
         navigationItem.title = ""
 
-        var image = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("nav_back")))
-        image = image?.withRenderingMode(.alwaysOriginal)
-        image = image?.rtl_imageFlippedForRightToLeftLayoutDirection()
+        var image = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("nav_back")))
+        image = image.withRenderingMode(UIImage.RenderingMode.alwaysOriginal)
+        image = image.rtlImageFlippedForRightToLeftLayoutDirection()
         let backButton = UIButton(type: .custom)
         backButton.setImage(image, for: .normal)
         backButton.addTarget(self, action: #selector(back), for: .touchUpInside)
@@ -289,25 +289,25 @@ public class TUIThemeSelectController: UIViewController, UICollectionViewDelegat
         systemModel = system
 
         let serious = TUIThemeSelectCollectionViewCellModel()
-        serious.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("theme_cover_serious")))
+        serious.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("theme_cover_serious")))
         serious.themeID = "serious"
         serious.themeName = TUISwift.timCommonLocalizableString("TUIKitThemeNameSerious")
         serious.selected = lastThemeID == serious.themeID
 
         let light = TUIThemeSelectCollectionViewCellModel()
-        light.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("theme_cover_light")))
+        light.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("theme_cover_light")))
         light.themeID = "light"
         light.themeName = TUISwift.timCommonLocalizableString("TUIKitThemeNameLight")
         light.selected = (lastThemeID == light.themeID || isSystemLight)
 
         let mingmei = TUIThemeSelectCollectionViewCellModel()
-        mingmei.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("theme_cover_lively")))
+        mingmei.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("theme_cover_lively")))
         mingmei.themeID = "lively"
         mingmei.themeName = TUISwift.timCommonLocalizableString("TUIKitThemeNameLivey")
         mingmei.selected = lastThemeID == mingmei.themeID
 
         let dark = TUIThemeSelectCollectionViewCellModel()
-        dark.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage(named: TUISwift.tuiContactImagePath("theme_cover_dark")))
+        dark.backImage = TUISwift.tuiContactDynamicImage("", defaultImage: UIImage.safeImage(TUISwift.tuiContactImagePath("theme_cover_dark")))
         dark.themeID = "dark"
         dark.themeName = TUISwift.timCommonLocalizableString("TUIKitThemeNameDark")
         dark.selected = (lastThemeID == dark.themeID || isSystemDark)

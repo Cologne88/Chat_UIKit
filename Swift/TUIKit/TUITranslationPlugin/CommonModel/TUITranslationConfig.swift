@@ -40,7 +40,7 @@ class TUITranslationConfig: NSObject {
     }
     
     private func defalutTargetLanguageCode() -> String {
-        let currentAppLanguage = TUIGlobalization.getPreferredLanguage()
+        let currentAppLanguage = TUIGlobalization.getPreferredLanguage() ?? ""
         if currentAppLanguage == "zh-Hans" || currentAppLanguage == "zh-Hant" {
             return "zh"
         } else {

@@ -19,8 +19,7 @@ class TUIGroupRequestViewController: UIViewController, UITableViewDataSource, UI
         addMsgTextView.textAlignment = TUISwift.isRTL() ? .right : .left
         if let loginUser = V2TIMManager.sharedInstance().getLoginUser() {
             V2TIMManager.sharedInstance().getUsersInfo([loginUser], succ: { [weak self] infoList in
-                guard let self = self else { return }
-                guard let infoList = infoList else { return }
+                guard let self = self, let infoList = infoList else { return }
                 if let showName = infoList.first?.showName() {
                     self.addMsgTextView.text = String(format: TUISwift.timCommonLocalizableString("GroupRequestJoinGroupFormat"), showName)
                 }
@@ -115,13 +114,13 @@ class TUIGroupRequestViewController: UIViewController, UITableViewDataSource, UI
         case 1:
             let cell = UITableViewCell(style: .default, reuseIdentifier: "AddWord")
             cell.contentView.addSubview(addMsgTextView)
-            addMsgTextView.mm_width()(TUISwift.screen_Width())!.mm_height()(120)
+            addMsgTextView.mm_width(TUISwift.screen_Width()).mm_height(120)
             return cell
         case 2:
             let cell = TUIButtonCell(style: .default, reuseIdentifier: "send")
             let cellData = TUIButtonCellData()
             cellData.title = TUISwift.timCommonLocalizableString("Send")
-            cellData.style = .ButtonWhite
+            cellData.style = .white
             cellData.cselector = #selector(onSend)
             cellData.textColor = UIColor(red: 20 / 255.0, green: 122 / 255.0, blue: 255 / 255.0, alpha: 1.0)
             cell.fill(with: cellData)
@@ -137,7 +136,7 @@ class TUIGroupRequestViewController: UIViewController, UITableViewDataSource, UI
 
     @objc func onSend() {
         TUITool.makeToastActivity()
-        V2TIMManager.sharedInstance().joinGroup(groupInfo?.groupID ?? "", msg: addMsgTextView.text, succ: {
+        V2TIMManager.sharedInstance().joinGroup(groupID: groupInfo?.groupID ?? "", msg: addMsgTextView.text, succ: {
             TUITool.hideToastActivity()
             TUITool.makeToast(TUISwift.timCommonLocalizableString("send_success"), duration: 3.0, idposition: TUICSToastPositionBottom)
         }, fail: { code, desc in

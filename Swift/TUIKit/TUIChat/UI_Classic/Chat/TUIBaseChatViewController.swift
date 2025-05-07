@@ -1,9 +1,7 @@
 import AssetsLibrary
 import AVFoundation
-import ImSDK_Plus
 import MobileCoreServices
 import Photos
-import ReactiveObjC
 import TIMCommon
 import TUICore
 import UIKit
@@ -33,6 +31,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
     private var dataProvider: TUIChatDataProvider!
     private var firstAppear: Bool = false
     private var responseKeyboard: Bool = false
+    private var isPageAppears: Bool = false
 
     private var titleView: TUINaviBarIndicatorView?
     private var multiChooseView: TUIMessageMultiChooseView?
@@ -87,14 +86,14 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
             guard let conversationData = conversationData else { return }
 
             let userID = conversationData.userID ?? ""
-            let param: [String: Any] = [TUICore_TUIChatExtension_GetChatConversationModelParams_UserID: userID]
-            let extensionList = TUICore.getExtensionList(TUICore_TUIChatExtension_GetChatConversationModelParams, param: param)
+            let param: [String: Any] = ["TUICore_TUIChatExtension_GetChatConversationModelParams_UserID": userID]
+            let extensionList = TUICore.getExtensionList("TUICore_TUIChatExtension_GetChatConversationModelParams", param: param)
 
             if let extention = extensionList.first, let data = extention.data {
-                conversationData.msgNeedReadReceipt = (data[TUICore_TUIChatExtension_GetChatConversationModelParams_MsgNeedReadReceipt] as? Bool) ?? false
-                conversationData.enableVideoCall = (data[TUICore_TUIChatExtension_GetChatConversationModelParams_EnableVideoCall] as? Bool) ?? false
-                conversationData.enableAudioCall = (data[TUICore_TUIChatExtension_GetChatConversationModelParams_EnableAudioCall] as? Bool) ?? false
-                conversationData.enableWelcomeCustomMessage = (data[TUICore_TUIChatExtension_GetChatConversationModelParams_EnableWelcomeCustomMessage] as? Bool) ?? false
+                conversationData.msgNeedReadReceipt = (data["TUICore_TUIChatExtension_GetChatConversationModelParams_MsgNeedReadReceipt"] as? Bool) ?? false
+                conversationData.enableVideoCall = (data["TUICore_TUIChatExtension_GetChatConversationModelParams_EnableVideoCall"] as? Bool) ?? false
+                conversationData.enableAudioCall = (data["TUICore_TUIChatExtension_GetChatConversationModelParams_EnableAudioCall"] as? Bool) ?? false
+                conversationData.enableWelcomeCustomMessage = (data["TUICore_TUIChatExtension_GetChatConversationModelParams_EnableWelcomeCustomMessage"] as? Bool) ?? false
             }
         }
     }
@@ -105,7 +104,8 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         super.init(nibName: nil, bundle: nil)
         createCachePath()
         TUIAIDenoiseSignatureManager.sharedInstance.updateSignature()
-        NotificationCenter.default.addObserver(self, selector: #selector(reloadTopViewsAndMessagePage), name: Notification.Name(TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadTopViewsAndMessagePage), name: Notification.Name("TUICore_TUIChatExtension_ChatViewTopArea_ChangedNotification"), object: nil)
+        TUIChatMediaSendingManager.shared.addCurrentVC(self)
     }
 
     @available(*, unavailable)
@@ -143,8 +143,8 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         setupInputMoreMenu()
         setupInputController()
 
-        let userInfo = [TUIKitNotification_onMessageVCBottomMarginChanged_Margin: 0]
-        NotificationCenter.default.post(name: NSNotification.Name(TUIKitNotification_onMessageVCBottomMarginChanged), object: nil, userInfo: userInfo)
+        let userInfo = ["TUIKitNotification_onMessageVCBottomMarginChanged_Margin": 0]
+        NotificationCenter.default.post(name: NSNotification.Name("TUIKitNotification_onMessageVCBottomMarginChanged"), object: nil, userInfo: userInfo)
 
         setupBottomContainerView()
 
@@ -166,6 +166,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         responseKeyboard = true
+        isPageAppears = true
         if firstAppear == true {
             loadDraft()
             firstAppear = false
@@ -178,6 +179,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        isPageAppears = false
         responseKeyboard = false
         openMultiChooseBoard(isOpen: false)
         messageController?.enableMultiSelectedMode(false)
@@ -201,11 +203,11 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         let fileManager = FileManager.default
 
         let paths = [
-            TUISwift.tuiKit_Image_Path()!,
-            TUISwift.tuiKit_Video_Path()!,
-            TUISwift.tuiKit_Voice_Path()!,
-            TUISwift.tuiKit_File_Path()!,
-            TUISwift.tuiKit_DB_Path()!
+            TUISwift.tuiKit_Image_Path(),
+            TUISwift.tuiKit_Video_Path(),
+            TUISwift.tuiKit_Voice_Path(),
+            TUISwift.tuiKit_File_Path(),
+            TUISwift.tuiKit_DB_Path()
         ]
 
         for path in paths {
@@ -270,14 +272,14 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
             topExtensionView.frame = CGRect(x: 0, y: 0, width: view.frame.size.width, height: 0)
             var param: [String: Any] = [:]
             if let userID = conversationData?.userID, userID.count > 0 {
-                param[TUICore_TUIChatExtension_ChatViewTopArea_ChatID] = userID
-                param[TUICore_TUIChatExtension_ChatViewTopArea_IsGroup] = "0"
+                param["TUICore_TUIChatExtension_ChatViewTopArea_ChatID"] = userID
+                param["TUICore_TUIChatExtension_ChatViewTopArea_IsGroup"] = "0"
             } else if let groupID = conversationData?.groupID, groupID.count > 0 {
-                param[TUICore_TUIChatExtension_ChatViewTopArea_IsGroup] = "1"
-                param[TUICore_TUIChatExtension_ChatViewTopArea_ChatID] = groupID
+                param["TUICore_TUIChatExtension_ChatViewTopArea_IsGroup"] = "1"
+                param["TUICore_TUIChatExtension_ChatViewTopArea_ChatID"] = groupID
             }
 
-            TUICore.raiseExtension(TUICore_TUIChatExtension_ChatViewTopArea_ClassicExtensionID, parentView: topExtensionView, param: param)
+            TUICore.raiseExtension("TUICore_TUIChatExtension_ChatViewTopArea_ClassicExtensionID", parentView: topExtensionView, param: param)
         }
     }
 
@@ -302,11 +304,11 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
     func configNotify() {
         V2TIMManager.sharedInstance().addConversationListener(listener: self)
-        TUICore.registerEvent(TUICore_TUIConversationNotify, subKey: TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIConversationNotify", subKey: "TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey", object: self)
         NotificationCenter.default.addObserver(self, selector: #selector(onFriendInfoChanged(_:)), name: NSNotification.Name("FriendInfoChangedNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive(_:)), name: NSNotification.Name("UIApplicationWillResignActiveNotification"), object: nil)
 
-        TUICore.registerEvent(TUICore_TUIContactNotify, subKey: TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey, object: self)
+        TUICore.registerEvent("TUICore_TUIContactNotify", subKey: "TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey", object: self)
     }
 
     @objc func appWillResignActive(_ noti: Notification) {
@@ -318,17 +320,16 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
         if let naviController = navigationController as? TUINavigationController {
             naviController.uiNaviDelegate = self
-            if let backimg = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("nav_back"))) {
-                naviController.navigationItemBackArrowImage = backimg.rtl_imageFlippedForRightToLeftLayoutDirection()
-            }
+            let backimg = TUISwift.timCommonDynamicImage("nav_back_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("nav_back")))
+            naviController.navigationItemBackArrowImage = backimg.rtlImageFlippedForRightToLeftLayoutDirection()
         }
         titleView = TUINaviBarIndicatorView()
         navigationItem.titleView = titleView
         navigationItem.title = ""
 
         titleObservation = conversationData.observe(\.title, options: [.new, .initial]) { [weak self] _, change in
-            guard let self = self, let title = change.newValue else { return }
-            self.titleView?.setTitle(title ?? "")
+            guard let self = self, let title = change.newValue, title != nil else { return }
+            self.titleView?.setTitle(title!)
         }
 
         otherSideTypingObservation = conversationData.observe(\.otherSideTyping, options: [.new, .initial]) { [weak self] _, change in
@@ -353,15 +354,15 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         var rightBarButtonList = [UIBarButtonItem]()
         var param = [String: Any]()
         if let userID = conversationData.userID, !userID.isEmpty {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_UserID] = userID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_UserID"] = userID
         } else if let groupID = conversationData.groupID, !groupID.isEmpty {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_GroupID] = groupID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_GroupID"] = groupID
         }
-        param[TUICore_TUIChatExtension_NavigationMoreItem_ItemSize] = itemSize
-        param[TUICore_TUIChatExtension_NavigationMoreItem_FilterVideoCall] = !TUIChatConfig.shared.enableVideoCall
-        param[TUICore_TUIChatExtension_NavigationMoreItem_FilterAudioCall] = !TUIChatConfig.shared.enableAudioCall
+        param["TUICore_TUIChatExtension_NavigationMoreItem_ItemSize"] = itemSize
+        param["TUICore_TUIChatExtension_NavigationMoreItem_FilterVideoCall"] = !TUIChatConfig.shared.enableVideoCall
+        param["TUICore_TUIChatExtension_NavigationMoreItem_FilterAudioCall"] = !TUIChatConfig.shared.enableAudioCall
 
-        let extensionList: [TUIExtensionInfo]? = TUICore.getExtensionList(TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID, param: param)
+        let extensionList: [TUIExtensionInfo]? = TUICore.getExtensionList("TUICore_TUIChatExtension_NavigationMoreItem_ClassicExtensionID", param: param)
         var maxWeightInfo = TUIExtensionInfo()
         maxWeightInfo.weight = Int.min
         if let extensionList = extensionList {
@@ -396,13 +397,13 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
         var param: [String: Any] = [:]
         if let userID = conversationData?.userID, userID.count > 0 {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_UserID] = userID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_UserID"] = userID
         } else if let groupID = conversationData?.groupID, groupID.count > 0 {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_GroupID] = groupID
+            param["TUICore_TUIChatExtension_NavigationMoreItem_GroupID"] = groupID
         }
 
         if let navigationController = navigationController {
-            param[TUICore_TUIChatExtension_NavigationMoreItem_PushVC] = navigationController
+            param["TUICore_TUIChatExtension_NavigationMoreItem_PushVC"] = navigationController
         }
 
         onClicked(param)
@@ -432,17 +433,17 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
     }
 
     func notifyBottomContainerReady() {
-        TUICore.registerEvent(TUICore_TUIPluginNotify,
-                              subKey: TUICore_TUIPluginNotify_PluginViewDidAddToSuperview,
+        TUICore.registerEvent("TUICore_TUIPluginNotify",
+                              subKey: "TUICore_TUIPluginNotify_PluginViewDidAddToSuperview",
                               object: self)
 
         let userID = conversationData?.userID ?? ""
         let params: [String: Any] = [
-            TUICore_TUIChatExtension_ChatVCBottomContainer_UserID: userID,
-            TUICore_TUIChatExtension_ChatVCBottomContainer_VC: self
+            "TUICore_TUIChatExtension_ChatVCBottomContainer_UserID": userID,
+            "TUICore_TUIChatExtension_ChatVCBottomContainer_VC": self
         ]
 
-        TUICore.raiseExtension(TUICore_TUIChatExtension_ChatVCBottomContainer_ClassicExtensionID,
+        TUICore.raiseExtension("TUICore_TUIChatExtension_ChatVCBottomContainer_ClassicExtensionID",
                                parentView: bottomContainerView,
                                param: params)
     }
@@ -561,7 +562,8 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         do {
             if let data = draft.data(using: .utf8), let jsonDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                 let draftContent = jsonDict["content"] as? String ?? ""
-                let formatEmojiString = draftContent.getAdvancedFormatEmojiString(with: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: nil)
+                var locations: [[NSValue: NSAttributedString]]? = nil
+                let formatEmojiString = draftContent.getAdvancedFormatEmojiString(withFont: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: &locations)
                 inputController.inputBar?.addDraftToInputBar(formatEmojiString)
 
                 if let messageRootID = jsonDict["messageRootID"] as? String,
@@ -593,7 +595,8 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
                 }
             }
         } catch {
-            let formatEmojiString = draft.getAdvancedFormatEmojiString(with: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: nil)
+            var locations: [[NSValue: NSAttributedString]]? = nil
+            let formatEmojiString = draft.getAdvancedFormatEmojiString(withFont: kTUIInputNormalFont, textColor: kTUIInputNormalTextColor, emojiLocations: &locations)
             inputController.inputBar?.addDraftToInputBar(formatEmojiString)
         }
     }
@@ -610,15 +613,23 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         }
 
         if let previewData = previewData {
+            let contentValue = content ?? ""
+            let messageID = previewData.msgID ?? ""
+            let messageAbstract = (previewData.msgAbstract ?? "").getInternationalStringWithFaceContent()
+            let messageSender = previewData.sender ?? ""
+            let messageType = previewData.type.rawValue
+            let messageTime = previewData.originMessage?.timestamp?.timeIntervalSince1970 ?? 0
+            let messageSequence = previewData.originMessage?.seq ?? 0
+
             let dict: [String: Any] = [
-                "content": content ?? "",
+                "content": contentValue,
                 "messageReply": [
-                    "messageID": previewData.msgID ?? "",
-                    "messageAbstract": (previewData.msgAbstract ?? "").getInternationalStringWithfaceContent(),
-                    "messageSender": previewData.sender ?? "",
-                    "messageType": previewData.type.rawValue,
-                    "messageTime": previewData.originMessage?.timestamp?.timeIntervalSince1970 ?? 0, // Compatible for web
-                    "messageSequence": previewData.originMessage?.seq ?? 0, // Compatible for web
+                    "messageID": messageID,
+                    "messageAbstract": messageAbstract,
+                    "messageSender": messageSender,
+                    "messageType": messageType,
+                    "messageTime": messageTime, // Compatible for web
+                    "messageSequence": messageSequence, // Compatible for web
                     "version": kDraftMessageReplyVersion
                 ]
             ]
@@ -667,7 +678,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
     // MARK: - Event
 
-    public func send(_ message: V2TIMMessage) {
+    public func sendMessage(_ message: V2TIMMessage) {
         messageController?.sendMessage(message)
     }
 
@@ -688,23 +699,23 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
     func checkTitle(force: Bool) {
         guard let conversationData = conversationData else { return }
-        if force || conversationData.title.isNilOrEmpty {
+        if force || (conversationData.title?.isEmpty ?? true) {
             if let userID = conversationData.userID, !userID.isEmpty {
-                if conversationData.title.isNilOrEmpty {
+                if conversationData.title?.isEmpty ?? true {
                     conversationData.title = userID
                 }
                 TUIChatDataProvider.getFriendInfo(withUserId: userID, succ: { [weak self] friendInfoResult in
                     guard let self else { return }
-                    if (friendInfoResult.relation.rawValue & V2TIMFriendRelationType.FRIEND_RELATION_TYPE_IN_MY_FRIEND_LIST.rawValue) == 1,
-                       let friendInfo = friendInfoResult.friendInfo, let friendRemark = friendInfo.friendRemark,
-                       let userFullInfo = friendInfo.userFullInfo
-                    {
+                    let isFriend = (friendInfoResult.relation.rawValue & V2TIMFriendRelationType.FRIEND_RELATION_TYPE_IN_MY_FRIEND_LIST.rawValue) == 1
+                    let friendInfo: V2TIMFriendInfo? = friendInfoResult.friendInfo
+                    let friendRemark = friendInfo?.friendRemark ?? ""
+
+                    if isFriend, friendRemark.count > 0 {
                         self.conversationData?.title = friendRemark
                     } else {
                         TUIChatDataProvider.getUserInfo(withUserId: userID, succ: { userInfo in
-                            if !userInfo.nickName.isNilOrEmpty {
-                                self.conversationData?.title = userInfo.nickName.safeValue
-                                self.conversationData?.faceUrl = userInfo.faceURL.safeValue
+                            if let nickName = userInfo.nickName, !nickName.isEmpty {
+                                self.conversationData?.title = userInfo.nickName
                             }
                         }, fail: { _, _ in })
                     }
@@ -712,10 +723,12 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
             } else if let groupID = conversationData.groupID, !groupID.isEmpty {
                 TUIChatDataProvider.getGroupInfo(withGroupID: groupID) { [weak self] groupResult in
                     guard let self else { return }
-                    if let info = groupResult.info, let groupName = info.groupName, conversationData.enableRoom {
+                    if let info = groupResult.info, let groupName = info.groupName,
+                       groupName.count > 0, conversationData.enableRoom
+                    {
                         self.conversationData?.title = groupName
                     }
-                    if groupResult.info?.groupType.safeValue == "Room" {
+                    if groupResult.info?.groupType == "Room" {
                         navigationItem.rightBarButtonItem = nil
                     }
                 } fail: { _, _ in }
@@ -731,37 +744,37 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
                 guard let self = self else { return }
                 self.navigationController?.pushViewController(vc, animated: true)
             }, failBlock: { code, desc in
-                TUITool.makeToastError(code, msg: desc)
+                TUITool.makeToastError(Int(code), msg: desc ?? "")
             })
         } else {
             if let groupID = conversationData.groupID {
-                let param = [TUICore_TUIContactObjectFactory_GetGroupInfoVC_GroupID: groupID]
-                navigationController?.push(TUICore_TUIContactObjectFactory_GetGroupInfoVC_Classic, param: param, forResult: nil)
+                let param = ["TUICore_TUIContactObjectFactory_GetGroupInfoVC_GroupID": groupID]
+                navigationController?.push("TUICore_TUIContactObjectFactory_GetGroupInfoVC_Classic", param: param, forResult: nil)
             }
         }
     }
 
-    func getUserOrFriendProfileVCWithUserID(_ userID: String, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int, String) -> Void) {
+    func getUserOrFriendProfileVCWithUserID(_ userID: String, succBlock: @escaping (UIViewController) -> Void, failBlock: @escaping (Int32, String?) -> Void) {
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_UserIDKey: userID,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey: succBlock,
-            TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey: failBlock
+            "TUICore_TUIContactService_etUserOrFriendProfileVCMethod_UserIDKey": userID,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_SuccKey": succBlock,
+            "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod_FailKey": failBlock
         ]
 
-        TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod, param: param)
+        TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetUserOrFriendProfileVCMethod", param: param)
     }
 
     // MARK: - TUICore Notify
 
     public func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
-        if key == TUICore_TUIConversationNotify && subKey == TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey {
+        if key == "TUICore_TUIConversationNotify" && subKey == "TUICore_TUIConversationNotify_ClearConversationUIHistorySubKey" {
             messageController?.clearUImsg()
-        } else if key == TUICore_TUIContactNotify && subKey == TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey {
-            if let conversationID = param?[TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID] as? String, !conversationID.isEmpty {
+        } else if key == "TUICore_TUIContactNotify" && subKey == "TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey" {
+            if let conversationID = param?["TUICore_TUIContactNotify_UpdateConversationBackgroundImageSubKey_ConversationID"] as? String, !conversationID.isEmpty {
                 updateBackgroundImageUrl(byConversationID: conversationID)
             }
-        } else if key == TUICore_TUIPluginNotify && subKey == TUICore_TUIPluginNotify_PluginViewDidAddToSuperview {
-            if let height = param?[TUICore_TUIPluginNotify_PluginViewDidAddToSuperviewSubKey_PluginViewHeight] as? Float, let messageController = messageController {
+        } else if key == "TUICore_TUIPluginNotify" && subKey == "TUICore_TUIPluginNotify_PluginViewDidAddToSuperview" {
+            if let height = param?["TUICore_TUIPluginNotify_PluginViewDidAddToSuperviewSubKey_PluginViewHeight"] as? Float, let messageController = messageController {
                 messageController.view.frame = CGRect(
                     x: 0,
                     y: topMarginByCustomView(),
@@ -780,8 +793,8 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
                     )
                 }
 
-                let userInfo: [String: Any] = [TUIKitNotification_onMessageVCBottomMarginChanged_Margin: height]
-                NotificationCenter.default.post(name: Notification.Name(TUIKitNotification_onMessageVCBottomMarginChanged), object: nil, userInfo: userInfo)
+                let userInfo: [String: Any] = ["TUIKitNotification_onMessageVCBottomMarginChanged_Margin": height]
+                NotificationCenter.default.post(name: Notification.Name("TUIKitNotification_onMessageVCBottomMarginChanged"), object: nil, userInfo: userInfo)
             }
         }
     }
@@ -866,14 +879,14 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
         var param: [String: Any] = [:]
         if let userID = conversationData?.userID, !userID.isEmpty {
-            param[TUICore_TUIChatExtension_InputViewMoreItem_UserID] = userID
+            param["TUICore_TUIChatExtension_InputViewMoreItem_UserID"] = userID
         } else if let groupID = conversationData?.groupID, !groupID.isEmpty {
-            param[TUICore_TUIChatExtension_InputViewMoreItem_GroupID] = groupID
+            param["TUICore_TUIChatExtension_InputViewMoreItem_GroupID"] = groupID
         }
 
         if let navigationController = navigationController {
-            param[TUICore_TUIChatExtension_InputViewMoreItem_PushVC] = navigationController
-            param[TUICore_TUIChatExtension_InputViewMoreItem_VC] = self
+            param["TUICore_TUIChatExtension_InputViewMoreItem_PushVC"] = navigationController
+            param["TUICore_TUIChatExtension_InputViewMoreItem_VC"] = self
         }
 
         onClicked(param)
@@ -936,18 +949,19 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
     func onSelectMessageAvatar(_ controller: TUIBaseMessageController, cell: TUIMessageCell) {
         var userID: String?
+        guard let messageData = cell.messageData, let msg = messageData.innerMessage else { return }
 
-        if let groupID = cell.messageData.innerMessage.groupID, !groupID.isEmpty {
-            userID = cell.messageData.innerMessage.sender
+        if let groupID = msg.groupID, !groupID.isEmpty {
+            userID = msg.sender
         } else {
-            if cell.messageData.isUseMsgReceiverAvatar {
-                if cell.messageData.innerMessage.isSelf {
-                    userID = cell.messageData.innerMessage.userID
+            if messageData.isUseMsgReceiverAvatar {
+                if msg.isSelf {
+                    userID = msg.userID
                 } else {
                     userID = V2TIMManager.sharedInstance().getLoginUser()
                 }
             } else {
-                userID = cell.messageData.innerMessage.sender
+                userID = msg.sender
             }
         }
 
@@ -958,15 +972,15 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         // Get extensions first
         var param: [String: Any] = [:]
         if let userID = conversationData?.userID, !userID.isEmpty {
-            param[TUICore_TUIChatExtension_ClickAvatar_UserID] = userID
+            param["TUICore_TUIChatExtension_ClickAvatar_UserID"] = userID
         } else if let groupID = conversationData?.groupID, !groupID.isEmpty {
-            param[TUICore_TUIChatExtension_ClickAvatar_GroupID] = groupID
+            param["TUICore_TUIChatExtension_ClickAvatar_GroupID"] = groupID
         }
         if let navigationController = navigationController {
-            param[TUICore_TUIChatExtension_ClickAvatar_PushVC] = navigationController
+            param["TUICore_TUIChatExtension_ClickAvatar_PushVC"] = navigationController
         }
 
-        let extensionList = TUICore.getExtensionList(TUICore_TUIChatExtension_ClickAvatar_ClassicExtensionID, param: param)
+        let extensionList = TUICore.getExtensionList("TUICore_TUIChatExtension_ClickAvatar_ClassicExtensionID", param: param)
         if !extensionList.isEmpty {
             var maxWeightInfo: TUIExtensionInfo? = nil
             for info in extensionList {
@@ -986,6 +1000,8 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
         inputController.reset()
     }
+
+    func onLongSelectMessageAvatar(_ controller: TUIBaseMessageController, cell: TUIMessageCell) {}
 
     func onSelectMessageContent(_ controller: TUIBaseMessageController?, cell: TUIMessageCell) {
         cell.disableDefaultSelectAction = false
@@ -1091,7 +1107,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
                     view?.addSubview(multiChooseView!)
                 }
             } else {
-                UIApplication.shared.keyWindow?.addSubview(multiChooseView!)
+                TUITool.applicationKeywindow()?.addSubview(multiChooseView!)
             }
         } else {
             messageController?.enableMultiSelectedMode(false)
@@ -1129,7 +1145,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         var hasSendFailedMsg = false
         var canForwardMsg = true
         for data in uiMsgs {
-            if data.status != .Msg_Status_Succ {
+            if data.status != .success {
                 hasSendFailedMsg = true
             }
             canForwardMsg = canForwardMsg && data.canForward()
@@ -1175,16 +1191,17 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
     private func selectTarget(_ mergeForward: Bool, toForwardMessage uiMsgs: [TUIMessageCellData]?, orForwardText forwardText: String?) {
         let nav = UINavigationController()
         nav.modalPresentationStyle = .fullScreen
-        present(TUICore_TUIConversationObjectFactory_ConversationSelectVC_Classic, param: nil, embbedIn: nav, forResult: { [weak self] param in
+
+        present("TUICore_TUIConversationObjectFactory_ConversationSelectVC_Classic", param: nil, embbedIn: nav, forResult: { [weak self] param in
             guard let self else { return }
-            guard let selectList = param[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList] as? [NSDictionary], !selectList.isEmpty else { return }
+            guard let selectList = param["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList"] as? [NSDictionary], !selectList.isEmpty else { return }
             var targetList = [TUIChatConversationModel]()
             for selectItem in selectList {
                 let model = TUIChatConversationModel()
-                model.title = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title] as? String ?? ""
-                model.userID = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID] as? String ?? ""
-                model.groupID = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID] as? String ?? ""
-                model.conversationID = selectItem[TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID] as? String ?? ""
+                model.title = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_Title"] as? String ?? ""
+                model.userID = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_UserID"] as? String ?? ""
+                model.groupID = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_GroupID"] as? String ?? ""
+                model.conversationID = selectItem["TUICore_TUIConversationObjectFactory_ConversationSelectVC_ResultList_ConversationID"] as? String ?? ""
                 targetList.append(model)
             }
             if let msgs = uiMsgs, msgs.count > 0 {
@@ -1201,7 +1218,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
             guard let self else { return }
 
             let convCellData = targetConversation
-            var timeInterval = (convCellData.groupID?.count ?? 0) > 0 ? 0.09 : 0.05
+            let timeInterval = (convCellData.groupID?.count ?? 0) > 0 ? 0.09 : 0.05
 
             // Forward to current chat.
             if convCellData.conversationID == self.conversationData?.conversationID {
@@ -1231,9 +1248,9 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
                 message.needReadReceipt = (self.conversationData?.msgNeedReadReceipt ?? false) && TUIChatConfig.shared.msgNeedReadReceipt
                 _ = TUIMessageDataProvider.sendMessage(message, toConversation: convCellData, appendParams: appendParams, Progress: nil, SuccBlock: {
                     // Messages sent to other chats need to broadcast the message sending status, which is convenient to refresh the message status after entering the corresponding chat
-                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
+                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
                 }, FailBlock: { _, _ in
-                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
+                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
                 })
                 Thread.sleep(forTimeInterval: timeInterval)
             }
@@ -1251,19 +1268,25 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
     public func onRelyMessage(_ controller: TUIBaseMessageController, data: TUIMessageCellData?) {
         inputController.exitReplyAndReference { [weak self] in
             guard let self, let data = data else { return }
+
             let desc = self.replyReferenceMessageDesc(data)
+
             let replyData = TUIReplyPreviewData()
             replyData.msgID = data.msgID
             replyData.msgAbstract = desc
             replyData.sender = data.senderName
-            replyData.type = data.innerMessage.elemType
+            if let elemType = data.innerMessage?.elemType {
+                replyData.type = elemType
+            }
             replyData.originMessage = data.innerMessage
+
             var cloudResultDic = [AnyHashable: Any]()
-            if let cloudCustomData = data.innerMessage.cloudCustomData as Data?,
+            if let cloudCustomData = data.innerMessage?.cloudCustomData as Data?,
                let originDic = TUITool.jsonData2Dictionary(cloudCustomData)
             {
                 cloudResultDic.merge(originDic) { current, _ in current }
             }
+
             if let messageParentReply = cloudResultDic["messageReply"] as? [String: Any],
                let messageRootID = messageParentReply["messageRootID"] as? String, !messageRootID.isEmpty
             {
@@ -1278,20 +1301,22 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
 
     private func replyReferenceMessageDesc(_ data: TUIMessageCellData) -> String {
         var desc = ""
-        switch data.innerMessage.elemType {
+        switch data.innerMessage?.elemType {
         case .ELEM_TYPE_FILE:
-            if let fileElem = data.innerMessage.fileElem {
-                desc = fileElem.filename.safeValue
+            if let fileElem = data.innerMessage?.fileElem {
+                desc = fileElem.filename ?? ""
             }
         case .ELEM_TYPE_MERGER:
-            if let mergerElem = data.innerMessage.mergerElem {
-                desc = mergerElem.title.safeValue
+            if let mergerElem = data.innerMessage?.mergerElem {
+                desc = mergerElem.title ?? ""
             }
         case .ELEM_TYPE_CUSTOM:
-            desc = TUIMessageDataProvider.getDisplayString(data.innerMessage) ?? ""
+            if let msg = data.innerMessage {
+                desc = TUIMessageDataProvider.getDisplayString(message: msg) ?? ""
+            }
         case .ELEM_TYPE_TEXT:
-            if let textElem = data.innerMessage.textElem {
-                desc = textElem.text.safeValue
+            if let textElem = data.innerMessage?.textElem {
+                desc = textElem.text ?? ""
             }
         default:
             break
@@ -1309,7 +1334,9 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
             referenceData.msgID = data.msgID
             referenceData.msgAbstract = desc
             referenceData.sender = data.senderName
-            referenceData.type = data.innerMessage.elemType
+            if let elemType = data.innerMessage?.elemType {
+                referenceData.type = elemType
+            }
             referenceData.originMessage = data.innerMessage
             self.inputController.showReferencePreview(referenceData)
         }
@@ -1328,17 +1355,18 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         appendParams.isOnlineUserOnly = false
         appendParams.priority = .PRIORITY_NORMAL
         for conversation in conversations {
-            let message = V2TIMManager.sharedInstance().createTextMessage(text)!
-            DispatchQueue.main.async {
-                if conversation.conversationID == self.conversationData?.conversationID {
-                    self.messageController?.sendMessage(message)
-                } else {
-                    message.needReadReceipt = self.conversationData?.msgNeedReadReceipt ?? false && TUIChatConfig.shared.msgNeedReadReceipt
-                    _ = TUIMessageDataProvider.sendMessage(message, toConversation: conversation, appendParams: appendParams, Progress: nil, SuccBlock: {
-                        NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
-                    }, FailBlock: { _, _ in
-                        NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onMessageStatusChanged), object: message)
-                    })
+            if let message = V2TIMManager.sharedInstance().createTextMessage(text: text) {
+                DispatchQueue.main.async {
+                    if conversation.conversationID == self.conversationData?.conversationID {
+                        self.messageController?.sendMessage(message)
+                    } else {
+                        message.needReadReceipt = self.conversationData?.msgNeedReadReceipt ?? false && TUIChatConfig.shared.msgNeedReadReceipt
+                        _ = TUIMessageDataProvider.sendMessage(message, toConversation: conversation, appendParams: appendParams, Progress: nil, SuccBlock: {
+                            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
+                        }, FailBlock: { _, _ in
+                            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onMessageStatusChanged"), object: message)
+                        })
+                    }
                 }
             }
         }
@@ -1352,14 +1380,14 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
                 guard let self = self else { return }
                 self.navigationController?.pushViewController(vc, animated: true)
             }, failBlock: { code, desc in
-                TUITool.makeToastError(code, msg: desc)
+                TUITool.makeToastError(Int(code), msg: desc ?? "")
             })
         }
     }
 
     // MARK: - V2TIMConversationListener
 
-    public func onConversationChanged(_ conversationList: [V2TIMConversation]) {
+    public func onConversationChanged(conversationList: [V2TIMConversation]) {
         guard let conversationData = conversationData else { return }
         for conv in conversationList {
             if conv.conversationID == conversationData.conversationID {
@@ -1380,25 +1408,25 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
     // MARK: TUIChatMediaDataListener
 
     public func onProvideImage(_ imageUrl: String) {
-        let message = V2TIMManager.sharedInstance().createImageMessage(imageUrl)!
-        send(message)
+        let message = V2TIMManager.sharedInstance().createImageMessage(imagePath: imageUrl)!
+        sendMessage(message)
     }
 
     public func onProvideImageError(_ errorMessage: String) {
         TUITool.makeToast(errorMessage)
     }
 
-    func onProvidePlaceholderVideoSnapshot(_ snapshotUrl: String, snapImage: UIImage, completion: ((Bool, TUIMessageCellData) -> Void)?) {
+    public func onProvidePlaceholderVideoSnapshot(_ snapshotUrl: String, snapImage: UIImage, completion: ((Bool, TUIMessageCellData) -> Void)?) {
         let videoCellData = TUIVideoMessageCellData.placeholderCellData(snapshotUrl: snapshotUrl, thumbImage: snapImage)
         messageController?.sendPlaceHolderUIMessage(videoCellData)
         completion?(true, videoCellData)
     }
 
     public func onProvideVideo(_ videoUrl: String, snapshot: String, duration: Int, placeHolderCellData: TUIMessageCellData?) {
-        if let url = URL(string: videoUrl),
-           let message = V2TIMManager.sharedInstance().createVideoMessage(videoUrl, type: url.pathExtension, duration: Int32(duration), snapshotPath: snapshot)
-        {
-            sendMessage(message, placeHolderCellData: placeHolderCellData)
+        if let url = URL(string: videoUrl) {
+            if let message = V2TIMManager.sharedInstance().createVideoMessage(videoFilePath: videoUrl, type: url.pathExtension, duration: Int32(duration), snapshotPath: snapshot) {
+                sendMessage(message, placeHolderCellData: placeHolderCellData)
+            }
         }
     }
 
@@ -1407,8 +1435,8 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
     }
 
     public func onProvideFile(_ fileUrl: String, filename: String, fileSize: Int) {
-        let message = V2TIMManager.sharedInstance().createFileMessage(fileUrl, fileName: filename)!
-        send(message)
+        let message = V2TIMManager.sharedInstance().createFileMessage(filePath: fileUrl, fileName: filename)!
+        sendMessage(message)
     }
 
     public func onProvideFileError(_ errorMessage: String) {

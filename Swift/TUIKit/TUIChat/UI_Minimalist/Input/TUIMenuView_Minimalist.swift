@@ -46,8 +46,8 @@ class TUIMenuView_Minimalist: UIView, UICollectionViewDelegate, UICollectionView
         menuFlowLayout.minimumInteritemSpacing = 0
 
         menuCollectionView = UICollectionView(frame: .zero, collectionViewLayout: menuFlowLayout)
-        menuCollectionView.register(TUIMenuCell_Minimalist.self, forCellWithReuseIdentifier: TMenuCell_ReuseId)
-        menuCollectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: TMenuCell_Line_ReuseId)
+        menuCollectionView.register(TUIMenuCell_Minimalist.self, forCellWithReuseIdentifier: "TMenuCell")
+        menuCollectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "TMenuLineCell")
         menuCollectionView.delegate = self
         menuCollectionView.dataSource = self
         menuCollectionView.showsHorizontalScrollIndicator = false
@@ -76,13 +76,13 @@ class TUIMenuView_Minimalist: UIView, UICollectionViewDelegate, UICollectionView
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if indexPath.row % 2 == 0 {
-            if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TMenuCell_ReuseId, for: indexPath) as? TUIMenuCell_Minimalist {
+            if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TMenuCell", for: indexPath) as? TUIMenuCell_Minimalist {
                 cell.setData(data[indexPath.row / 2])
                 return cell
             }
             return UICollectionViewCell()
         } else {
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TMenuCell_Line_ReuseId, for: indexPath)
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TMenuLineCell", for: indexPath)
             cell.backgroundColor = .clear
             return cell
         }
@@ -105,7 +105,7 @@ class TUIMenuView_Minimalist: UIView, UICollectionViewDelegate, UICollectionView
             let wh = collectionView.frame.size.height
             return CGSize(width: wh, height: wh)
         } else {
-            return CGSize(width: TLine_Heigh, height: collectionView.frame.size.height)
+            return CGSize(width: TUISwift.tLine_Height(), height: collectionView.frame.size.height)
         }
     }
 

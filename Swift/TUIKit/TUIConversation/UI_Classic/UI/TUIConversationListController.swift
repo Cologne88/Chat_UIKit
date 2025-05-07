@@ -5,20 +5,19 @@ import UIKit
 let GroupBtnSpace: CGFloat = 24
 let GroupScrollViewHeight: CGFloat = 30
 
-public class TUIConversationListController: UIViewController, TUINotificationProtocol, UIGestureRecognizerDelegate, TUIPopViewDelegate, TUIConversationTableViewDelegate, TUIConversationListDataProviderDelegate {
+public class TUIConversationListController: UIViewController, UIGestureRecognizerDelegate, TUINotificationProtocol, TUIPopViewDelegate, TUIConversationTableViewDelegate, TUIConversationListDataProviderDelegate {
     weak var delegate: TUIConversationListControllerListener?
     var isShowBanner: Bool = true
     var isShowConversationGroup: Bool = true
     var viewHeight: CGFloat = 0.0
     var tipsMsgWhenNoConversation: String?
     var disableMoreActionExtension = false
-    private var contentSizeObservation: NSKeyValueObservation?
     private var settingDataProvider: TUIConversationListBaseDataProvider?
-    private var groupScrollView: UIScrollView?
-    private var groupAnimationView: UIView?
-    private var groupBtnContainer: UIView?
-    private var groupItemList: [TUIConversationGroupItem]?
+    private var groupItemList: [TUIConversationGroupItem] = []
     @objc dynamic var actualShowConversationGroup: Bool = false
+
+    private var contentSizeObservation: NSKeyValueObservation?
+    private var actualShowConversationGroupObservation: NSKeyValueObservation?
 
     var dataProvider: TUIConversationListBaseDataProvider? {
         set {
@@ -54,15 +53,6 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         return tableViewForAll
     }()
 
-    lazy var currentTableView: TUIConversationTableView? = {
-        for view in tableViewContainer.subviews {
-            if view.isKind(of: TUIConversationTableView.self) {
-                return view as? TUIConversationTableView
-            }
-        }
-        return nil
-    }()
-
     lazy var allGroupItem: TUIConversationGroupItem = {
         let allGroupItem = TUIConversationGroupItem()
         allGroupItem.groupName = TUISwift.timCommonLocalizableString("TUIConversationGroupAll")
@@ -75,38 +65,44 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         return bannerView
     }()
 
+    lazy var groupBtnContainer: UIView = .init()
+
+    lazy var groupScrollView: UIScrollView = .init()
+
+    lazy var groupAnimationView: UIView = .init()
+
     lazy var groupView: UIView = {
         let groupView = UIView(frame: CGRect(x: 0, y: bannerView.frame.maxY, width: view.frame.width, height: 60))
         view.addSubview(groupView)
 
         let groupExtensionBtnLeft = groupView.frame.width - GroupScrollViewHeight - TUISwift.kScale375(16)
-        groupBtnContainer = UIView(frame: CGRect(x: groupExtensionBtnLeft, y: 18, width: GroupScrollViewHeight, height: GroupScrollViewHeight))
-        groupView.addSubview(groupBtnContainer!)
+        groupBtnContainer.frame = CGRect(x: groupExtensionBtnLeft, y: 18, width: GroupScrollViewHeight, height: GroupScrollViewHeight)
+        groupView.addSubview(groupBtnContainer)
 
-        TUICore.raiseExtension(TUICore_TUIConversationExtension_ConversationGroupManagerContainer_ClassicExtensionID,
-                               parentView: groupBtnContainer!,
-                               param: [TUICore_TUIConversationExtension_ConversationGroupManagerContainer_ParentVCKey: self])
+        TUICore.raiseExtension("TUICore_TUIConversationExtension_ConversationGroupManagerContainer_ClassicExtensionID",
+                               parentView: groupBtnContainer,
+                               param: ["TUICore_TUIConversationExtension_ConversationGroupManagerContainer_ParentVCKey": self])
 
-        let groupScrollViewWidth = groupBtnContainer!.frame.minX - TUISwift.kScale375(16) - TUISwift.kScale375(10)
+        let groupScrollViewWidth = groupBtnContainer.frame.minX - TUISwift.kScale375(16) - TUISwift.kScale375(10)
         let groupScrollBackgrounView = UIView()
         groupView.addSubview(groupScrollBackgrounView)
         groupScrollBackgrounView.frame = CGRect(x: TUISwift.kScale375(16), y: 18, width: groupScrollViewWidth, height: GroupScrollViewHeight)
 
-        groupScrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: groupScrollViewWidth, height: GroupScrollViewHeight))
-        groupScrollView?.backgroundColor = TUISwift.tuiConversationDynamicColor("conversation_group_bg_color", defaultColor: "#EBECF0")
-        groupScrollView?.showsHorizontalScrollIndicator = false
-        groupScrollView?.showsVerticalScrollIndicator = false
-        groupScrollView?.bounces = false
-        groupScrollView?.isScrollEnabled = true
-        groupScrollView?.layer.cornerRadius = GroupScrollViewHeight / 2.0
-        groupScrollView?.layer.masksToBounds = true
-        groupScrollBackgrounView.addSubview(groupScrollView!)
+        groupScrollView.frame = CGRect(x: 0, y: 0, width: groupScrollViewWidth, height: GroupScrollViewHeight)
+        groupScrollView.backgroundColor = TUISwift.tuiConversationDynamicColor("conversation_group_bg_color", defaultColor: "#EBECF0")
+        groupScrollView.showsHorizontalScrollIndicator = false
+        groupScrollView.showsVerticalScrollIndicator = false
+        groupScrollView.bounces = false
+        groupScrollView.isScrollEnabled = true
+        groupScrollView.layer.cornerRadius = GroupScrollViewHeight / 2.0
+        groupScrollView.layer.masksToBounds = true
+        groupScrollBackgrounView.addSubview(groupScrollView)
 
-        contentSizeObservation = groupScrollView?.observe(\.contentSize, options: [.new, .old]) { [weak self] scrollView, _ in
+        contentSizeObservation = groupScrollView.observe(\.contentSize, options: [.new, .initial]) { [weak self] scrollView, _ in
             guard let self = self else { return }
             let newContentSize = scrollView.contentSize
-            let groupScrollViewWidth = self.groupBtnContainer!.frame.minX - TUISwift.kScale375(16) - TUISwift.kScale375(10)
-            self.groupScrollView?.snp.remakeConstraints { make in
+            let groupScrollViewWidth = self.groupBtnContainer.frame.minX - TUISwift.kScale375(16) - TUISwift.kScale375(10)
+            self.groupScrollView.snp.remakeConstraints { make in
                 make.leading.equalTo(groupScrollBackgrounView.snp.leading)
                 make.height.equalTo(GroupScrollViewHeight)
                 make.width.equalTo(min(groupScrollViewWidth, newContentSize.width))
@@ -114,19 +110,18 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
             }
         }
 
-        groupAnimationView = UIView()
-        groupAnimationView?.backgroundColor = TUISwift.tuiConversationDynamicColor("conversation_group_animate_view_color", defaultColor: "#FFFFFF")
-        groupAnimationView?.layer.cornerRadius = GroupScrollViewHeight / 2.0
-        groupAnimationView?.layer.masksToBounds = true
-        groupAnimationView?.layer.borderWidth = 1
-        groupAnimationView?.layer.borderColor = TUISwift.tuiConversationDynamicColor("conversation_group_bg_color", defaultColor: "#EBECF0").cgColor
-        groupScrollView?.addSubview(groupAnimationView!)
+        groupAnimationView.backgroundColor = TUISwift.tuiConversationDynamicColor("conversation_group_animate_view_color", defaultColor: "#FFFFFF")
+        groupAnimationView.layer.cornerRadius = GroupScrollViewHeight / 2.0
+        groupAnimationView.layer.masksToBounds = true
+        groupAnimationView.layer.borderWidth = 1
+        groupAnimationView.layer.borderColor = TUISwift.tuiConversationDynamicColor("conversation_group_bg_color", defaultColor: "#EBECF0").cgColor
+        groupScrollView.addSubview(groupAnimationView)
 
         if TUISwift.isRTL() {
             groupScrollBackgrounView.resetFrameToFitRTL()
-            groupBtnContainer?.resetFrameToFitRTL()
-            groupScrollView?.transform = CGAffineTransform(rotationAngle: .pi)
-            groupScrollView?.subviews.forEach { subView in
+            groupBtnContainer.resetFrameToFitRTL()
+            groupScrollView.transform = CGAffineTransform(rotationAngle: .pi)
+            for subView in groupScrollView.subviews {
                 subView.transform = CGAffineTransform(rotationAngle: .pi)
             }
         }
@@ -134,46 +129,56 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         return groupView
     }()
 
+    func currentTableView() -> TUIConversationTableView? {
+        for view in tableViewContainer.subviews {
+            if view.isKind(of: TUIConversationTableView.self) {
+                return view as? TUIConversationTableView
+            }
+        }
+        return nil
+    }
+
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         self.isShowBanner = true
         self.isShowConversationGroup = true
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name(TUIDidApplyingThemeChangedNotfication), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
     }
 
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         self.isShowBanner = true
         self.isShowConversationGroup = true
-        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name(TUIDidApplyingThemeChangedNotfication), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
     }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
         TUICore.unRegisterEvent(byObject: self)
         contentSizeObservation = nil
+        actualShowConversationGroupObservation = nil
     }
 
     @objc func onThemeChanged() {
-        groupAnimationView?.layer.borderColor = TUISwift.tuiConversationDynamicColor("conversation_group_bg_color", defaultColor: "#EBECF0")?.cgColor
+        groupAnimationView.layer.borderColor = TUISwift.tuiConversationDynamicColor("conversation_group_bg_color", defaultColor: "#EBECF0").cgColor
     }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
         setupNavigation()
         setupViews()
-        TUICore.registerEvent(TUICore_TUIConversationGroupNotify, subKey: "", object: self)
-        TUICore.registerEvent(TUICore_TUIConversationMarkNotify, subKey: "", object: self)
+        TUICore.registerEvent("TUICore_TUIConversationGroupNotify", subKey: "", object: self)
+        TUICore.registerEvent("TUICore_TUIConversationMarkNotify", subKey: "", object: self)
     }
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        currentTableView?.reloadData()
+        currentTableView()?.reloadData()
     }
 
     func setupNavigation() {
         let moreButton = UIButton(type: .custom)
-        let image = TUISwift.timCommonDynamicImage("nav_more_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("more")))
+        let image = TUISwift.timCommonDynamicImage("nav_more_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("more")))
         moreButton.setImage(image, for: .normal)
         moreButton.addTarget(self, action: #selector(rightBarButtonClick(_:)), for: .touchUpInside)
         moreButton.imageView!.contentMode = .scaleAspectFit
@@ -187,16 +192,16 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
     }
 
     @objc func rightBarButtonClick(_ rightBarButton: UIButton) {
-        let menus = NSMutableArray()
+        var menus = [TUIPopCellData]()
         let friend = TUIPopCellData()
-        friend.image = TUISwift.timCommonDynamicImage("pop_icon_new_chat_img", defaultImage: UIImage(named: TUISwift.timCommonImagePath("new_chat")))
+        friend.image = TUISwift.timCommonDynamicImage("pop_icon_new_chat_img", defaultImage: UIImage.safeImage(TUISwift.timCommonImagePath("new_chat")))
         friend.title = TUISwift.timCommonLocalizableString("ChatsNewChatText")
-        menus.add(friend)
+        menus.append(friend)
 
         let group = TUIPopCellData()
-        group.image = TUISwift.tuiConversationDynamicImage("pop_icon_new_group_img", defaultImage: UIImage(named: "new_groupchat"))
+        group.image = TUISwift.tuiConversationDynamicImage("pop_icon_new_group_img", defaultImage: UIImage.safeImage("new_groupchat"))
         group.title = TUISwift.timCommonLocalizableString("ChatsNewGroupText")
-        menus.add(group)
+        menus.append(group)
 
         let height = Int(TUIPopCell.getHeight()) * menus.count + Int(TUISwift.tuiPopView_Arrow_Size().height)
         let orginY = TUISwift.statusBar_Height() + TUISwift.navBar_Height()
@@ -209,7 +214,7 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         popView.arrowPoint = CGPoint(x: frameInNaviView!.origin.x + frameInNaviView!.size.width * 0.5, y: orginY)
         popView.delegate = self
         popView.setData(menus)
-        popView.show(in: view.window!)
+        popView.showInWindow(view.window!)
     }
 
     func setupViews() {
@@ -221,10 +226,10 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
             let size = CGSize(width: view.bounds.size.width, height: 60)
             bannerView.frame.size = size
             var param: [String: Any] = [:]
-            param[TUICore_TUIConversationExtension_ConversationListBanner_BannerSize] = NSCoder.string(for: size)
-            param[TUICore_TUIConversationExtension_ConversationListBanner_ModalVC] = self
+            param["TUICore_TUIConversationExtension_ConversationListBanner_BannerSize"] = NSCoder.string(for: size)
+            param["TUICore_TUIConversationExtension_ConversationListBanner_ModalVC"] = self
 
-            let result = TUICore.raiseExtension(TUICore_TUIConversationExtension_ConversationListBanner_ClassicExtensionID, parentView: bannerView, param: param)
+            let result = TUICore.raiseExtension("TUICore_TUIConversationExtension_ConversationListBanner_ClassicExtensionID", parentView: bannerView, param: param)
             if !result {
                 bannerView.frame.size.height = 0
             }
@@ -235,21 +240,21 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
 
         if isShowConversationGroup {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                let extensionList = TUICore.getExtensionList(TUICore_TUIConversationExtension_ConversationGroupListBanner_ClassicExtensionID, param: nil)
-                let _ = self.observe(\.actualShowConversationGroup, options: [.new, .initial]) { [weak self] _, change in
+                let extensionList = TUICore.getExtensionList("TUICore_TUIConversationExtension_ConversationGroupListBanner_ClassicExtensionID", param: nil)
+                self.actualShowConversationGroupObservation = self.observe(\.actualShowConversationGroup, options: [.new]) { [weak self] _, change in
                     guard let self = self else { return }
                     if let showConversationGroup = change.newValue, showConversationGroup {
                         self.tableViewContainer.frame = CGRect(x: 0, y: self.groupView.frame.maxY, width: self.view.frame.width, height: self.viewHeight - self.groupView.frame.maxY)
 
                         self.groupItemList = []
-                        self.addGroup(groupItem: self.allGroupItem)
+                        self.addGroup(self.allGroupItem)
 
                         for info in extensionList {
-                            if let groupItem = info.data?[TUICore_TUIConversationExtension_ConversationGroupListBanner_GroupItemKey] as? TUIConversationGroupItem {
-                                self.addGroup(groupItem: groupItem)
+                            if let groupItem = info.data?["TUICore_TUIConversationExtension_ConversationGroupListBanner_GroupItemKey"] as? TUIConversationGroupItem {
+                                self.addGroup(groupItem)
                             }
                         }
-                        self.onSelectGroup(groupItem: self.allGroupItem)
+                        self.onSelectGroup(self.allGroupItem)
                     } else {
                         self.tableViewContainer.frame = CGRect(x: 0, y: self.bannerView.frame.maxY, width: self.view.frame.width, height: self.viewHeight - self.bannerView.frame.maxY)
                         self.tableViewForAll.frame = self.tableViewContainer.bounds
@@ -294,161 +299,161 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
     }
 
     @objc func onGroupBtnClick(_ btn: UIButton) {
-        for groupItem in groupItemList ?? [] {
+        for groupItem in groupItemList {
             if groupItem.groupBtn == btn {
-                onSelectGroup(groupItem: groupItem)
+                onSelectGroup(groupItem)
                 return
             }
         }
     }
 
-    func reloadGroupList(groupItemList: inout [TUIConversationGroupItem]) {
+    func reloadGroupList(_ reloadGroupItemList: [TUIConversationGroupItem]) {
         var currentSelectGroup = ""
         for groupItem in groupItemList {
             if groupItem.groupBtn.isSelected {
-                currentSelectGroup = groupItem.groupName
+                currentSelectGroup = groupItem.groupName ?? ""
             }
             groupItem.groupBtn.removeFromSuperview()
         }
         groupItemList.removeAll()
-        groupScrollView?.contentSize = CGSize.zero
+        groupScrollView.contentSize = CGSize.zero
 
-        addGroup(groupItem: allGroupItem)
-        for groupItem in groupItemList {
-            addGroup(groupItem: groupItem)
+        addGroup(allGroupItem)
+        for groupItem in reloadGroupItemList {
+            addGroup(groupItem)
             if groupItem.groupName == currentSelectGroup {
                 groupItem.groupBtn.isSelected = true
-                groupAnimationView?.frame = groupItem.groupBtn.frame
+                groupAnimationView.frame = groupItem.groupBtn.frame
             }
         }
         if TUISwift.isRTL() {
-            groupScrollView?.subviews.forEach { subView in
+            for subView in groupScrollView.subviews {
                 subView.transform = CGAffineTransform(rotationAngle: .pi)
             }
         }
     }
 
-    func addGroup(groupItem: TUIConversationGroupItem) {
-        createGroupBtn(groupItem: groupItem, positionX: groupScrollView?.contentSize.width ?? 0)
-        groupItemList?.append(groupItem)
-        groupScrollView?.addSubview(groupItem.groupBtn)
-        groupScrollView?.contentSize = CGSize(width: (groupScrollView?.contentSize.width ?? 0) + groupItem.groupBtn.mm_w, height: GroupScrollViewHeight)
+    func addGroup(_ addGroupItem: TUIConversationGroupItem) {
+        createGroupBtn(groupItem: addGroupItem, positionX: groupScrollView.contentSize.width)
+        groupItemList.append(addGroupItem)
+        groupScrollView.addSubview(addGroupItem.groupBtn)
+        groupScrollView.contentSize = CGSize(width: (groupScrollView.contentSize.width) + addGroupItem.groupBtn.mm_w, height: GroupScrollViewHeight)
     }
 
-    func insertGroup(groupItem: TUIConversationGroupItem, atIndex index: Int) {
-        if index < groupItemList?.count ?? 0 {
-            for i in 0..<(groupItemList?.count ?? 0) {
+    func insertGroup(_ insertGroupItem: TUIConversationGroupItem, atIndex index: Int) {
+        if index < groupItemList.count {
+            for i in 0..<(groupItemList.count) {
                 if i == index {
-                    createGroupBtn(groupItem: groupItem, positionX: groupItemList?[i].groupBtn.mm_x ?? 0)
-                    groupScrollView?.addSubview(groupItem.groupBtn)
+                    createGroupBtn(groupItem: insertGroupItem, positionX: groupItemList[i].groupBtn.mm_x)
+                    groupScrollView.addSubview(insertGroupItem.groupBtn)
                 }
                 if i >= index {
-                    groupItemList?[i].groupBtn.mm_x += groupItem.groupBtn.mm_w
-                    if groupItemList?[i].groupBtn.isSelected ?? false {
-                        groupAnimationView?.frame = groupItemList?[i].groupBtn.frame ?? CGRect.zero
+                    groupItemList[i].groupBtn.mm_x += insertGroupItem.groupBtn.mm_w
+                    if groupItemList[i].groupBtn.isSelected {
+                        groupAnimationView.frame = groupItemList[i].groupBtn.frame
                     }
                 }
             }
-            groupItemList?.insert(groupItem, at: index)
-            groupScrollView?.contentSize = CGSize(width: (groupScrollView?.contentSize.width ?? 0) + groupItem.groupBtn.mm_w, height: GroupScrollViewHeight)
+            groupItemList.insert(insertGroupItem, at: index)
+            groupScrollView.contentSize = CGSize(width: (groupScrollView.contentSize.width) + insertGroupItem.groupBtn.mm_w, height: GroupScrollViewHeight)
         } else {
-            addGroup(groupItem: groupItem)
+            addGroup(insertGroupItem)
         }
     }
 
-    func updateGroup(groupItem: TUIConversationGroupItem) {
+    func updateGroup(_ updateGroupItem: TUIConversationGroupItem) {
         var offsetX: CGFloat = 0
-        for i in 0..<(groupItemList?.count ?? 0) {
+        for i in 0..<(groupItemList.count) {
             if offsetX != 0 {
-                groupItemList?[i].groupBtn.mm_x += offsetX
+                groupItemList[i].groupBtn.mm_x += offsetX
             }
-            if groupItemList?[i].groupName == groupItem.groupName {
-                groupItemList?[i].unreadCount = groupItem.unreadCount
-                let oldBtnWidth = groupItemList?[i].groupBtn.mm_w ?? 0
-                updateGroupBtn(groupItem: groupItem)
-                let newBtnWidth = groupItemList?[i].groupBtn.mm_w ?? 0
+            if groupItemList[i].groupName == updateGroupItem.groupName {
+                groupItemList[i].unreadCount = updateGroupItem.unreadCount
+                let oldBtnWidth = groupItemList[i].groupBtn.mm_w
+                updateGroupBtn(groupItem: groupItemList[i])
+                let newBtnWidth = groupItemList[i].groupBtn.mm_w
                 offsetX = newBtnWidth - oldBtnWidth
             }
-            if groupItemList?[i].groupBtn.isSelected ?? false {
-                groupAnimationView?.frame = groupItemList?[i].groupBtn.frame ?? CGRect.zero
+            if groupItemList[i].groupBtn.isSelected {
+                groupAnimationView.frame = groupItemList[i].groupBtn.frame
             }
         }
-        groupScrollView?.contentSize = CGSize(width: (groupScrollView?.contentSize.width ?? 0) + offsetX, height: GroupScrollViewHeight)
+        groupScrollView.contentSize = CGSize(width: (groupScrollView.contentSize.width) + offsetX, height: GroupScrollViewHeight)
     }
 
     func renameGroup(oldName: String, newName: String) {
         var offsetX: CGFloat = 0
-        for i in 0..<(groupItemList?.count ?? 0) {
+        for i in 0..<(groupItemList.count) {
             if offsetX != 0 {
-                groupItemList?[i].groupBtn.mm_x += offsetX
+                groupItemList[i].groupBtn.mm_x += offsetX
             }
-            if groupItemList?[i].groupName == oldName {
-                groupItemList?[i].groupName = newName
-                let oldBtnWidth = groupItemList?[i].groupBtn.mm_w ?? 0
-                updateGroupBtn(groupItem: groupItemList?[i] ?? TUIConversationGroupItem())
-                let newBtnWidth = groupItemList?[i].groupBtn.mm_w ?? 0
+            if groupItemList[i].groupName == oldName {
+                groupItemList[i].groupName = newName
+                let oldBtnWidth = groupItemList[i].groupBtn.mm_w
+                updateGroupBtn(groupItem: groupItemList[i])
+                let newBtnWidth = groupItemList[i].groupBtn.mm_w
                 offsetX = newBtnWidth - oldBtnWidth
             }
-            if groupItemList?[i].groupBtn.isSelected ?? false {
-                groupAnimationView?.frame = groupItemList?[i].groupBtn.frame ?? CGRect.zero
+            if groupItemList[i].groupBtn.isSelected {
+                groupAnimationView.frame = groupItemList[i].groupBtn.frame
             }
         }
-        groupScrollView?.contentSize = CGSize(width: (groupScrollView?.contentSize.width ?? 0) + offsetX, height: GroupScrollViewHeight)
+        groupScrollView.contentSize = CGSize(width: (groupScrollView.contentSize.width) + offsetX, height: GroupScrollViewHeight)
     }
 
-    func deleteGroup(deleteGroup: TUIConversationGroupItem) {
+    func deleteGroup(_ deleteGroupItem: TUIConversationGroupItem) {
         var offsetX: CGFloat = 0
         var removeIndex = 0
         var isSelectedGroup = false
-        for i in 0..<(groupItemList?.count ?? 0) {
+        for i in 0..<(groupItemList.count) {
             if offsetX != 0 {
-                groupItemList?[i].groupBtn.mm_x += offsetX
+                groupItemList[i].groupBtn.mm_x += offsetX
             }
-            if groupItemList?[i].groupName == deleteGroup.groupName {
-                groupItemList?[i].groupBtn.removeFromSuperview()
-                offsetX = -(groupItemList?[i].groupBtn.mm_w ?? 0)
+            if groupItemList[i].groupName == deleteGroupItem.groupName {
+                groupItemList[i].groupBtn.removeFromSuperview()
+                offsetX = -(groupItemList[i].groupBtn.mm_w)
                 removeIndex = i
-                isSelectedGroup = groupItemList?[i].groupBtn.isSelected ?? false
+                isSelectedGroup = groupItemList[i].groupBtn.isSelected
             }
-            if groupItemList?[i].groupBtn.isSelected ?? false {
-                groupAnimationView?.frame = groupItemList?[i].groupBtn.frame ?? CGRect.zero
+            if groupItemList[i].groupBtn.isSelected {
+                groupAnimationView.frame = groupItemList[i].groupBtn.frame
             }
         }
-        groupItemList?.remove(at: removeIndex)
-        groupScrollView?.contentSize = CGSize(width: (groupScrollView?.contentSize.width ?? 0) + offsetX, height: GroupScrollViewHeight)
+        groupItemList.remove(at: removeIndex)
+        groupScrollView.contentSize = CGSize(width: (groupScrollView.contentSize.width) + offsetX, height: GroupScrollViewHeight)
         if isSelectedGroup {
-            onSelectGroup(groupItem: groupItemList?.first ?? TUIConversationGroupItem())
+            onSelectGroup(groupItemList.first ?? TUIConversationGroupItem())
         }
     }
 
-    func onSelectGroup(groupItem: TUIConversationGroupItem) {
-        for i in 0..<(groupItemList?.count ?? 0) {
-            if groupItemList?[i].groupName == groupItem.groupName {
-                groupItemList?[i].groupBtn.isSelected = true
+    func onSelectGroup(_ selectGroupItem: TUIConversationGroupItem) {
+        for i in 0..<(groupItemList.count) {
+            if groupItemList[i].groupName == selectGroupItem.groupName {
+                groupItemList[i].groupBtn.isSelected = true
 
                 UIView.animate(withDuration: 0.1) {
-                    self.groupAnimationView?.frame = self.groupItemList?[i].groupBtn.frame ?? CGRect.zero
+                    self.groupAnimationView.frame = self.groupItemList[i].groupBtn.frame
                 }
                 for view in tableViewContainer.subviews {
                     view.removeFromSuperview()
                 }
-                if groupItem.groupName == TUISwift.timCommonLocalizableString("TUIConversationGroupAll") {
+                if selectGroupItem.groupName == TUISwift.timCommonLocalizableString("TUIConversationGroupAll") {
                     tableViewForAll.frame = tableViewContainer.bounds
                     tableViewContainer.addSubview(tableViewForAll)
                 } else {
-                    let _ = TUICore.raiseExtension(TUICore_TUIConversationExtension_ConversationListContainer_ClassicExtensionID, parentView: tableViewContainer, param: [TUICore_TUIConversationExtension_ConversationListContainer_GroupNameKey: groupItem.groupName])
-                    currentTableView?.convDelegate = self
+                    let _ = TUICore.raiseExtension("TUICore_TUIConversationExtension_ConversationListContainer_ClassicExtensionID", parentView: tableViewContainer, param: ["TUICore_TUIConversationExtension_ConversationListContainer_GroupNameKey": selectGroupItem.groupName])
+                    currentTableView()?.convDelegate = self
                 }
             } else {
-                groupItemList?[i].groupBtn.isSelected = false
+                groupItemList[i].groupBtn.isSelected = false
             }
-            updateGroupBtn(groupItem: groupItemList?[i] ?? TUIConversationGroupItem())
+            updateGroupBtn(groupItem: groupItemList[i])
         }
     }
 
     func getGroupBtnAttributedString(groupItem: TUIConversationGroupItem) -> NSAttributedString {
         let content = NSMutableString(string: "")
-        let contentName = NSMutableString(string: groupItem.groupName)
+        let contentName = NSMutableString(string: groupItem.groupName ?? "")
         let contentNum = NSMutableString(string: "")
         let attributeString: NSMutableAttributedString
         let unreadCount = groupItem.unreadCount
@@ -470,49 +475,51 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         }
 
         attributeString.setAttributes([
-            .foregroundColor: TUISwift.tuiConversationDynamicColor("conversation_group_btn_select_color", defaultColor: "#147AFF").cgColor,
+            .foregroundColor: TUISwift.tuiConversationDynamicColor("conversation_group_btn_select_color", defaultColor: "#147AFF"),
             .font: UIFont.systemFont(ofSize: 12),
             .baselineOffset: 1
-        ], range: NSRange(location: 0, length: contentNum.length))
+        ], range: content.range(of: contentNum as String))
         if groupItem.groupBtn.isSelected {
             attributeString.setAttributes([
                 .font: UIFont.systemFont(ofSize: 16),
-                .foregroundColor: TUISwift.tuiConversationDynamicColor("conversation_group_btn_select_color", defaultColor: "#147AFF").cgColor
-            ], range: NSRange(location: 0, length: contentName.length))
+                .foregroundColor: TUISwift.tuiConversationDynamicColor("conversation_group_btn_select_color", defaultColor: "#147AFF")
+            ], range: content.range(of: contentName as String))
         } else {
             attributeString.setAttributes([
                 .font: UIFont.systemFont(ofSize: 16),
-                .foregroundColor: TUISwift.tuiConversationDynamicColor("conversation_group_btn_unselect_color", defaultColor: "#666666").cgColor
-            ], range: NSRange(location: 0, length: contentName.length))
+                .foregroundColor: TUISwift.tuiConversationDynamicColor("conversation_group_btn_unselect_color", defaultColor: "#666666")
+            ], range: content.range(of: contentName as String))
         }
         return attributeString
     }
 
-    private func onNotifyEvent(key: String, subKey: String?, object: Any?, param: [String: Any]?) {
-        if key == TUICore_TUIConversationGroupNotify || key == TUICore_TUIConversationMarkNotify {
-            actualShowConversationGroup = true
+    public func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
+        if key == "TUICore_TUIConversationGroupNotify" || key == "TUICore_TUIConversationMarkNotify" {
+            if !actualShowConversationGroup {
+                actualShowConversationGroup = true
+            }
         }
-        if key == TUICore_TUIConversationGroupNotify {
-            if var groupListReloadKey = param?[TUICore_TUIConversationGroupNotify_GroupListReloadKey] as? [TUIConversationGroupItem] {
-                reloadGroupList(groupItemList: &groupListReloadKey)
-            } else if let groupAddKey = param?[TUICore_TUIConversationGroupNotify_GroupAddKey] as? TUIConversationGroupItem {
-                addGroup(groupItem: groupAddKey)
-            } else if let groupUpdateKey = param?[TUICore_TUIConversationGroupNotify_GroupUpdateKey] as? TUIConversationGroupItem {
-                updateGroup(groupItem: groupUpdateKey)
-            } else if let groupRenameKey = param?[TUICore_TUIConversationGroupNotify_GroupRenameKey] as? [String: Any] {
+        if key == "TUICore_TUIConversationGroupNotify" {
+            if let groupListReloadKey = param?["TUICore_TUIConversationGroupNotify_GroupListReloadKey"] as? [TUIConversationGroupItem] {
+                reloadGroupList(groupListReloadKey)
+            } else if let groupAddKey = param?["TUICore_TUIConversationGroupNotify_GroupAddKey"] as? TUIConversationGroupItem {
+                addGroup(groupAddKey)
+            } else if let groupUpdateKey = param?["TUICore_TUIConversationGroupNotify_GroupUpdateKey"] as? TUIConversationGroupItem {
+                updateGroup(groupUpdateKey)
+            } else if let groupRenameKey = param?["TUICore_TUIConversationGroupNotify_GroupRenameKey"] as? [String: Any] {
                 if let oldName = groupRenameKey.keys.first,
                    let newName = groupRenameKey.values.first
                 {
                     renameGroup(oldName: oldName, newName: newName as? String ?? "")
                 }
-            } else if let groupDeleteKey = param?[TUICore_TUIConversationGroupNotify_GroupDeleteKey] as? TUIConversationGroupItem {
-                deleteGroup(deleteGroup: groupDeleteKey)
+            } else if let groupDeleteKey = param?["TUICore_TUIConversationGroupNotify_GroupDeleteKey"] as? TUIConversationGroupItem {
+                deleteGroup(groupDeleteKey)
             }
-        } else if key == TUICore_TUIConversationMarkNotify {
-            if let markAddKey = param?[TUICore_TUIConversationGroupNotify_MarkAddKey] as? TUIConversationGroupItem {
-                insertGroup(groupItem: markAddKey, atIndex: markAddKey.groupIndex)
-            } else if let markUpdateKey = param?[TUICore_TUIConversationGroupNotify_MarkUpdateKey] as? TUIConversationGroupItem {
-                updateGroup(groupItem: markUpdateKey)
+        } else if key == "TUICore_TUIConversationMarkNotify" {
+            if let markAddKey = param?["TUICore_TUIConversationGroupNotify_MarkAddKey"] as? TUIConversationGroupItem {
+                insertGroup(markAddKey, atIndex: markAddKey.groupIndex)
+            } else if let markUpdateKey = param?["TUICore_TUIConversationGroupNotify_MarkUpdateKey"] as? TUIConversationGroupItem {
+                updateGroup(markUpdateKey)
             }
         }
     }
@@ -521,7 +528,7 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         if bannerView.isHidden || !isShowBanner {
             return
         }
-        if let currentTableView = currentTableView {
+        if let currentTableView = currentTableView() {
             var safeAreaInsets = UIEdgeInsets.zero
             if #available(iOS 11.0, *) {
                 safeAreaInsets = currentTableView.adjustedContentInset
@@ -538,12 +545,12 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         if offsetYCache < 0 {
             offsetYCache = 0
         }
-        bannerView.mm_top()(TUISwift.statusBar_Height() + TUISwift.navBar_Height() - offsetYCache)
+        bannerView.mm_top(TUISwift.statusBar_Height() + TUISwift.navBar_Height() - offsetYCache)
         if actualShowConversationGroup {
-            groupView.mm_top()(bannerView.mm_maxY)
-            tableViewContainer.mm_top()(groupView.mm_maxY)!.mm_height()(view.mm_h - (groupView.mm_maxY))
+            groupView.mm_top(bannerView.mm_maxY)
+            tableViewContainer.mm_top(groupView.mm_maxY).mm_height(view.mm_h - (groupView.mm_maxY))
         } else {
-            tableViewContainer.mm_top()(bannerView.mm_maxY)!.mm_height()(view.mm_h - (bannerView.mm_maxY))
+            tableViewContainer.mm_top(bannerView.mm_maxY).mm_height(view.mm_h - (bannerView.mm_maxY))
         }
     }
 
@@ -569,25 +576,24 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
                     }
                 }
                 TUIConversationListDataProvider.cacheConversationFoldListSettings_FoldItemIsUnread(false)
-                self.currentTableView?.reloadData()
+                self.currentTableView()?.reloadData()
             }
             return
         }
-        if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListControllerListener.conversationListController(_:didSelectConversation:))) {
-            delegate.conversationListController!(self, didSelectConversation: data)
+        if let delegate = delegate, delegate.conversationListController(self, didSelectConversation: data) {
         } else {
             let param: [String: Any] = [
-                TUICore_TUIChatObjectFactory_ChatViewController_Title: data.title.value,
-                TUICore_TUIChatObjectFactory_ChatViewController_UserID: data.userID ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_GroupID: data.groupID ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: data.avatarImage ?? UIImage(),
-                TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: data.faceUrl.value,
-                TUICore_TUIChatObjectFactory_ChatViewController_ConversationID: data.conversationID ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr: data.atTipsStr ?? "",
-                TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs: data.atMsgSeqs ?? [],
-                TUICore_TUIChatObjectFactory_ChatViewController_Draft: data.draftText ?? ""
+                "TUICore_TUIChatObjectFactory_ChatViewController_Title": data.title ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_UserID": data.userID ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": data.groupID ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": data.avatarImage ?? UIImage(),
+                "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": data.faceUrl ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_ConversationID": data.conversationID ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_AtTipsStr": data.atTipsStr ?? "",
+                "TUICore_TUIChatObjectFactory_ChatViewController_AtMsgSeqs": data.atMsgSeqs ?? [],
+                "TUICore_TUIChatObjectFactory_ChatViewController_Draft": data.draftText ?? ""
             ]
-            navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Classic, param: param, forResult: nil)
+            navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Classic", param: param, forResult: nil)
         }
     }
 
@@ -597,23 +603,23 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
 
     public func popView(_ popView: TUIPopView, didSelectRowAt index: Int) {
         if index == 0 {
-            startConversation(V2TIMConversationType.C2C)
+            startConversation(.C2C)
         } else {
-            startConversation(V2TIMConversationType.GROUP)
+            startConversation(.GROUP)
         }
     }
 
     public func startConversation(_ type: V2TIMConversationType) {
         let selectContactCompletion: ([TUICommonContactSelectCellData]) -> Void = { [weak self] array in
             guard let self = self else { return }
-            if type == V2TIMConversationType.C2C {
+            if type == .C2C {
                 let param: [String: Any] = [
-                    TUICore_TUIChatObjectFactory_ChatViewController_Title: array.first?.title ?? "",
-                    TUICore_TUIChatObjectFactory_ChatViewController_UserID: array.first?.identifier ?? "",
-                    TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage: array.first?.avatarImage ?? UIImage(),
-                    TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: array.first?.avatarUrl?.absoluteString ?? ""
+                    "TUICore_TUIChatObjectFactory_ChatViewController_Title": array.first?.title ?? "",
+                    "TUICore_TUIChatObjectFactory_ChatViewController_UserID": array.first?.identifier ?? "",
+                    "TUICore_TUIChatObjectFactory_ChatViewController_AvatarImage": array.first?.avatarImage ?? UIImage(),
+                    "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": array.first?.avatarUrl?.absoluteString ?? ""
                 ]
-                self.navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Classic, param: param, forResult: nil)
+                self.navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Classic", param: param, forResult: nil)
 
                 var tempArray = self.navigationController?.viewControllers ?? []
                 tempArray.remove(at: tempArray.count - 2)
@@ -621,9 +627,9 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
             } else {
                 guard let loginUser = V2TIMManager.sharedInstance().getLoginUser() else { return }
                 V2TIMManager.sharedInstance().getUsersInfo([loginUser]) { [weak self] infoList in
-                    guard let self = self else { return }
+                    guard let self = self, let infoList = infoList else { return }
                     var showName = loginUser
-                    if let nickName = infoList?.first?.nickName, nickName.count > 0 {
+                    if let nickName = infoList.first?.nickName, nickName.count > 0 {
                         showName = nickName
                     }
                     var groupName = NSMutableString(string: showName)
@@ -635,11 +641,11 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
                     }
                     let createGroupCompletion: (Bool, V2TIMGroupInfo?) -> Void = { _, info in
                         let param: [String: Any] = [
-                            TUICore_TUIChatObjectFactory_ChatViewController_Title: info?.groupName ?? "",
-                            TUICore_TUIChatObjectFactory_ChatViewController_GroupID: info?.groupID ?? "",
-                            TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl: info?.faceURL ?? ""
+                            "TUICore_TUIChatObjectFactory_ChatViewController_Title": info?.groupName ?? "",
+                            "TUICore_TUIChatObjectFactory_ChatViewController_GroupID": info?.groupID ?? "",
+                            "TUICore_TUIChatObjectFactory_ChatViewController_AvatarUrl": info?.faceURL ?? ""
                         ]
-                        self.navigationController?.push(TUICore_TUIChatObjectFactory_ChatViewController_Classic, param: param, forResult: nil)
+                        self.navigationController?.push("TUICore_TUIChatObjectFactory_ChatViewController_Classic", param: param, forResult: nil)
 
                         var tempArray = self.navigationController?.viewControllers ?? []
                         for vc in tempArray {
@@ -656,13 +662,13 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
                         self.navigationController?.viewControllers = tempArray
                     }
                     let param: [String: Any] = [
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_TitleKey: array.first?.title ?? "",
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupNameKey: groupName as String,
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupTypeKey: GroupType_Work,
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_CompletionKey: createGroupCompletion,
-                        TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_ContactListKey: array
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_TitleKey": array.first?.title ?? "",
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupNameKey": groupName as String,
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_GroupTypeKey": "Work",
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_CompletionKey": createGroupCompletion,
+                        "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod_ContactListKey": array
                     ]
-                    let groupVC = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod, param: param) as? UIViewController
+                    let groupVC = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetGroupCreateControllerMethod", param: param) as? UIViewController
                     self.navigationController?.pushViewController(groupVC ?? UIViewController(), animated: true)
                 } fail: { _, _ in
                     // Handle error
@@ -670,17 +676,17 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
             }
         }
         let param: [String: Any] = [
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey: TUISwift.timCommonLocalizableString("ChatsSelectContact") ?? "",
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_MaxSelectCount: type == V2TIMConversationType.C2C ? 1 : INT_MAX,
-            TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey: selectContactCompletion
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_TitleKey": TUISwift.timCommonLocalizableString("ChatsSelectContact"),
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_MaxSelectCount": type == .C2C ? 1 : INT_MAX,
+            "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod_CompletionKey": selectContactCompletion
         ]
-        let vc = TUICore.createObject(TUICore_TUIContactObjectFactory, key: TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod, param: param) as? UIViewController
+        let vc = TUICore.createObject("TUICore_TUIContactObjectFactory", key: "TUICore_TUIContactObjectFactory_GetContactSelectControllerMethod", param: param) as? UIViewController
         navigationController?.pushViewController(vc ?? UIViewController(), animated: true)
     }
 
-    func getConversationDisplayString(_ conversation: V2TIMConversation) -> String? {
-        if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListControllerListener.getConversationDisplayString(_:))) {
-            return delegate.getConversationDisplayString!(conversation)
+    public func getConversationDisplayString(_ conversation: V2TIMConversation) -> String? {
+        if let delegate = delegate {
+            return delegate.getConversationDisplayString(conversation)
         }
         guard let msg = conversation.lastMessage, let customElem = msg.customElem, let data = customElem.data else {
             return nil
@@ -691,7 +697,7 @@ public class TUIConversationListController: UIViewController, TUINotificationPro
         guard let businessID = param["businessID"] as? String else {
             return nil
         }
-        if businessID == BussinessID_TextLink || (param["text"] as? String)?.count ?? 0 > 0 && (param["link"] as? String)?.count ?? 0 > 0 {
+        if businessID == "text_link" || (param["text"] as? String)?.count ?? 0 > 0 && (param["link"] as? String)?.count ?? 0 > 0 {
             guard let desc = param["text"] as? String else {
                 return nil
             }

@@ -24,7 +24,7 @@ class TUIReplyPreviewData {
             text = TUISwift.timCommonLocalizableString("TUIKitMessageTypeAnimateEmoji")
         case .ELEM_TYPE_FILE:
             if withFileName {
-                text = "\(TUISwift.timCommonLocalizableString("TUIkitMessageTypeFile") ?? "")\(abstract)"
+                text = "\(TUISwift.timCommonLocalizableString("TUIkitMessageTypeFile"))\(abstract)"
             } else {
                 text = TUISwift.timCommonLocalizableString("TUIkitMessageTypeFile")
             }

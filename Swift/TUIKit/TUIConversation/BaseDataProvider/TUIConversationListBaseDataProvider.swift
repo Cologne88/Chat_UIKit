@@ -3,25 +3,34 @@ import ImSDK_Plus
 import TIMCommon
 import TUICore
 
-@objc protocol TUIConversationListDataProviderDelegate: NSObjectProtocol {
-    @objc optional func getConversationDisplayString(_ conversation: V2TIMConversation) -> String?
-    @objc optional func insertConversations(at indexPaths: [IndexPath])
-    @objc optional func reloadConversations(at indexPaths: [IndexPath])
-    @objc optional func deleteConversation(at indexPaths: [IndexPath])
-    @objc optional func reloadAllConversations()
-    @objc optional func updateMarkUnreadCount(_ markUnreadCount: Int, markHideUnreadCount: Int)
+public protocol TUIConversationListDataProviderDelegate: AnyObject {
+    func getConversationDisplayString(_ conversation: V2TIMConversation) -> String?
+    func insertConversations(at indexPaths: [IndexPath])
+    func reloadConversations(at indexPaths: [IndexPath])
+    func deleteConversation(at indexPaths: [IndexPath])
+    func reloadAllConversations()
+    func updateMarkUnreadCount(_ markUnreadCount: Int, markHideUnreadCount: Int)
+}
+
+public extension TUIConversationListDataProviderDelegate {
+    func getConversationDisplayString(_ conversation: V2TIMConversation) -> String? { return "" }
+    func insertConversations(at indexPaths: [IndexPath]) {}
+    func reloadConversations(at indexPaths: [IndexPath]) {}
+    func deleteConversation(at indexPaths: [IndexPath]) {}
+    func reloadAllConversations() {}
+    func updateMarkUnreadCount(_ markUnreadCount: Int, markHideUnreadCount: Int) {}
 }
 
 let kPageSize: UInt32 = 100
-let gGroup_conversationFoldListMockID: String = "group_conversationFoldListMockID"
+public let gGroup_conversationFoldListMockID: String = "group_conversationFoldListMockID"
 
-class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, V2TIMGroupListener, V2TIMSDKListener, V2TIMAdvancedMsgListener, TUINotificationProtocol {
-    var filter: V2TIMConversationListFilter?
-    var pageSize: UInt32 = kPageSize
+open class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, V2TIMGroupListener, V2TIMSDKListener, V2TIMAdvancedMsgListener, TUINotificationProtocol {
+    public var filter: V2TIMConversationListFilter?
+    public var pageSize: UInt32 = kPageSize
     var pageIndex: UInt64 = 0
     var isLastPage: Bool = false
-    weak var delegate: TUIConversationListDataProviderDelegate?
-    var conversationList: [TUIConversationCellData] = []
+    public weak var delegate: TUIConversationListDataProviderDelegate?
+    public var conversationList: [TUIConversationCellData] = []
     private var lastMessageDisplayMap: [String: String] = [:]
     private var deletingConversationList: [String] = []
 
@@ -30,19 +39,19 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         if let cls = getConversationCellClass() as? TUIConversationCellData.Type {
             conversationFoldListData = cls.init()
             conversationFoldListData.conversationID = gGroup_conversationFoldListMockID
-            conversationFoldListData.title = Observable(TUISwift.timCommonLocalizableString("TUIKitConversationMarkFoldGroups"))
-            conversationFoldListData.avatarImage = TUISwift.tuiCoreBundleThemeImage("", defaultImageName: "default_fold_group")
+            conversationFoldListData.title = TUISwift.timCommonLocalizableString("TUIKitConversationMarkFoldGroups")
+            conversationFoldListData.avatarImage = TUISwift.tuiCoreBundleThemeImage("", defaultImage: "default_fold_group")
             conversationFoldListData.isNotDisturb = true
         }
         return conversationFoldListData
     }()
 
-    lazy var markUnreadMap: [String: TUIConversationCellData] = {
+    public lazy var markUnreadMap: [String: TUIConversationCellData] = {
         var markUnreadMap = [String: TUIConversationCellData]()
         return markUnreadMap
     }()
 
-    lazy var markHideMap: [String: TUIConversationCellData] = {
+    public lazy var markHideMap: [String: TUIConversationCellData] = {
         var markHideMap = [String: TUIConversationCellData]()
         return markHideMap
     }()
@@ -57,23 +66,22 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         filter = V2TIMConversationListFilter()
         V2TIMManager.sharedInstance().addConversationListener(listener: self)
         V2TIMManager.sharedInstance().addGroupListener(listener: self)
-        V2TIMManager.sharedInstance().add(self)
+        V2TIMManager.sharedInstance().addIMSDKListener(listener: self)
         V2TIMManager.sharedInstance().addAdvancedMsgListener(listener: self)
-        TUICore.registerEvent(TUICore_TUIConversationNotify, subKey: TUICore_TUIConversationNotify_RemoveConversationSubKey, object: self)
-        NotificationCenter.default.addObserver(self, selector: #selector(onLoginSucc), name: NSNotification.Name.TUILoginSuccess, object: nil)
+        TUICore.registerEvent("TUICore_TUIConversationNotify", subKey: "TUICore_TUIConversationNotify_RemoveConversationSubKey", object: self)
+        NotificationCenter.default.addObserver(self, selector: #selector(onLoginSucc), name: NSNotification.Name("TUILoginSuccessNotification"), object: nil)
     }
 
-    func loadNexPageConversations() {
+    open func loadNexPageConversations() {
         if isLastPage {
             return
         }
-        V2TIMManager.sharedInstance().getConversationList(by: filter, nextSeq: pageIndex, count: pageSize) { [weak self] list, nextSeq, isFinished in
-            guard let self = self else { return }
+        guard let filter = filter else { return }
+        V2TIMManager.sharedInstance().getConversationListByFilter(filter: filter, nextSeq: pageIndex, count: pageSize) { [weak self] list, nextSeq, isFinished in
+            guard let self = self, let list = list else { return }
             self.pageIndex = nextSeq
             self.isLastPage = isFinished
-            if let list = list {
-                self.preprocess(list)
-            }
+            self.preprocess(list)
         } fail: { [weak self] code, desc in
             guard let self = self else { return }
             self.isLastPage = true
@@ -81,14 +89,14 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    func addConversationList(_ conversationList: [TUIConversationCellData]) {
+    public func addConversationList(_ conversationList: [TUIConversationCellData]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.addConversationList(conversationList)
             }
             return
         }
-        handleInsertConversationList(self.conversationList)
+        handleInsertConversationList(conversationList)
     }
 
     func removeConversation(_ conversation: TUIConversationCellData) {
@@ -135,7 +143,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         handleHideConversation(conversation)
     }
 
-    func preprocess(_ v2Convs: [V2TIMConversation]) {
+    open func preprocess(_ v2Convs: [V2TIMConversation]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.preprocess(v2Convs)
@@ -162,32 +170,32 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 
             let cellData = cellDataForConversation(conv)
             if let _ = markHideMap[cellData.conversationID] {
-                if !TUIConversationCellData.isMarkedByHideType(conv.markList as [NSNumber]?) {
+                if !TUIConversationCellData.isMarkedByHideType(conv.markList) {
                     markHideMap.removeValue(forKey: cellData.conversationID!)
                 }
             } else {
-                if TUIConversationCellData.isMarkedByHideType(conv.markList as [NSNumber]?) {
+                if TUIConversationCellData.isMarkedByHideType(conv.markList) {
                     markHideMap[cellData.conversationID] = cellData
                 }
             }
 
             if let _ = markFoldMap[cellData.conversationID] {
-                if !TUIConversationCellData.isMarkedByFoldType(conv.markList as [NSNumber]?) {
+                if !TUIConversationCellData.isMarkedByFoldType(conv.markList) {
                     markFoldMap.removeValue(forKey: cellData.conversationID!)
                 }
             } else {
-                if TUIConversationCellData.isMarkedByFoldType(conv.markList as [NSNumber]?) {
+                if TUIConversationCellData.isMarkedByFoldType(conv.markList) {
                     markFoldMap[cellData.conversationID] = cellData
                 }
             }
 
-            if TUIConversationCellData.isMarkedByHideType(conv.markList as [NSNumber]?) ||
-                TUIConversationCellData.isMarkedByFoldType(conv.markList as [NSNumber]?)
+            if TUIConversationCellData.isMarkedByHideType(conv.markList) ||
+                TUIConversationCellData.isMarkedByFoldType(conv.markList)
             {
-                if TUIConversationCellData.isMarkedByHideType(conv.markList as [NSNumber]?) {
+                if TUIConversationCellData.isMarkedByHideType(conv.markList) {
                     markHideDataList.append(cellData)
                 }
-                if TUIConversationCellData.isMarkedByFoldType(conv.markList as [NSNumber]?) {
+                if TUIConversationCellData.isMarkedByFoldType(conv.markList) {
                     markFoldDataList.append(cellData)
                 }
                 continue
@@ -199,11 +207,11 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
                 addedDataList.append(cellData)
             }
             if let _ = markUnreadMap[cellData.conversationID!] {
-                if !TUIConversationCellData.isMarkedByUnReadType(conv.markList as [NSNumber]?) {
+                if !TUIConversationCellData.isMarkedByUnReadType(conv.markList) {
                     markUnreadMap.removeValue(forKey: cellData.conversationID)
                 }
             } else {
-                if TUIConversationCellData.isMarkedByUnReadType(conv.markList as [NSNumber]?) {
+                if TUIConversationCellData.isMarkedByUnReadType(conv.markList) {
                     markUnreadMap[cellData.conversationID] = cellData
                 }
             }
@@ -286,7 +294,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    func updateMarkUnreadCount() {
+    open func updateMarkUnreadCount() {
         var markUnreadCount = 0
         for (_, obj) in markUnreadMap {
             if !obj.isNotDisturb {
@@ -305,12 +313,14 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
             }
         }
 
-        NotificationCenter.default.post(name: NSNotification.Name(rawValue: TUIKitNotification_onConversationMarkUnreadCountChanged), object: nil, userInfo: [
-            TUIKitNotification_onConversationMarkUnreadCountChanged_DataProvider: self,
-            TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadCount: NSNumber(value: markUnreadCount),
-            TUIKitNotification_onConversationMarkUnreadCountChanged_MarkHideUnreadCount: NSNumber(value: markHideUnreadCount),
-            TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadMap: markUnreadMap,
-        ])
+        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "TUIKitNotification_onConversationMarkUnreadCountChanged"),
+                                        object: nil,
+                                        userInfo: [
+                                            "TUIKitNotification_onConversationMarkUnreadCountChanged_DataProvider": self,
+                                            "TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadCount": NSNumber(value: markUnreadCount),
+                                            "TUIKitNotification_onConversationMarkUnreadCountChanged_MarkHideUnreadCount": NSNumber(value: markHideUnreadCount),
+                                            "TUIKitNotification_onConversationMarkUnreadCountChanged_MarkUnreadMap": markUnreadMap,
+                                        ])
     }
 
     private func updateMarkFold(_ markFoldDataList: inout [TUIConversationCellData]) {
@@ -340,7 +350,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         // Implement this method
     }
 
-    func handleInsertConversationList(_ conversationList: [TUIConversationCellData]) {
+    open func handleInsertConversationList(_ conversationList: [TUIConversationCellData]) {
         self.conversationList.append(contentsOf: conversationList)
         sortDataList(&self.conversationList)
         var indexPaths: [IndexPath] = []
@@ -349,11 +359,11 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
                 indexPaths.append(IndexPath(row: index, section: 0))
             }
         }
-        delegate?.insertConversations?(at: indexPaths)
+        delegate?.insertConversations(at: indexPaths)
         updateOnlineStatus(conversationList)
     }
 
-    func handleUpdateConversationList(_ conversationList: [TUIConversationCellData], positions: [String: Int]) {
+    open func handleUpdateConversationList(_ conversationList: [TUIConversationCellData], positions: [String: Int]) {
         if conversationList.isEmpty {
             return
         }
@@ -398,18 +408,16 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         for index in minIndex ... maxIndex {
             indexPaths.append(IndexPath(row: index, section: 0))
         }
-        delegate?.reloadConversations?(at: indexPaths)
+        delegate?.reloadConversations(at: indexPaths)
     }
 
     private func handleRemoveConversation(_ conversation: TUIConversationCellData) {
         if let index = conversationList.firstIndex(of: conversation) {
             conversationList.remove(at: index)
-            if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.deleteConversation(at:))) {
-                delegate.deleteConversation!(at: [IndexPath(row: index, section: 0)])
-            }
+            delegate?.deleteConversation(at: [IndexPath(row: index, section: 0)])
 
             deletingConversationList.append(conversation.conversationID)
-            V2TIMManager.sharedInstance().deleteConversation(conversation.conversationID) { [weak self] in
+            V2TIMManager.sharedInstance().deleteConversation(conversation: conversation.conversationID) { [weak self] in
                 guard let self = self else { return }
                 self.deletingConversationList.removeAll(where: { $0 == conversation.conversationID })
                 if let _ = markUnreadMap[conversation.conversationID!] {
@@ -427,13 +435,11 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
     func handleHideConversation(_ conversation: TUIConversationCellData) {
         if let index = conversationList.firstIndex(of: conversation) {
             conversationList.remove(at: index)
-            if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.deleteConversation(at:))) {
-                delegate.deleteConversation!(at: [IndexPath(row: index, section: 0)])
-            }
+            delegate?.deleteConversation(at: [IndexPath(row: index, section: 0)])
         }
     }
 
-    func sortDataList(_ dataList: inout [TUIConversationCellData]) {
+    public func sortDataList(_ dataList: inout [TUIConversationCellData]) {
         dataList.sort { $0.orderKey > $1.orderKey }
     }
 
@@ -452,7 +458,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
     private func dealFoldcellDataOfGroupID(_ groupID: String) {
         let conversationID = "group_\(groupID)"
         if let cellData = markFoldMap[conversationID] {
-            V2TIMManager.sharedInstance().deleteConversation(cellData.conversationID) { [weak self] in
+            V2TIMManager.sharedInstance().deleteConversation(conversation: cellData.conversationID) { [weak self] in
                 guard let self = self else { return }
                 self.markFoldMap.removeValue(forKey: conversationID)
                 self.updateFoldGroupNameWhileKickOffOrDismissed()
@@ -491,13 +497,13 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
-        if key == TUICore_TUIConversationNotify, subKey == TUICore_TUIConversationNotify_RemoveConversationSubKey {
-            if let param = param, let conversationID = param[TUICore_TUIConversationNotify_RemoveConversationSubKey_ConversationID] as? String {
+    public func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
+        if key == "TUICore_TUIConversationNotify", subKey == "TUICore_TUIConversationNotify_RemoveConversationSubKey" {
+            if let param = param, let conversationID = param["TUICore_TUIConversationNotify_RemoveConversationSubKey_ConversationID"] as? String {
                 if let removeConversation = conversationList.first(where: { $0.conversationID == conversationID }) {
                     self.removeConversation(removeConversation)
                 } else {
-                    V2TIMManager.sharedInstance().deleteConversation(conversationID) { [weak self] in
+                    V2TIMManager.sharedInstance().deleteConversation(conversation: conversationID) { [weak self] in
                         guard let self = self else { return }
                         self.updateMarkUnreadCount()
                     } fail: { _, _ in
@@ -541,7 +547,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         asyncGetOnlineStatus(userIDList)
     }
 
-    @objc public func asyncGetOnlineStatus(_ userIDList: [String]) {
+    public func asyncGetOnlineStatus(_ userIDList: [String]) {
         if userIDList.isEmpty {
             return
         }
@@ -553,11 +559,9 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
         // get
         DispatchQueue.global(qos: .userInitiated).async {
-            V2TIMManager.sharedInstance().getUserStatus(userIDList) { [weak self] result in
-                guard let self = self else { return }
-                if let result = result {
-                    self.handleOnlineStatus(result)
-                }
+            V2TIMManager.sharedInstance().getUserStatus(userIDList: userIDList) { [weak self] result in
+                guard let self = self, let result = result else { return }
+                self.handleOnlineStatus(result)
             } fail: { code, desc in
 #if DEBUG
                 if code == ERR_SDK_INTERFACE_NOT_SUPPORT.rawValue, TUIConfig.default().displayOnlineStatusIcon {
@@ -566,7 +570,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 #endif
             }
             // subscribe for the users who was deleted from friend list
-            V2TIMManager.sharedInstance().subscribeUserStatus(userIDList) {
+            V2TIMManager.sharedInstance().subscribeUserStatus(userIDList: userIDList) {
                 // to do
             } fail: { _, _ in
                 // to do
@@ -574,7 +578,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    @objc public func handleOnlineStatus(_ userStatusList: [V2TIMUserStatus]) {
+    public func handleOnlineStatus(_ userStatusList: [V2TIMUserStatus]) {
         if !Thread.isMainThread {
             DispatchQueue.main.async {
                 self.handleOnlineStatus(userStatusList)
@@ -589,14 +593,14 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
         var changedConversation = [TUIConversationCellData]()
         for item in userStatusList {
-            let conversationID = "c2c_\(item.userID.safeValue)"
+            let conversationID = "c2c_\(item.userID ?? "")"
             if let position = positonMap[conversationID] {
                 let conversation = conversationList[position]
                 if conversation.conversationID == conversationID {
                     switch item.statusType {
                     case V2TIMUserStatusType.USER_STATUS_ONLINE:
                         conversation.onlineStatus = .online
-                    case V2TIMUserStatusType.USER_STATUS_OFFLINE, V2TIMUserStatusType.USER_STATUS_UNLOGINED:
+                    case .USER_STATUS_OFFLINE, .USER_STATUS_UNLOGINED:
                         conversation.onlineStatus = .offline
                     default:
                         conversation.onlineStatus = .unknown
@@ -612,23 +616,21 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 
     // MARK: - V2TIMConversationListener
 
-    @objc public func onNewConversation(_ conversationList: [V2TIMConversation]) {
+    public func onNewConversation(conversationList: [V2TIMConversation]) {
         preprocess(conversationList)
     }
 
-    @objc public func onConversationChanged(_ conversationList: [V2TIMConversation]) {
+    public func onConversationChanged(conversationList: [V2TIMConversation]) {
         preprocess(conversationList)
     }
 
-    @objc public func onConversationDeleted(_ conversationIDList: [String]) {
+    public func onConversationDeleted(conversationIDList: [String]) {
         let cacheConversationList = conversationList
         for item in cacheConversationList {
             if conversationIDList.contains(item.conversationID!) {
                 if let index = conversationList.firstIndex(of: item) {
                     conversationList.remove(at: index)
-                    if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.deleteConversation(at:))) {
-                        delegate.deleteConversation!(at: [IndexPath(row: index, section: 0)])
-                    }
+                    delegate?.deleteConversation(at: [IndexPath(row: index, section: 0)])
                     if let _ = markUnreadMap[item.conversationID!] {
                         markUnreadMap.removeValue(forKey: item.conversationID!)
                     }
@@ -640,72 +642,74 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 
     // MARK: - V2TIMGroupListener
 
-    @objc public func getGroupName(_ cellData: TUIConversationCellData) -> String {
-        let formatString = cellData.groupID
-        let title = cellData.title
-        if !title.value.isEmpty {
-            return title.value
+    public func getGroupName(_ cellData: TUIConversationCellData) -> String {
+        _ = cellData.groupID
+        if let title = cellData.title {
+            return title
         } else if let groupID = cellData.groupID {
             return groupID
         }
         return ""
     }
 
-    @objc public func onGroupDismissed(_ groupID: String, opUser: V2TIMGroupMemberInfo) {
-        if let data = cellDataOfGroupID(groupID) {
-            let groupName = getGroupName(data)
-            TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupDismssTipsFormat"), groupName))
-            handleRemoveConversation(data)
-        } else {
-            dealFoldcellDataOfGroupID(groupID)
+    public func onGroupDismissed(groupID: String?, opUser: V2TIMGroupMemberInfo) {
+        if let groupID = groupID {
+            if let data = cellDataOfGroupID(groupID) {
+                let groupName = getGroupName(data)
+                TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupDismssTipsFormat"), groupName))
+                handleRemoveConversation(data)
+            } else {
+                dealFoldcellDataOfGroupID(groupID)
+            }
         }
     }
 
-    @objc public func onGroupRecycled(_ groupID: String, opUser: V2TIMGroupMemberInfo) {
-        if let data = cellDataOfGroupID(groupID) {
-            let groupName = getGroupName(data)
-            TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupRecycledTipsFormat"), groupName))
-            handleRemoveConversation(data)
-        } else {
-            dealFoldcellDataOfGroupID(groupID)
+    public func onGroupRecycled(groupID: String?, opUser: V2TIMGroupMemberInfo) {
+        if let groupID = groupID {
+            if let data = cellDataOfGroupID(groupID) {
+                let groupName = getGroupName(data)
+                TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupRecycledTipsFormat"), groupName))
+                handleRemoveConversation(data)
+            } else {
+                dealFoldcellDataOfGroupID(groupID)
+            }
         }
     }
 
-    @objc public func onMemberKicked(_ groupID: String, opUser: V2TIMGroupMemberInfo, memberList: [V2TIMGroupMemberInfo]) {
+    public func onMemberKicked(groupID: String?, opUser: V2TIMGroupMemberInfo, memberList: [V2TIMGroupMemberInfo]) {
         let kicked = memberList.contains { $0.userID == TUILogin.getUserID() }
         if !kicked {
             return
         }
-        if let data = cellDataOfGroupID(groupID) {
-            let groupName = getGroupName(data)
-            TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupKickOffTipsFormat"), groupName))
-            handleRemoveConversation(data)
-        } else {
-            dealFoldcellDataOfGroupID(groupID)
+        if let groupID = groupID {
+            if let data = cellDataOfGroupID(groupID) {
+                let groupName = getGroupName(data)
+                TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupKickOffTipsFormat"), groupName))
+                handleRemoveConversation(data)
+            } else {
+                dealFoldcellDataOfGroupID(groupID)
+            }
+        }
+    }
+    
+    public func onQuitFromGroup(groupID: String?) {
+        if let groupID = groupID {
+            if let data = cellDataOfGroupID(groupID) {
+                let groupName = getGroupName(data)
+                TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupDropoutTipsFormat"), groupName))
+                handleRemoveConversation(data)
+            } else {
+                dealFoldcellDataOfGroupID(groupID)
+            }
         }
     }
 
-    @objc public func onQuit(fromGroup groupID: String) {
-        if let data = cellDataOfGroupID(groupID) {
-            let groupName = getGroupName(data)
-            TUITool.makeToast(String(format: TUISwift.timCommonLocalizableString("TUIKitGroupDropoutTipsFormat"), groupName))
-            handleRemoveConversation(data)
-        } else {
-            dealFoldcellDataOfGroupID(groupID)
-        }
-    }
-
-    @objc public func onGroupInfoChanged(_ groupID: String, changeInfoList: [V2TIMGroupChangeInfo]) {
-        if groupID.isEmpty {
-            return
-        }
-        if let _ = cellDataOfGroupID(groupID) {
+    public func onGroupInfoChanged(groupID: String?, changeInfoList: [V2TIMGroupChangeInfo]) {
+        if let groupID = groupID, let _ = cellDataOfGroupID(groupID) {
             let conversationID = "group_\(groupID)"
-            V2TIMManager.sharedInstance().getConversation(conversationID) { [weak self] conv in
-                guard let self = self else { return }
-                if let conv = conv {
-                    self.preprocess([conv])
-                }
+            V2TIMManager.sharedInstance().getConversation(conversationID: conversationID) { [weak self] conv in
+                guard let self = self, let conv = conv else { return }
+                self.preprocess([conv])
             } fail: { code, desc in
                 print("[TUIConversation] \(#function), code:\(code), desc:\(String(describing: desc))")
             }
@@ -714,15 +718,15 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 
     // MARK: - V2TIMSDKListener
 
-    @objc public func onUserStatusChanged(_ userStatusList: [V2TIMUserStatus]) {
+    public func onUserStatusChanged(userStatusList: [V2TIMUserStatus]) {
         handleOnlineStatus(userStatusList)
     }
 
-    @objc public func onConnectFailed(_ code: Int32, err: String!) {
+    public func onConnectFailed(_ code: Int32, err: String?) {
         NSLog("%s", #function)
     }
 
-    @objc public func onConnectSuccess() {
+    public func onConnectSuccess() {
         NSLog("%s", #function)
         if !conversationList.isEmpty {
             let conversationList = Array(conversationList)
@@ -740,7 +744,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 
     // MARK: - V2TIMAdvancedMsgListener
 
-    @objc public func onRecvNewMessage(_ msg: V2TIMMessage) {
+    public func onRecvNewMessage(msg: V2TIMMessage) {
         let userID = msg.userID
         let groupID = msg.groupID
         var conversationID = ""
@@ -763,15 +767,13 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
                 cancelHideAndUnreadMarkConversation(conversationID, existInHidelist: existInHidelist, existInUnreadlist: existInUnreadlist)
             }
         } else {
-            V2TIMManager.sharedInstance().getConversation(conversationID) { [weak self] conv in
-                guard let self = self else { return }
-                if let conv = conv {
-                    let cellData = self.cellDataForConversation(conv)
-                    let existInHidelist = cellData.isMarkAsHide
-                    let existInUnreadlist = cellData.isMarkAsUnread
-                    if existInHidelist || existInUnreadlist {
-                        self.cancelHideAndUnreadMarkConversation(conversationID, existInHidelist: existInHidelist, existInUnreadlist: existInUnreadlist)
-                    }
+            V2TIMManager.sharedInstance().getConversation(conversationID: conversationID) { [weak self] conv in
+                guard let self = self, let conv = conv else { return }
+                let cellData = self.cellDataForConversation(conv)
+                let existInHidelist = cellData.isMarkAsHide
+                let existInUnreadlist = cellData.isMarkAsUnread
+                if existInHidelist || existInUnreadlist {
+                    self.cancelHideAndUnreadMarkConversation(conversationID, existInHidelist: existInHidelist, existInUnreadlist: existInUnreadlist)
                 }
             } fail: { code, desc in
                 print("[TUIConversation] \(#function), code:\(code), desc:\(String(describing: desc))")
@@ -779,12 +781,12 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    @objc public func cancelHideAndUnreadMarkConversation(_ conversationID: String, existInHidelist: Bool, existInUnreadlist: Bool) {
+    public func cancelHideAndUnreadMarkConversation(_ conversationID: String, existInHidelist: Bool, existInUnreadlist: Bool) {
         let markHideNumber = NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_HIDE.rawValue)
         let markUnreadNumber = NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue)
         if existInHidelist && existInUnreadlist {
-            V2TIMManager.sharedInstance().markConversation([conversationID], markType: markHideNumber, enableMark: false) { _ in
-                V2TIMManager.sharedInstance().markConversation([conversationID], markType: markUnreadNumber, enableMark: false) { _ in
+            V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversationID], markType: markHideNumber, enableMark: false) { _ in
+                V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversationID], markType: markUnreadNumber, enableMark: false) { _ in
                     // Handle result if needed
                 } fail: { code, desc in
                     print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
@@ -793,13 +795,13 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
                 print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
             }
         } else if existInHidelist {
-            V2TIMManager.sharedInstance().markConversation([conversationID], markType: markHideNumber, enableMark: false) { _ in
+            V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversationID], markType: markHideNumber, enableMark: false) { _ in
                 // Handle result if needed
             } fail: { code, desc in
                 print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
             }
         } else if existInUnreadlist {
-            V2TIMManager.sharedInstance().markConversation([conversationID], markType: markUnreadNumber, enableMark: false) { _ in
+            V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversationID], markType: markUnreadNumber, enableMark: false) { _ in
                 // Handle result if needed
             } fail: { code, desc in
                 print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
@@ -811,25 +813,25 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 
     // MARK: - SDK Data Process
 
-    @objc public func handleClearGroupHistoryMessage(_ groupID: String) {
-        V2TIMManager.sharedInstance().clearGroupHistoryMessage(groupID) {
+    public func handleClearGroupHistoryMessage(_ groupID: String) {
+        V2TIMManager.sharedInstance().clearGroupHistoryMessage(groupID: groupID) {
             print("[TUIConversation] \(#function) success")
         } fail: { code, desc in
             print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
         }
     }
 
-    @objc public func handleClearC2CHistoryMessage(_ userID: String) {
-        V2TIMManager.sharedInstance().clearC2CHistoryMessage(userID) {
+    public func handleClearC2CHistoryMessage(_ userID: String) {
+        V2TIMManager.sharedInstance().clearC2CHistoryMessage(userID: userID) {
             print("[TUIConversation] \(#function) success")
         } fail: { code, desc in
             print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
         }
     }
 
-    @objc public func handlePinConversation(_ conversation: TUIConversationCellData, pin: Bool) {
+    public func handlePinConversation(_ conversation: TUIConversationCellData, pin: Bool) {
         DispatchQueue.main.async {
-            V2TIMManager.sharedInstance().pinConversation(conversation.conversationID, isPinned: pin) {
+            V2TIMManager.sharedInstance().pinConversation(conversationID: conversation.conversationID, isPinned: pin) {
                 print("[TUIConversation] \(#function) success")
             } fail: { code, desc in
                 print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
@@ -837,15 +839,15 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    @objc public func cellDataForConversation(_ conversation: V2TIMConversation) -> TUIConversationCellData {
+    public func cellDataForConversation(_ conversation: V2TIMConversation) -> TUIConversationCellData {
         if let cls = getConversationCellClass() as? TUIConversationCellData.Type {
             let data = cls.init()
             data.conversationID = conversation.conversationID
             data.groupID = conversation.groupID
             data.groupType = conversation.groupType
             data.userID = conversation.userID
-            data.title.value = conversation.showName.safeValue
-            data.faceUrl.value = conversation.faceUrl.safeValue
+            data.title = conversation.showName
+            data.faceUrl = conversation.faceUrl
             data.subTitle = getLastDisplayString(conversation)
             data.foldSubTitle = getLastDisplayStringForFoldList(conversation)
             data.atTipsStr = getGroupAtTipString(conversation)
@@ -856,7 +858,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
             data.draftText = conversation.draftText
             data.isNotDisturb = isConversationNotDisturb(conversation)
             data.orderKey = conversation.orderKey
-            data.avatarImage = (conversation.type == V2TIMConversationType.C2C ?
+            data.avatarImage = (conversation.type == .C2C ?
                 TUISwift.defaultAvatarImage() : TUISwift.defaultGroupAvatarImage(byGroupType: conversation.groupType))
             data.onlineStatus = .unknown
             data.isMarkAsUnread = TUIConversationCellData.isMarkedByUnReadType(conversation.markList)
@@ -871,21 +873,19 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return TUIConversationCellData()
     }
 
-    @objc public func isConversationNotDisturb(_ conversation: V2TIMConversation) -> Bool {
-        return (conversation.groupType != GroupType_Meeting) && (V2TIMReceiveMessageOpt.RECEIVE_NOT_NOTIFY_MESSAGE == conversation.recvOpt)
+    public func isConversationNotDisturb(_ conversation: V2TIMConversation) -> Bool {
+        return (conversation.groupType != "Meeting") && (conversation.recvOpt == .RECEIVE_NOT_NOTIFY_MESSAGE)
     }
 
-    @objc public func getLastDisplayStringForFoldList(_ conversation: V2TIMConversation) -> NSMutableAttributedString {
+    public func getLastDisplayStringForFoldList(_ conversation: V2TIMConversation) -> NSMutableAttributedString {
         let attributeString = NSMutableAttributedString(string: "")
         let attributeDict: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.d_systemRed()]
         attributeString.setAttributes(attributeDict, range: NSRange(location: 0, length: attributeString.length))
-        let showName = "\(conversation.showName.safeValue): "
+        let showName = "\(conversation.showName ?? ""): "
         attributeString.append(NSMutableAttributedString(string: showName))
         var lastMsgStr = ""
         // Attempt to get externally customized display information
-        if let delegate = delegate, delegate.responds(to: #selector(TUIConversationListDataProviderDelegate.getConversationDisplayString(_:))) {
-            lastMsgStr = (delegate.getConversationDisplayString!(conversation) ?? "")
-        }
+        lastMsgStr = (delegate?.getConversationDisplayString(conversation) ?? "")
         // If there is no external customization, get the lastMsg display information through the message module
         if lastMsgStr.isEmpty, let lastMessage = conversation.lastMessage {
             lastMsgStr = getDisplayStringFromService(lastMessage)
@@ -898,21 +898,22 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return attributeString
     }
 
-    @objc public func getLastDisplayString(_ conversation: V2TIMConversation) -> NSMutableAttributedString {
+    public func getLastDisplayString(_ conversation: V2TIMConversation) -> NSMutableAttributedString {
         // subclass overide
         return NSMutableAttributedString(string: "")
     }
 
-    @objc public func getGroupatMsgSeqs(_ conv: V2TIMConversation) -> [NSNumber]? {
+    public func getGroupatMsgSeqs(_ conv: V2TIMConversation) -> [NSNumber]? {
+        guard let groupAtInfolist = conv.groupAtInfolist else { return nil }
         var seqList = [NSNumber]()
-        for atInfo in safeArray(conv.groupAtInfolist) {
+        for atInfo in groupAtInfolist {
             seqList.append(NSNumber(value: atInfo.seq))
         }
         return seqList.count > 0 ? seqList : nil
     }
 
-    @objc public func getLastDisplayDate(_ conv: V2TIMConversation) -> Date? {
-        if !conv.draftText.isNilOrEmpty {
+    public func getLastDisplayDate(_ conv: V2TIMConversation) -> Date? {
+        if let draftText = conv.draftText, !draftText.isEmpty {
             return conv.draftTimestamp
         }
         if let lastMessage = conv.lastMessage {
@@ -921,19 +922,20 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return Date.distantPast
     }
 
-    @objc public func getGroupAtTipString(_ conv: V2TIMConversation) -> String {
+    public func getGroupAtTipString(_ conv: V2TIMConversation) -> String {
+        guard let groupAtInfolist = conv.groupAtInfolist else { return "" }
         var atTipsStr = ""
         var atMe = false
         var atAll = false
-        for atInfo in safeArray(conv.groupAtInfolist) {
+        for atInfo in groupAtInfolist {
             switch atInfo.atType {
-            case V2TIMGroupAtType.AT_ME:
+            case .AT_ME:
                 atMe = true
                 continue
-            case V2TIMGroupAtType.AT_ALL:
+            case .AT_ALL:
                 atAll = true
                 continue
-            case V2TIMGroupAtType.AT_ALL_AT_ME:
+            case .AT_ALL_AT_ME:
                 atMe = true
                 atAll = true
                 continue
@@ -953,7 +955,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return atTipsStr
     }
 
-    @objc public func getDraftContent(_ conv: V2TIMConversation) -> String? {
+    public func getDraftContent(_ conv: V2TIMConversation) -> String? {
         guard let draft = conv.draftText else { return "" }
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: draft.data(using: .utf8)!, options: .mutableLeaves) as? [String: Any]
@@ -969,14 +971,18 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return draft
     }
 
-    @objc public func filteConversation(_ conversation: V2TIMConversation) -> Bool {
-        if conversation.conversationID.isNilOrEmpty || deletingConversationList.contains(conversation.conversationID.safeValue) {
+    public func filteConversation(_ conversation: V2TIMConversation) -> Bool {
+        if let conversationID = conversation.conversationID,
+           deletingConversationList.contains(conversationID)
+        {
             return true
         }
-        if conversation.userID.isNilOrEmpty && conversation.groupID.isNilOrEmpty {
+        if (conversation.userID == nil || conversation.userID!.isEmpty) &&
+            (conversation.groupID == nil || conversation.groupID!.isEmpty)
+        {
             return true
         }
-        if conversation.type == V2TIMConversationType.UNKNOWN {
+        if conversation.type == .UNKNOWN {
             return true
         }
         if conversation.groupType == "AVChatRoom" {
@@ -984,7 +990,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
         if getLastDisplayDate(conversation) == nil {
             if conversation.unreadCount != 0 {
-                V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount(conversation.conversationID, cleanTimestamp: 0, cleanSequence: 0) {
+                V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount(conversationID: conversation.conversationID, cleanTimestamp: 0, cleanSequence: 0) {
                     // Handle result if needed
                 } fail: { code, description in
                     print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: description))")
@@ -995,48 +1001,48 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return false
     }
 
-    @objc public func markConversationHide(_ data: TUIConversationCellData) {
+    public func markConversationHide(_ data: TUIConversationCellData) {
         handleHideConversation(data)
         guard let conversationID = data.conversationID else { return }
-        V2TIMManager.sharedInstance().markConversation([conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_HIDE.rawValue), enableMark: true) { _ in
+        V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_HIDE.rawValue), enableMark: true) { _ in
             // Handle result if needed
         } fail: { code, desc in
             print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: desc))")
         }
     }
 
-    @objc public func markConversationAsRead(_ conv: TUIConversationCellData) {
+    public func markConversationAsRead(_ conv: TUIConversationCellData) {
         guard let conversationID = conv.conversationID else { return }
-        V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount(conversationID, cleanTimestamp: 0, cleanSequence: 0) {
+        V2TIMManager.sharedInstance().cleanConversationUnreadMessageCount(conversationID: conversationID, cleanTimestamp: 0, cleanSequence: 0) {
             // Handle result if needed
         } fail: { code, description in
             print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: description))")
         }
-        V2TIMManager.sharedInstance().markConversation([conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: false) { _ in
+        V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: false) { _ in
             // Handle result if needed
         } fail: { code, description in
             print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: description))")
         }
     }
 
-    @objc public func markConversationAsUnRead(_ conv: TUIConversationCellData) {
+    public func markConversationAsUnRead(_ conv: TUIConversationCellData) {
         guard let conversationID = conv.conversationID else { return }
-        V2TIMManager.sharedInstance().markConversation([conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: true) { _ in
+        V2TIMManager.sharedInstance().markConversation(conversationIDList: [conversationID], markType: NSNumber(value: V2TIMConversationMarkType.CONVERSATION_MARK_TYPE_UNREAD.rawValue), enableMark: true) { _ in
             // Handle result if needed
         } fail: { code, description in
             print("[TUIConversation] \(#function) code:\(code), desc:\(String(describing: description))")
         }
     }
 
-    @objc public class func isTypingBusinessMessage(_ message: V2TIMMessage) -> Bool {
+    public class func isTypingBusinessMessage(_ message: V2TIMMessage) -> Bool {
         guard let customElem = message.customElem else { return false }
         guard let data = customElem.data else { return false }
         do {
             let param = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
-            if let param = param, let businessID = param[BussinessID] as? String, businessID == BussinessID_Typing {
+            if let param = param, let businessID = param["businessID"] as? String, businessID == "user_typing_status" {
                 return true
             }
-            if let src = param![BussinessID_Src_CustomerService] as? String, src == BussinessID_Src_CustomerService_Typing {
+            if let src = param!["src"] as? String, src == "12" {
                 return true
             }
         } catch {
@@ -1048,7 +1054,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return false
     }
 
-    @objc public class func cacheConversationFoldListSettings_HideFoldItem(_ flag: Bool) {
+    public class func cacheConversationFoldListSettings_HideFoldItem(_ flag: Bool) {
         if let userID = TUILogin.getUserID() {
             let key = "hide_fold_item_\(userID)"
             UserDefaults.standard.set(flag, forKey: key)
@@ -1056,7 +1062,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    @objc public class func cacheConversationFoldListSettings_FoldItemIsUnread(_ flag: Bool) {
+    public class func cacheConversationFoldListSettings_FoldItemIsUnread(_ flag: Bool) {
         if let userID = TUILogin.getUserID() {
             let key = "fold_item_is_unread_\(userID)"
             UserDefaults.standard.set(flag, forKey: key)
@@ -1064,7 +1070,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         }
     }
 
-    @objc public class func getConversationFoldListSettings_HideFoldItem() -> Bool {
+    public class func getConversationFoldListSettings_HideFoldItem() -> Bool {
         if let userID = TUILogin.getUserID() {
             let key = "hide_fold_item_\(userID)"
             return UserDefaults.standard.bool(forKey: key)
@@ -1072,7 +1078,7 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
         return false
     }
 
-    @objc public class func getConversationFoldListSettings_FoldItemIsUnread() -> Bool {
+    public class func getConversationFoldListSettings_FoldItemIsUnread() -> Bool {
         if let userID = TUILogin.getUserID() {
             let key = "fold_item_is_unread_\(userID)"
             return UserDefaults.standard.bool(forKey: key)
@@ -1082,12 +1088,12 @@ class TUIConversationListBaseDataProvider: NSObject, V2TIMConversationListener, 
 
     // MARK: Override func
 
-    @objc public func getConversationCellClass() -> AnyClass? {
+    public func getConversationCellClass() -> AnyClass? {
         // subclass override
         return nil
     }
 
-    @objc public func getDisplayStringFromService(_ msg: V2TIMMessage) -> String {
+    public func getDisplayStringFromService(_ msg: V2TIMMessage) -> String {
         // subclass override
         return ""
     }

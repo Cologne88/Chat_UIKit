@@ -132,7 +132,7 @@ class TUIMergeMessageCell: TUIMessageCell {
     lazy var contentRowView2: TUIMergeMessageDetailRow = .init()
     lazy var contentRowView3: TUIMergeMessageDetailRow = .init()
 
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+    override public init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupViews()
         NotificationCenter.default.addObserver(self, selector: #selector(onThemeChanged), name: NSNotification.Name("TUIDidApplyingThemeChangedNotfication"), object: nil)
@@ -221,7 +221,7 @@ class TUIMergeMessageCell: TUIMessageCell {
         borderLayer.frame = container.bounds
 
         var corner: UIRectCorner = [.bottomLeft, .bottomRight, .topLeft]
-        if mergeData?.direction == .MsgDirectionIncoming {
+        if mergeData?.direction == .incoming {
             corner = [.bottomLeft, .bottomRight, .topRight]
         }
         let bezierPath = UIBezierPath(roundedRect: container.bounds, byRoundingCorners: corner, cornerRadii: CGSize(width: 10, height: 10))
@@ -276,8 +276,8 @@ class TUIMergeMessageCell: TUIMessageCell {
     }
 
     private func prepareReactTagUI(containerView: UIView) {
-        let param: [String: Any] = [TUICore_TUIChatExtension_ChatMessageReactPreview_Delegate: self]
-        TUICore.raiseExtension(TUICore_TUIChatExtension_ChatMessageReactPreview_ClassicExtensionID, parentView: containerView, param: param)
+        let param: [String: Any] = ["TUICore_TUIChatExtension_ChatMessageReactPreview_Delegate": self]
+        TUICore.raiseExtension("TUICore_TUIChatExtension_ChatMessageReactPreview_ClassicExtensionID", parentView: containerView, param: param)
     }
 
     // MARK: - TUIMessageCellProtocol
@@ -292,10 +292,10 @@ class TUIMergeMessageCell: TUIMessageCell {
         mergeCellData.abstractRow2Size = caculate(data: mergeCellData, index: 1)
         mergeCellData.abstractRow3Size = caculate(data: mergeCellData, index: 2)
 
-        let mergeMessageCellWidthMax = TUISwift.tMergeMessageCell_Width_Max()
+        let mergeMessageCellWidthMax = TMergeMessageCell_Width_Max
 
         let abstractAttributedString = mergeCellData.abstractAttributedString()
-        let rect = abstractAttributedString.boundingRect(with: CGSize(width: mergeMessageCellWidthMax - 20, height: CGFloat(Int.max)),
+        let rect = abstractAttributedString.boundingRect(with: CGSize(width: CGFloat(mergeMessageCellWidthMax) - 20, height: CGFloat(Int.max)),
                                                          options: [.usesLineFragmentOrigin, .usesFontLeading],
                                                          context: nil)
         let size = CGSize(width: ceil(rect.width), height: ceil(rect.height) - 10)
@@ -303,7 +303,7 @@ class TUIMergeMessageCell: TUIMessageCell {
         var height = mergeCellData.abstractRow1Size.height + mergeCellData.abstractRow2Size.height + mergeCellData.abstractRow3Size.height
         let titleFont = UIFont.systemFont(ofSize: 16)
         height = (10 + titleFont.lineHeight + 3) + height + 1 + 5 + 20 + 5 + 3
-        return CGSize(width: mergeMessageCellWidthMax, height: height)
+        return CGSize(width: CGFloat(mergeMessageCellWidthMax), height: height)
     }
 
     class func caculate(data: TUIMergeMessageCellData, index: Int) -> CGSize {
@@ -325,16 +325,16 @@ class TUIMergeMessageCell: TUIMessageCell {
             abstr.append(detail)
         }
 
-        let mergeMessageCellWidthMax = TUISwift.tMergeMessageCell_Width_Max()
-        let mergeMessageCellHeightMax = TUISwift.tMergeMessageCell_Height_Max()
+        let mergeMessageCellWidthMax = TMergeMessageCell_Width_Max
+        let mergeMessageCellHeightMax = TMergeMessageCell_Height_Max
 
         let senderWidth = min(ceil(senderRect.size.width), 70)
-        let rect = abstr.boundingRect(with: CGSize(width: mergeMessageCellWidthMax - 20 - senderWidth, height: .infinity),
+        let rect = abstr.boundingRect(with: CGSize(width: CGFloat(mergeMessageCellWidthMax - 20) - senderWidth, height: .infinity),
                                       options: [.usesLineFragmentOrigin, .usesFontLeading],
                                       context: nil)
 
-        let size = CGSize(width: mergeMessageCellWidthMax,
-                          height: min(mergeMessageCellHeightMax / 3.0, ceil(rect.height)))
+        let size = CGSize(width: CGFloat(mergeMessageCellWidthMax),
+                          height: min(CGFloat(mergeMessageCellHeightMax) / 3.0, ceil(rect.height)))
 
         return size
     }
