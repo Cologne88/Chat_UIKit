@@ -9,7 +9,7 @@ public enum TUIAvatarStyle_Minimalist: Int {
 
 public struct TUIChatItemWhenLongPressMessage_Minimalist: OptionSet {
     public let rawValue: Int
-    
+
     public init(rawValue: Int) {
         self.rawValue = rawValue
     }
@@ -66,7 +66,7 @@ public enum UIMessageCellLayoutType: Int {
 }
 
 public class TUIChatConfig_Minimalist: NSObject {
-    public static let sharedConfig: TUIChatConfig_Minimalist = {
+    public static let shared: TUIChatConfig_Minimalist = {
         let instance = TUIChatConfig_Minimalist()
         TUIChatConfig.shared.eventConfig.chatEventListener = instance as? any TUIChatEventListener
         return instance
@@ -129,7 +129,7 @@ public class TUIChatConfig_Minimalist: NSObject {
             TUIConfig.default().avatarCornerRadius = newValue
         }
     }
-    
+
     /**
      * Display the group avatar in the nine-square grid style.
      * The default value is YES.
@@ -315,7 +315,7 @@ public class TUIChatConfig_Minimalist: NSObject {
             TUIConfig.default().enableCustomRing = newValue
         }
     }
-    
+
     /**
      * Hide the items in the pop-up menu when user presses the message.
      */
@@ -351,7 +351,7 @@ public class TUIChatConfig_Minimalist: NSObject {
     public class func setCustomTopView(_ view: UIView) {
         TUIBaseChatViewController_Minimalist.customTopView = view
     }
-    
+
     /**
      * Register custom message.
      * - Parameters:
@@ -360,8 +360,8 @@ public class TUIChatConfig_Minimalist: NSObject {
      *   - messageCellDataClassName: Customized message's MessagCellData class name.
      */
     public func registerCustomMessage(businessID: String,
-                               messageCellClassName: String,
-                               messageCellDataClassName: String)
+                                      messageCellClassName: String,
+                                      messageCellDataClassName: String)
     {
         TUIChatConfig.shared.registerCustomMessage(businessID: businessID,
                                                    messageCellClassName: messageCellClassName,
@@ -370,7 +370,7 @@ public class TUIChatConfig_Minimalist: NSObject {
     }
 
     // MARK: - Message Style
-    
+
     /**
      * The color of send text message.
      */
@@ -456,7 +456,7 @@ public class TUIChatConfig_Minimalist: NSObject {
     }
 
     // MARK: - Message Layout
-    
+
     /**
      * Text message cell layout of my sent message.
      */
@@ -533,7 +533,7 @@ public class TUIChatConfig_Minimalist: NSObject {
     public var systemMessageLayout: TUIMessageCellLayout {
         return getMessageLayout(ofType: .system, isSender: false)
     }
-    
+
     // MARK: - Message Bubble
 
     /**
@@ -670,7 +670,7 @@ public class TUIChatConfig_Minimalist: NSObject {
     }
 
     // MARK: - InputBar
-    
+
     /**
      *  DataSource for inputBar.
      */

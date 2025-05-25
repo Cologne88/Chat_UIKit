@@ -7,7 +7,7 @@ protocol TUISearchBarDelegate_Minimalist: AnyObject {
     func searchBar(_ searchBar: TUISearchBar_Minimalist, searchText: String)
 }
 
-class TUISearchBar_Minimalist: UIView, UISearchBarDelegate {
+public class TUISearchBar_Minimalist: UIView, UISearchBarDelegate {
     private(set) var searchBar: UISearchBar = .init()
     weak var delegate: TUISearchBarDelegate_Minimalist?
     weak var parentVC: UIViewController?
@@ -38,7 +38,7 @@ class TUISearchBar_Minimalist: UIView, UISearchBarDelegate {
         return TUISwift.rgba(255, g: 255, b: 255, a: 1)
     }
     
-    override func layoutSubviews() {
+    public override func layoutSubviews() {
         super.layoutSubviews()
         searchBar.frame = CGRect(x: 10, y: 5, width: frame.width - 20, height: frame.height - 10)
         updateSearchIcon()
@@ -67,7 +67,7 @@ class TUISearchBar_Minimalist: UIView, UISearchBarDelegate {
     
     // MARK: - UISearchBarDelegate
 
-    func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
+    public func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
         showSearchVC()
         
         if isEntrance {
@@ -80,19 +80,19 @@ class TUISearchBar_Minimalist: UIView, UISearchBarDelegate {
         return !isEntrance
     }
     
-    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+    public func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
         delegate?.searchBarDidCancelClicked(self)
     }
     
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    public func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         delegate?.searchBar(self, searchText: searchBar.text ?? "")
     }
     
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+    public func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         delegate?.searchBar(self, searchText: searchText)
     }
     
-    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+    public func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
         enableCancelButton()
     }
     

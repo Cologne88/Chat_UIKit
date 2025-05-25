@@ -22,7 +22,7 @@ public struct TUIGroupConfigItem: OptionSet {
 }
 
 public class TUIGroupConfig {
-    static let shared = TUIGroupConfig()
+    public static let shared = TUIGroupConfig()
 
     private var hideGroupMembersItems = false
     private var hideGroupNoticeItem = false

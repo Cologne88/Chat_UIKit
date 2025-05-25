@@ -18,7 +18,7 @@ public struct TUIContactConfigItem: OptionSet {
 }
 
 public class TUIContactConfig {
-    static let shared = TUIContactConfig()
+    public static let shared = TUIContactConfig()
 
     private var hideContactAlias: Bool = false
     private var hideContactMuteAndPinItems: Bool = false

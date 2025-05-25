@@ -27,8 +27,18 @@ public struct TUIChatInputBarMoreMenuItem: OptionSet {
 }
 
 public protocol TUIChatInputBarConfigDataSource: AnyObject {
+    /**
+     *  Implement this method to hide items in more menu of the specified model.
+     */
     func shouldHideItems(of model: TUIChatConversationModel) -> TUIChatInputBarMoreMenuItem
-    func shouldAddNewItems(of model: TUIChatConversationModel) -> [TUICustomActionSheetItem]
+    /**
+     *  Implement this method to add new items to the more menu of the specified model only for the classic version.
+     */
+    func shouldAddNewItemsToMoreMenu(of model: TUIChatConversationModel) -> [TUIInputMoreCellData]?
+    /**
+     *  Implement this method to add new items to the more list of the specified model only for the minimalist version.
+     */
+    func shouldAddNewItemsToMoreList(of model: TUIChatConversationModel) -> [TUICustomActionSheetItem]?
 }
 
 extension TUIChatInputBarConfigDataSource {
@@ -42,8 +52,17 @@ extension TUIChatInputBarConfigDataSource {
 }
 
 @objc public protocol TUIChatShortcutViewDataSource: AnyObject {
+    /**
+     *  Customized items in shortcut view.
+     */
     @objc optional func items(of model: TUIChatConversationModel) -> [TUIChatShortcutMenuCellData]
+    /**
+     *  Background color of shortcut view.
+     */
     @objc optional func backgroundColor(of model: TUIChatConversationModel) -> UIColor
+    /**
+     *  View height of shortcut view.
+     */
     @objc optional func height(of model: TUIChatConversationModel) -> CGFloat
 }
 

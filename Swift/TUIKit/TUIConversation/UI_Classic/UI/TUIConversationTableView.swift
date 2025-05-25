@@ -170,7 +170,7 @@ open class TUIConversationTableView: UITableView, UITableViewDelegate, UITableVi
     }
     
     func parseActionHiddenTagAndCustomizedItems(_ cellData: TUIConversationCellData) {
-        guard let dataSource = TUIConversationConfig.sharedConfig.moreMenuDataSource else { return }
+        guard let dataSource = TUIConversationConfig.shared.moreMenuDataSource else { return }
         let flag = dataSource.conversationShouldHideItemsInMoreMenu(cellData)
         hideDeleteAction = ((flag.rawValue & TUIConversationItemInMoreMenu.Delete.rawValue) != 0)
         hideMarkReadAction = ((flag.rawValue & TUIConversationItemInMoreMenu.MarkRead.rawValue) != 0)

@@ -94,17 +94,17 @@ public class TUIConversationCell: UITableViewCell {
         self.convData = convData
         
         titleLabel.textColor = TUISwift.timCommonDynamicColor("form_title_color", defaultColor: "#000000")
-        if let cellTitleLabelFont = TUIConversationConfig.sharedConfig.cellTitleLabelFont {
+        if let cellTitleLabelFont = TUIConversationConfig.shared.cellTitleLabelFont {
             titleLabel.font = cellTitleLabelFont
         }
         
         subTitleLabel.attributedText = convData.subTitle
-        if let cellSubtitleLabelFont = TUIConversationConfig.sharedConfig.cellSubtitleLabelFont {
+        if let cellSubtitleLabelFont = TUIConversationConfig.shared.cellSubtitleLabelFont {
             subTitleLabel.font = cellSubtitleLabelFont
         }
         
         timeLabel.text = TUITool.convertDate(toStr: convData.time)
-        if let cellTimeLabelFont = TUIConversationConfig.sharedConfig.cellTimeLabelFont {
+        if let cellTimeLabelFont = TUIConversationConfig.shared.cellTimeLabelFont {
             timeLabel.font = cellTimeLabelFont
         }
         
@@ -277,7 +277,7 @@ public class TUIConversationCell: UITableViewCell {
             notDisturbRedDot.isHidden = true
             notDisturbView.isHidden = true
             unReadView.setNum(convData.unreadCount)
-            unReadView.isHidden = convData.unreadCount == 0 ? true : !TUIConversationConfig.sharedConfig.showCellUnreadCount
+            unReadView.isHidden = convData.unreadCount == 0 ? true : !TUIConversationConfig.shared.showCellUnreadCount
         }
         
         if convData.isMarkAsUnread {
@@ -285,7 +285,7 @@ public class TUIConversationCell: UITableViewCell {
                 notDisturbRedDot.isHidden = false
             } else {
                 unReadView.setNum(1)
-                unReadView.isHidden = !TUIConversationConfig.sharedConfig.showCellUnreadCount
+                unReadView.isHidden = !TUIConversationConfig.shared.showCellUnreadCount
             }
         }
         
@@ -304,9 +304,9 @@ public class TUIConversationCell: UITableViewCell {
         mm_h = height
         
         if convData?.isOnTop == true {
-            contentView.backgroundColor = TUIConversationConfig.sharedConfig.pinnedCellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_top_bg_color", defaultColor: "#F4F4F4")
+            contentView.backgroundColor = TUIConversationConfig.shared.pinnedCellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_top_bg_color", defaultColor: "#F4F4F4")
         } else {
-            contentView.backgroundColor = TUIConversationConfig.sharedConfig.cellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_bg_color", defaultColor: "#FFFFFF")
+            contentView.backgroundColor = TUIConversationConfig.shared.cellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_bg_color", defaultColor: "#FFFFFF")
         }
         
         let selectedIconSize: CGFloat = 20

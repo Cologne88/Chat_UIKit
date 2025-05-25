@@ -1,10 +1,10 @@
 import Foundation
 import UIKit
 
-typealias TUIInputMoreCallback = (_ param: [AnyHashable: Any]) -> Void
-class TUIInputMoreCellData: NSObject {
-    var image: UIImage?
-    var title: String?
-    var onClicked: TUIInputMoreCallback?
-    var priority: Int = 0
+public typealias TUIInputMoreCallback = (_ param: [AnyHashable: Any]) -> Void
+public class TUIInputMoreCellData: NSObject {
+    public var image: UIImage?
+    public var title: String?
+    public var onClicked: TUIInputMoreCallback?
+    public var priority: Int = 0
 }

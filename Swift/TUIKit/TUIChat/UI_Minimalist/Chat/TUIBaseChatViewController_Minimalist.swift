@@ -413,7 +413,7 @@ public class TUIBaseChatViewController_Minimalist: UIViewController, TUIBaseMess
         conversationData.enableRecordVideo = !(tag.contains(TUIChatInputBarMoreMenuItem.recordVideo))
         conversationData.enableWelcomeCustomMessage = !(tag.contains(TUIChatInputBarMoreMenuItem.customMessage))
 
-        if let items = dataSource.shouldAddNewItems(of: conversationData) {
+        if let items = dataSource.shouldAddNewItemsToMoreList(of: conversationData) {
             conversationData.customizedNewItemsInMoreMenu = items
         }
     }

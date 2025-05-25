@@ -218,7 +218,7 @@ public class TUIConversationListController: UIViewController, UIGestureRecognize
     }
 
     func setupViews() {
-        view.backgroundColor = TUIConversationConfig.sharedConfig.listBackgroundColor ??
+        view.backgroundColor = TUIConversationConfig.shared.listBackgroundColor ??
             TUISwift.tuiConversationDynamicColor("conversation_bg_color", defaultColor: "#FFFFFF")
         viewHeight = view.frame.height
 

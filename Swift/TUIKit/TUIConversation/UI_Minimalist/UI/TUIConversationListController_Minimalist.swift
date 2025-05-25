@@ -115,7 +115,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
     }
     
     func setupViews() {
-        view.backgroundColor = TUIConversationConfig.sharedConfig.listBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_bg_color", defaultColor: "#FFFFFF")
+        view.backgroundColor = TUIConversationConfig.shared.listBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_bg_color", defaultColor: "#FFFFFF")
         let rect = view.bounds
         tableView = UITableView(frame: rect)
         tableView.tableFooterView = UIView()
@@ -824,7 +824,7 @@ public class TUIConversationListController_Minimalist: UIViewController, UITable
         var hideDelete = false
         var customizedItems: [UIAlertAction] = []
         
-        if let dataSource = TUIConversationConfig.sharedConfig.moreMenuDataSource {
+        if let dataSource = TUIConversationConfig.shared.moreMenuDataSource {
             let flag = dataSource.conversationShouldHideItemsInMoreMenu(cellData)
             hideHide = ((flag.rawValue & TUIConversationItemInMoreMenu.Hide.rawValue) != 0)
             hidePin = ((flag.rawValue & TUIConversationItemInMoreMenu.Pin.rawValue) != 0)

@@ -22,17 +22,17 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
         self.convData = convData
         
         titleLabel.textColor = TUISwift.tuiDynamicColor("", themeModule: TUIThemeModule.core_Minimalist, defaultColor: "#000000")
-        if let cellTitleLabelFont = TUIConversationConfig.sharedConfig.cellTitleLabelFont {
+        if let cellTitleLabelFont = TUIConversationConfig.shared.cellTitleLabelFont {
             titleLabel.font = cellTitleLabelFont
         }
         
         subTitleLabel.attributedText = convData.subTitle
-        if let cellSubtitleLabelFont = TUIConversationConfig.sharedConfig.cellSubtitleLabelFont {
+        if let cellSubtitleLabelFont = TUIConversationConfig.shared.cellSubtitleLabelFont {
             subTitleLabel.font = cellSubtitleLabelFont
         }
         
         timeLabel.text = TUITool.convertDate(toStr: convData.time)
-        if let cellTimeLabelFont = TUIConversationConfig.sharedConfig.cellTimeLabelFont {
+        if let cellTimeLabelFont = TUIConversationConfig.shared.cellTimeLabelFont {
             timeLabel.font = cellTimeLabelFont
         }
         
@@ -152,7 +152,7 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
             notDisturbRedDot.isHidden = true
             notDisturbView.isHidden = true
             unReadView.setNum(convData.unreadCount)
-            unReadView.isHidden = convData.unreadCount == 0 ? true : !TUIConversationConfig.sharedConfig.showCellUnreadCount
+            unReadView.isHidden = convData.unreadCount == 0 ? true : !TUIConversationConfig.shared.showCellUnreadCount
         }
         
         if convData.isMarkAsUnread {
@@ -160,7 +160,7 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
                 notDisturbRedDot.isHidden = false
             } else {
                 unReadView.setNum(1)
-                unReadView.isHidden = !TUIConversationConfig.sharedConfig.showCellUnreadCount
+                unReadView.isHidden = !TUIConversationConfig.shared.showCellUnreadCount
             }
         }
         
@@ -217,9 +217,9 @@ class TUIConversationCell_Minimalist: TUIConversationCell {
         let imgHeight = height - 2 * TUISwift.kScale390(12)
         
         if convData.isOnTop {
-            contentView.backgroundColor = TUIConversationConfig.sharedConfig.pinnedCellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_top_bg_color", defaultColor: "#F4F4F4")
+            contentView.backgroundColor = TUIConversationConfig.shared.pinnedCellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_top_bg_color", defaultColor: "#F4F4F4")
         } else {
-            contentView.backgroundColor = TUIConversationConfig.sharedConfig.cellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_bg_color", defaultColor: "#FFFFFF")
+            contentView.backgroundColor = TUIConversationConfig.shared.cellBackgroundColor ?? TUISwift.tuiConversationDynamicColor("conversation_cell_bg_color", defaultColor: "#FFFFFF")
         }
         
         let selectedIconSize: CGFloat = 20

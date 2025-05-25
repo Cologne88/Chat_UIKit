@@ -505,7 +505,7 @@ public class TUIBaseChatViewController: UIViewController, TUIBaseMessageControll
         conversationData.enableRecordVideo = !(tag.contains(TUIChatInputBarMoreMenuItem.recordVideo))
         conversationData.enableWelcomeCustomMessage = !(tag.contains(TUIChatInputBarMoreMenuItem.customMessage))
 
-        if let items = dataSource.shouldAddNewItems(of: conversationData) {
+        if let items = dataSource.shouldAddNewItemsToMoreMenu(of: conversationData) {
             conversationData.customizedNewItemsInMoreMenu = items
         }
     }

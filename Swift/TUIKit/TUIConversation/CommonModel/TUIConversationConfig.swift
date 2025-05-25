@@ -1,13 +1,18 @@
 import Foundation
 import TUICore
 
-public enum TUIConversationItemInMoreMenu: UInt {
-    case None = 0
-    case Delete = 1
-    case MarkRead = 2
-    case Hide = 4
-    case Pin = 8
-    case Clear = 16
+public struct TUIConversationItemInMoreMenu: OptionSet {
+    public let rawValue: Int
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
+
+    public static let None = TUIConversationItemInMoreMenu([])
+    public static let Delete = TUIConversationItemInMoreMenu(rawValue: 1 << 0)
+    public static let MarkRead = TUIConversationItemInMoreMenu(rawValue: 1 << 1)
+    public static let Hide = TUIConversationItemInMoreMenu(rawValue: 1 << 2)
+    public static let Pin = TUIConversationItemInMoreMenu(rawValue: 1 << 3)
+    public static let Clear = TUIConversationItemInMoreMenu(rawValue: 1 << 4)
 }
 
 public protocol TUIConversationConfigDataSource: AnyObject {
@@ -27,12 +32,11 @@ public extension TUIConversationConfigDataSource {
 }
 
 public class TUIConversationConfig: NSObject {
-    
-    public static let sharedConfig: TUIConversationConfig = {
+    public static let shared: TUIConversationConfig = {
         let config = TUIConversationConfig()
         return config
     }()
-    
+
     /**
      *  DataSource of more menu.
      */
@@ -83,6 +87,7 @@ public class TUIConversationConfig: NSObject {
             TUIConfig.default().avatarCornerRadius = newValue
         }
     }
+
     /**
      *  Display user's online status icon in conversation and contact list.
      *  The default value is NO.
