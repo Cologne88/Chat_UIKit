@@ -7,15 +7,19 @@ target 'TUIKitDemo' do
   use_frameworks!
   use_modular_headers!
   # Pods for Example
+  pod 'TIMAppKit_Swift', :path => "../TUIKit/TIMAppKit"
   pod 'TUICore', :path => "../TUIKit/TUICore"
   pod 'TIMCommon_Swift', :path => "../TUIKit/TIMCommon"
   pod 'TUIChat_Swift', :path => "../TUIKit/TUIChat"
   pod 'TUIConversation_Swift', :path => "../TUIKit/TUIConversation"
   pod 'TUIContact_Swift', :path => "../TUIKit/TUIContact"
-  pod 'TIMAppKit_Swift', :path => "../TUIKit/TIMAppKit"
+  pod 'TUISearch_Swift', :path => "../TUIKit/TUISearch"
   pod 'TUITranslationPlugin_Swift', :path => "../TUIKit/TUITranslationPlugin"
   pod 'TUIVoiceToTextPlugin_Swift', :path => "../TUIKit/TUIVoiceToTextPlugin"
-  pod 'TUISearch_Swift', :path => "../TUIKit/TUISearch"
+  pod 'TUIConversationGroupPlugin_Swift', '8.5.6870'
+  pod 'TUIConversationMarkPlugin_Swift', '8.5.6870'
+  pod 'TUIPollPlugin_Swift', '8.5.6870'
+  pod 'TUIGroupNotePlugin_Swift', '8.5.6870'
   pod 'TXIMSDK_Plus_iOS_XCFramework', '8.5.6870'
   pod 'TUICallKit_Swift/Professional'
   pod 'TXLiteAVSDK_Professional', '~> 12.2.16945'
