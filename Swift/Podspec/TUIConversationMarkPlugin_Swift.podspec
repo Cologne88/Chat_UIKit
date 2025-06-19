@@ -1,0 +1,28 @@
+Pod::Spec.new do |spec|
+    spec.name         = 'TUIConversationMarkPlugin_Swift'
+    spec.module_name  = 'TUIConversationMarkPlugin'
+    spec.version      = '8.6.7019'
+    spec.platform     = :ios 
+    spec.ios.deployment_target = '10.0'
+    spec.license      = { :type => 'Proprietary',
+        :text => <<-LICENSE
+          copyright 2017 tencent Ltd. All rights reserved.
+          LICENSE
+         }
+    spec.homepage     = 'https://cloud.tencent.com/document/product/269/3794'
+    spec.documentation_url = 'https://cloud.tencent.com/document/product/269/9147'
+    spec.authors      = 'tencent video cloud'
+    spec.summary      = 'TUIConversationMarkPlugin_Swift'
+    
+    spec.requires_arc = true
+  
+    spec.source = { :http => 'https://im.sdk.cloud.tencent.cn/download/tuiplugin/8.6.7019/ios/TUIConversationMarkPlugin_Swift_8.6.7019.xcframework.zip'}
+
+    spec.vendored_frameworks = 'TUIConversationMarkPlugin.xcframework'
+    spec.resource_bundle = {
+      "#{spec.module_name}_Privacy" => '**/TUIConversationMarkPlugin.xcframework/ios-arm64/TUIConversationMarkPlugin.framework/PrivacyInfo.xcprivacy'
+    }
+
+end
+
+# pod trunk push TUIConversationMarkPlugin.podspec --use-libraries --allow-warnings

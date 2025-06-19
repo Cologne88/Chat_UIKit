@@ -4,7 +4,7 @@ class TUIMemberCell: TUICommonTableViewCell {
     private var cellData: TUIMemberCellData?
 
     private let avatarView: UIImageView = {
-        let imageView = UIImageView(image: defaultAvatarImage)
+        let imageView = UIImageView(image: TUISwift.defaultAvatarImage())
         return imageView
     }()
 
@@ -47,7 +47,7 @@ class TUIMemberCell: TUICommonTableViewCell {
         }
 
         titleLabel.text = cellData.title
-        avatarView.sd_setImage(with: cellData.avatarUrl, placeholderImage: defaultAvatarImage)
+        avatarView.sd_setImage(with: cellData.avatarUrl, placeholderImage: TUISwift.defaultAvatarImage())
         detailLabel.isHidden = cellData.detail?.count == 0
         detailLabel.text = cellData.detail
 

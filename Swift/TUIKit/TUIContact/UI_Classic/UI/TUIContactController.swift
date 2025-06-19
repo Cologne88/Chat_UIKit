@@ -2,7 +2,7 @@ import TIMCommon
 import TUICore
 import UIKit
 
-protocol TUIContactControllerListener: NSObjectProtocol {
+public protocol TUIContactControllerListener: NSObjectProtocol {
     func onSelectFriend(_ cell: TUICommonContactCell) -> Bool
     func onAddNewFriend(_ cell: TUICommonTableViewCell) -> Bool
     func onGroupConversation(_ cell: TUICommonTableViewCell) -> Bool

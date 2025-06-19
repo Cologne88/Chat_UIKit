@@ -50,6 +50,9 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
     convenience init(hasEmojiView: Bool, frame: CGRect) {
         self.init(frame: frame)
         self.hasEmojiView = hasEmojiView
+        if isAddEmojiView() {
+            emojiHeight = kEmojiHeight
+        }
     }
     
     override init(frame: CGRect) {
@@ -69,10 +72,6 @@ public class TUIChatPopMenu: UIView, UIGestureRecognizerDelegate, V2TIMAdvancedM
         pan.delegate = self
         addGestureRecognizer(tap)
         addGestureRecognizer(pan)
-        
-        if isAddEmojiView() {
-            emojiHeight = kEmojiHeight
-        }
         
         NotificationCenter.default.addObserver(self, selector: #selector(hideWithAnimation), name:
             Notification.Name("kTUIChatPopMenuWillHideNotification"), object: nil)

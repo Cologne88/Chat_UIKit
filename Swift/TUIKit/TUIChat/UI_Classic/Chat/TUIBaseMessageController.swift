@@ -441,25 +441,26 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
 
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: "kTUINotifyMessageStatusChanged"), object: nil, userInfo: ["msg": msg, "status": status.rawValue, "msgSender": self])
     }
-    
+
     @objc func onReceivedInsertMessageWithoutUpdateUIRequest(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let message = userInfo["message"] as? V2TIMMessage,
-              let isNeedScrollToBottom = userInfo["needScrollToBottom"] as? String else {
+              let isNeedScrollToBottom = userInfo["needScrollToBottom"] as? String
+        else {
             return
         }
         guard let messageDataProvider = messageDataProvider else { return }
-        
+
         let newUIMsgs = messageDataProvider.transUIMsgFromIMMsg([message])
         guard !newUIMsgs.isEmpty else {
             return
         }
-        
+
         let newUIMsg = newUIMsgs.first!
         weak var weakSelf = self
         messageDataProvider.preProcessMessage([newUIMsg]) {
             guard let self = weakSelf else { return }
-            
+
             UIView.performWithoutAnimation {
                 self.tableView.beginUpdates()
                 autoreleasepool {
@@ -472,7 +473,7 @@ public class TUIBaseMessageController: UITableViewController, TUIMessageCellDele
                     }
                 }
                 self.tableView.endUpdates()
-                
+
                 if isNeedScrollToBottom == "1" {
                     self.scrollToBottom(true)
                 }

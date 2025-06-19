@@ -2,7 +2,7 @@ import TIMCommon
 import TUICore
 import UIKit
 
-class TUICommonContactCell: TUICommonTableViewCell {
+public class TUICommonContactCell: TUICommonTableViewCell {
     let avatarView = UIImageView(image: TUISwift.defaultAvatarImage())
     let titleLabel = UILabel()
     let onlineStatusIcon = UIImageView()
@@ -27,13 +27,13 @@ class TUICommonContactCell: TUICommonTableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    override func prepareForReuse() {
+    override public func prepareForReuse() {
         super.prepareForReuse()
         displayOnlineStatusIconObservation?.invalidate()
         displayOnlineStatusIconObservation = nil
     }
     
-    override func fill(with data: TUICommonCellData) {
+    override public func fill(with data: TUICommonCellData) {
         super.fill(with: data)
         
         guard let contactData = data as? TUICommonContactCellData else { return }
@@ -61,11 +61,11 @@ class TUICommonContactCell: TUICommonTableViewCell {
         layoutIfNeeded()
     }
     
-    override class var requiresConstraintBasedLayout: Bool {
+    override public class var requiresConstraintBasedLayout: Bool {
         return true
     }
     
-    override func updateConstraints() {
+    override public func updateConstraints() {
         super.updateConstraints()
         let imgWidth = TUISwift.kScale390(34)
         

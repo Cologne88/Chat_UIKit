@@ -37,8 +37,8 @@ public class TUIConversationCellData: TUICommonCellData {
     public var lastMessage: V2TIMMessage?
     public var innerConversation: V2TIMConversation?
 
-    @objc dynamic var title: String?
-    @objc dynamic var faceUrl: String?
+    @objc public dynamic var title: String?
+    @objc public dynamic var faceUrl: String?
 
     override public required init() {
         super.init()

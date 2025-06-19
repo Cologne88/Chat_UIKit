@@ -10,7 +10,7 @@ import ImSDK_Plus
 import TIMCommon
 import UIKit
 
-class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDelegate {
+public class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDelegate {
     var friendProfile: V2TIMFriendInfo?
     private var dataList: [[Any]] = []
     private var modified = false
@@ -32,7 +32,7 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func viewDidLoad() {
+    override public func viewDidLoad() {
         super.viewDidLoad()
         addLongPressGesture()
 
@@ -339,35 +339,35 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
 
     // MARK: - UITableViewDataSource
 
-    override func numberOfSections(in tableView: UITableView) -> Int {
+    override public func numberOfSections(in tableView: UITableView) -> Int {
         return dataList.count
     }
 
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return dataList[section].count
     }
 
-    override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+    override public func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let view = UIView()
         view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
         return view
     }
 
-    override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
+    override public func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
         let view = UIView()
         view.backgroundColor = TUISwift.timCommonDynamicColor("controller_bg_color", defaultColor: "#F2F3F5")
         return view
     }
 
-    override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+    override public func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         return section == 0 ? 0 : 10
     }
 
-    override func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+    override public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
         return 0
     }
 
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let data = dataList[indexPath.section][indexPath.row]
         if let data = data as? TUICommonContactProfileCardCellData {
             if let cell = tableView.dequeueReusableCell(withIdentifier: "CardCell", for: indexPath) as? TUICommonContactProfileCardCell {
@@ -392,12 +392,12 @@ class TUIFriendProfileController: UITableViewController, TUIContactProfileCardDe
         return UITableViewCell()
     }
 
-    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+    override public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         let data = dataList[indexPath.section][indexPath.row] as! TUICommonCellData
         return data.height(ofWidth: TUISwift.screen_Width())
     }
 
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    override public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // Handle row selection
     }
 

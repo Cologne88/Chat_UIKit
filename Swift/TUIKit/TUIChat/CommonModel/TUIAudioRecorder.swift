@@ -3,7 +3,7 @@ import Foundation
 import TIMCommon
 import TUICore
 
-@objc protocol TUIAudioRecorderDelegate: NSObjectProtocol {
+@objc public protocol TUIAudioRecorderDelegate: NSObjectProtocol {
     @objc optional func didCheckPermission(_ recorder: TUIAudioRecorder, _ isGranted: Bool, _ isFirstTime: Bool)
     @objc optional func didPowerChanged(_ recorder: TUIAudioRecorder, _ power: Float)
     @objc optional func didRecordTimeChanged(_ recorder: TUIAudioRecorder, _ time: TimeInterval)
@@ -11,7 +11,7 @@ import TUICore
 
 // public typealias TUICallServiceResultCallback = (Int32, String, [AnyHashable: Any]?) -> Void
 
-class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtocol {
+public class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtocol {
     public weak var delegate: TUIAudioRecorderDelegate?
     public private(set) var recordedFilePath: String = ""
     
@@ -20,7 +20,7 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
     private var isUsingCallKitRecorder = false
     private var currentRecordTime: TimeInterval = 0
     
-    override init() {
+    override public init() {
         super.init()
         configNotify()
     }
@@ -35,7 +35,7 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
     
     // MARK: - Public Methods
 
-    func record() {
+    public func record() {
         checkMicPermission { [weak self] isGranted, isFirstCheck in
             guard let self = self else { return }
             if TUILogin.getCurrentBusinessScene() != .None {
@@ -56,7 +56,7 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
         }
     }
     
-    func stop() {
+    public func stop() {
         stopRecordTimer()
         if isUsingCallKitRecorder {
             stopCallKitRecording()
@@ -65,7 +65,7 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
         }
     }
     
-    func cancel() {
+    public func cancel() {
         stopRecordTimer()
         if isUsingCallKitRecorder {
             stopCallKitRecording()
@@ -237,7 +237,7 @@ class TUIAudioRecorder: NSObject, AVAudioRecorderDelegate, TUINotificationProtoc
     
     // MARK: - TUINotificationProtocol
     
-    func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
+    public func onNotifyEvent(_ key: String, subKey: String, object anObject: Any?, param: [AnyHashable: Any]?) {
         guard key == "TUICore_RecordAudioMessageNotify", let param = param else {
             print("TUICallKit notify param is invalid")
             return
