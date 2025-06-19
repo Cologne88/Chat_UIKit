@@ -19,19 +19,19 @@ TUIKit is a UI component library based on Tencent Chat SDK. It provides universa
 <img src="https://qcloudimg.tencent-cloud.cn/raw/9c893f1a9c6368c82d44586907d5293d.png" style="zoom:80%;"/>
 
 ## 8.6.7019 @2025.05.28 - Enhanced Version
-SDK
-Push SDK supports multilingual internationalization.
-Push SDK supports Meizu message categorization.
-Cloud group search now returns join options and invitation options.
-Cloud group member search now returns member avatars.
-iOS platform introduces Swift version of UIKit.
-Upgraded QUIC plugin to support iOS simulator.
-Enhanced OC SDK with Swift Optional property support.
-Optimized long-connection IP freeze strategy with channel type added.
-Fixed occasional issue where push-only accounts triggered IM commands.
-Fixed missing device model setting in Flutter SDK on Android.
-Fixed callback thread inconsistency when Flutter SDK coexists with RoomKit.
-Fixed occasional callback conflicts between Flutter SDK and RoomEngine.
+### SDK
+- Push SDK supports multilingual internationalization.
+- Push SDK supports Meizu message categorization.
+- Cloud group search now returns join options and invitation options.
+- Cloud group member search now returns member avatars.
+- iOS platform introduces Swift version of UIKit.
+- Upgraded QUIC plugin to support iOS simulator.
+- Enhanced OC SDK with Swift Optional property support.
+- Optimized long-connection IP freeze strategy with channel type added.
+- Fixed occasional issue where push-only accounts triggered IM commands.
+- Fixed missing device model setting in Flutter SDK on Android.
+- Fixed callback thread inconsistency when Flutter SDK coexists with RoomKit.
+- Fixed occasional callback conflicts between Flutter SDK and RoomEngine.
 
 ## 8.4.6667 @2025.01.15 - Enhanced Version
 ### SDK
