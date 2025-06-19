@@ -18,42 +18,18 @@ TUIKit is a UI component library based on Tencent Chat SDK. It provides universa
 
 <img src="https://qcloudimg.tencent-cloud.cn/raw/9c893f1a9c6368c82d44586907d5293d.png" style="zoom:80%;"/>
 
-## 8.6.7019 @2025.05.28 - Enhanced Version
-### SDK
+## Changelog
+### 8.6.7019 @2025.05.28 - Enhanced Version
+**SDK**
 - Push SDK supports multilingual internationalization.
 - Push SDK supports Meizu message categorization.
 - Cloud group search now returns join options and invitation options.
 - Cloud group member search now returns member avatars.
-- iOS platform introduces Swift version of UIKit.
+- **iOS platform introduces Swift version of UIKit**.
 - Upgraded QUIC plugin to support iOS simulator.
-- Enhanced OC SDK with Swift Optional property support.
+- **Enhanced OC SDK with Swift Optional property support**.
 - Optimized long-connection IP freeze strategy with channel type added.
 - Fixed occasional issue where push-only accounts triggered IM commands.
 - Fixed missing device model setting in Flutter SDK on Android.
 - Fixed callback thread inconsistency when Flutter SDK coexists with RoomKit.
 - Fixed occasional callback conflicts between Flutter SDK and RoomEngine.
-
-## 8.4.6667 @2025.01.15 - Enhanced Version
-### SDK
-- Support searching for group data in the cloud.
-- Support searching for user data in the cloud.
-- Support searching for group member data in the cloud.
-- The community supports setting private topics.
-- Pure push messages support offline storage.
-- Honor's offline push supports message categorization.
-- iOS offline push supports background silent push.
-- iOS push supports setting the interruption level.
-- Self-developed high-performance and highly reliable local KV component.
-- Optimize the local cache policy of the log module.
-- IMSDK supports blocking Tencent package names.
-- Upgrade the SSO connection IP address of the India site.
-- Support SSO to configure the long - polling interval of live broadcast group owners.
-- Optimize the topic data pulling logic and directly return when there is no network connection.
-- Fix an occasional failure in sending @messages to all members in a group by the HarmonyOS SDK.
-- Fix an occasional failure in setting global message Do - Not - Disturb by the HarmonyOS SDK.
-
-### Note:
-**Local sensitive word detection is no longer supported.**
-
-### TUIKit & Demo
-- TUIKit removes the TUIGroup component.
