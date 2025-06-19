@@ -16,7 +16,7 @@ Build real-time social messaging capabilities with all the features into your ap
 
 TUIKit is a UI component library based on Tencent Chat SDK. It provides universal UI components to offer features such as conversation, chat, search, relationship chain, group, and audio/video call features.
 
-<img src="https://qcloudimg.tencent-cloud.cn/raw/9c893f1a9c6368c82d44586907d5293d.png" style="zoom:80%;"/>
+<img src=https://qcloudimg.tencent-cloud.cn/raw/9c893f1a9c6368c82d44586907d5293d.png width=70% />
 
 ## Changelog
 ### 8.6.7019 @2025.05.28 - Enhanced Version
