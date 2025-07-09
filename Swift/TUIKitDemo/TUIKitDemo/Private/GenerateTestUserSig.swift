@@ -30,9 +30,6 @@ let EXPIRETIME = 604800
 
 class GenerateTestUserSig {
     static func currentSDKAppid() -> UInt {
-        if !TCLoginModel.sharedInstance.isDirectlyLoginSDK {
-            return UInt(TCLoginModel.sharedInstance.SDKAppID)
-        }
         return UInt(public_SDKAPPID)
     }
 
