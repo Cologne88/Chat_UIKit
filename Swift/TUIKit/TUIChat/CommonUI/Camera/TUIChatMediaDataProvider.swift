@@ -1,4 +1,3 @@
-import AssetsLibrary
 import AVFoundation
 import Foundation
 import MobileCoreServices
@@ -575,23 +574,55 @@ class TUIChatMediaDataProvider: NSObject, PHPickerViewControllerDelegate, UINavi
             try? FileManager.default.removeItem(atPath: filePath)
         }
         let newUrl = Foundation.URL(fileURLWithPath: filePath)
-        let assetLibrary = ALAssetsLibrary()
-        assetLibrary.asset(for: URL, resultBlock: { asset in
-            guard let asset = asset else {
+
+        let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [URL], options: nil)
+        guard let asset = fetchResult.firstObject else {
+            completion(false, nil)
+            return
+        }
+        let resources = PHAssetResource.assetResources(for: asset)
+        guard let resource = resources.first else {
+            completion(false, nil)
+            return
+        }
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true
+
+        FileManager.default.createFile(atPath: filePath, contents: nil, attributes: nil)
+        guard let fileHandle = FileHandle(forWritingAtPath: filePath) else {
+            try? FileManager.default.removeItem(atPath: filePath)
+            completion(false, nil)
+            return
+        }
+
+        PHAssetResourceManager.default().requestData(for: resource, options: options, dataReceivedHandler: { data in
+            if #available(iOS 13.4, *) {
+                try? fileHandle.write(contentsOf: data)
+            } else {
+                fileHandle.write(data)
+            }
+        }, completionHandler: { error in
+            if #available(iOS 13.0, *) {
+                try? fileHandle.close()
+            } else {
+                fileHandle.closeFile()
+            }
+
+            if let error = error {
+                print("Error loading asset data: \(error.localizedDescription)")
+                try? FileManager.default.removeItem(atPath: filePath)
                 completion(false, nil)
                 return
             }
-            let rep = asset.defaultRepresentation()
-            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: Int(rep?.size() ?? 0))
-            let buffered = rep?.getBytes(buffer, fromOffset: 0, length: Int(rep?.size() ?? 0), error: nil) ?? 0
-            let data = Data(bytesNoCopy: buffer, count: buffered, deallocator: .free)
-            let flag = FileManager.default.createFile(atPath: filePath, contents: data, attributes: nil)
+
+            let flag = FileManager.default.fileExists(atPath: filePath)
+            if !flag {
+                try? FileManager.default.removeItem(atPath: filePath)
+            }
             completion(flag, newUrl)
-        }, failureBlock: { _ in
-            completion(false, nil)
         })
     }
-
+    
     private func originURL(with asset: PHAsset, completion: @escaping (Bool, URL?) -> Void) {
         let resources = PHAssetResource.assetResources(for: asset)
         guard !resources.isEmpty else {
