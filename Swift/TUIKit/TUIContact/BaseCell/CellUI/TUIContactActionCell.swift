@@ -2,6 +2,9 @@ import TIMCommon
 import TUICore
 import UIKit
 
+let kContactCellReuseId = "ContactCellReuseId"
+let kContactActionCellReuseId = "ContactActionCellReuseId"
+
 class TUIContactActionCell: TUICommonTableViewCell {
     var readNumObservation: NSKeyValueObservation?
     
