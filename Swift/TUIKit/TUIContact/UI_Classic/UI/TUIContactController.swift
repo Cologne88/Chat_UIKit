@@ -14,9 +14,6 @@ extension TUIContactControllerListener {
     func onGroupConversation(_ cell: TUICommonTableViewCell) -> Bool { return false }
 }
 
-let kContactCellReuseId = "ContactCellReuseId"
-let kContactActionCellReuseId = "ContactActionCellReuseId"
-
 public class TUIContactController: UIViewController, UITableViewDelegate, UITableViewDataSource, V2TIMFriendshipListener, TUIPopViewDelegate {
     weak var delegate: TUIContactControllerListener?
     var tableView: UITableView?
