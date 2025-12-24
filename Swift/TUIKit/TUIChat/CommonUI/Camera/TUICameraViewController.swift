@@ -253,8 +253,8 @@ class TUICameraViewController: UIViewController, AVCaptureVideoDataOutputSampleB
             
             let mode = cameraManager.flashMode(device: activeCamera)
             
-            if let session = session, var deviceInput = deviceInput {
-                deviceInput = cameraManager.switchCamera(session: session, oldInput: deviceInput, newInput: videoInput)
+            if let session = session, let deviceInput = deviceInput {
+                self.deviceInput = cameraManager.switchCamera(session: session, oldInput: deviceInput, newInput: videoInput)
             }
             
             if let videoOutput = videoOutput {
