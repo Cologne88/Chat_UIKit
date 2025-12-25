@@ -1124,6 +1124,10 @@ public class TUIFaceCell: UICollectionViewCell {
                 staticImage = image
             }
             face.image = staticImage
+        } else {
+            face.image = nil
+            staticImage = nil
+            gifImage = nil
         }
 
         defaultLayout()
