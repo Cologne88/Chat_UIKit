@@ -72,7 +72,7 @@ PODS:
     - TIMCommon_Swift
     - TUIChat_Swift
     - TUICore
-  - TXIMSDK_Plus_iOS_XCFramework (8.7.7201)
+  - TXIMSDK_Plus_iOS_XCFramework (8.8.7373)
   - TXLiteAVSDK_Professional (12.4.17856):
     - TXLiteAVSDK_Professional/Professional (= 12.4.17856)
   - TXLiteAVSDK_Professional/Professional (12.4.17856)
@@ -99,7 +99,7 @@ DEPENDENCIES:
   - TUISearch_Swift (from `../TUIKit/TUISearch`)
   - TUITranslationPlugin_Swift (from `../TUIKit/TUITranslationPlugin`)
   - TUIVoiceToTextPlugin_Swift (from `../TUIKit/TUIVoiceToTextPlugin`)
-  - TXIMSDK_Plus_iOS_XCFramework (= 8.7.7201)
+  - TXIMSDK_Plus_iOS_XCFramework (= 8.8.7373)
   - TXLiteAVSDK_Professional (~> 12.4.17856)
 
 SPEC REPOS:
@@ -166,9 +166,9 @@ SPEC CHECKSUMS:
   TUISearch_Swift: 21ff43dd2246a14e2aa206e4092c2a00ea8fadcc
   TUITranslationPlugin_Swift: 0c1219eeb8a4dbc5f6b31553d296d2cbea5fa226
   TUIVoiceToTextPlugin_Swift: a3bd9f3a712ca67708d540279fd7bdefb66926d4
-  TXIMSDK_Plus_iOS_XCFramework: 3b435eae84c639f35ae8dc9c8b92c399a8b0a67f
+  TXIMSDK_Plus_iOS_XCFramework: a99356b102d4c47ee1c60fa91837d7efb0f8f83d
   TXLiteAVSDK_Professional: 888264d7b85945ef9e8166cd9ba61a40928ddb5a
 
-PODFILE CHECKSUM: 48fb585bb2f16449435ede62ed8db587f4972678
+PODFILE CHECKSUM: 3db3c3c8728973dd8a91e5c9c70647f08edaef7a
 
 COCOAPODS: 1.16.2
