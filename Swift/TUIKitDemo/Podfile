@@ -16,7 +16,9 @@ target 'TUIKitDemo' do
   pod 'TUISearch_Swift', :path => "../TUIKit/TUISearch"
   pod 'TUITranslationPlugin_Swift', :path => "../TUIKit/TUITranslationPlugin"
   pod 'TUIVoiceToTextPlugin_Swift', :path => "../TUIKit/TUIVoiceToTextPlugin"
+  pod 'TUITextToVoicePlugin_Swift', :path => "../TUIKit/TUITextToVoicePlugin"
   pod 'TUIEmojiPlugin_Swift', :path => "../TUIKit/TUIEmojiPlugin"
+  pod 'TUIOfficialAccountPlugin_Swift', :path => "../TUIKit/TUIOfficialAccountPlugin"
   pod 'TIMPush', '8.7.7201'
   pod 'TUIConversationGroupPlugin_Swift', '8.7.7201'
   pod 'TUIConversationMarkPlugin_Swift', '8.7.7201'
